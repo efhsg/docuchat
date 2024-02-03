@@ -8,7 +8,7 @@ def upload_pdfs():
     ensure_upload_dir()
     with st.form("upload", clear_on_submit=True):
         files = st.file_uploader(
-            "Choose PDF files",
+            "Select files",
             type=Config.UPLOAD_EXTENSIONS,
             accept_multiple_files=True,
         )
@@ -46,13 +46,20 @@ def save_pdf_file(uploaded_file, file_path):
 
 
 def extract_text(uploaded_file):
+    file_extension = uploaded_file.name.split(".")[-1].lower()
     try:
         with st.spinner(text="Extracting text"):
             st.info(f"File: {uploaded_file.name}")
-            reader = PdfReader(uploaded_file)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() or ""
+            if file_extension == "pdf":
+                reader = PdfReader(uploaded_file)
+                text = "".join(page.extract_text() or "" for page in reader.pages)
+            elif file_extension == "txt":
+                text = uploaded_file.getvalue().decode("utf-8")
+            else:
+                st.warning(
+                    f"File type '{file_extension}' is not supported for text extraction."
+                )
+                return False, ""
             return True, text
     except Exception as e:
         st.error(f"Failed to process '{uploaded_file.name}'. Error: {e}")
