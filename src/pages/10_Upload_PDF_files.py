@@ -9,7 +9,7 @@ class Config:
     TEXT_DIR = os.getenv("TEXT_DIR", UPLOAD_DIR + "/extracted_text")
 
 
-def upload_pdf():
+def upload_pdfs():
     ensure_upload_dir()
     with st.form("upload", clear_on_submit=True):
         files = st.file_uploader(
@@ -19,13 +19,18 @@ def upload_pdf():
         )
 
         upload = st.form_submit_button("Upload")
+
         if upload:
-            if files:
-                for uploaded_file in files:
-                    pdf_file = os.path.join(Config.UPLOAD_DIR, uploaded_file.name)
-                    save_pdf_file(uploaded_file, pdf_file)
-            else:
+            if not files:
                 st.error("No files to upload")
+                return
+
+            for uploaded_file in files:
+                pdf_file_path = os.path.join(Config.UPLOAD_DIR, uploaded_file.name)
+                if os.path.exists(pdf_file_path):
+                    st.warning(f"'{uploaded_file.name}' already exists. File skipped.")
+                    continue
+                save_pdf_file(uploaded_file, pdf_file_path)               
 
 
 def ensure_upload_dir():
@@ -36,12 +41,11 @@ def ensure_upload_dir():
 
 
 def save_pdf_file(uploaded_file, file_path):
-    if not os.path.exists(file_path):
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.read())
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.read())
 
 
-def manage_pdf():
+def manage_pdfs():
     with st.sidebar:
         st.title("Manage files")
 
@@ -54,8 +58,6 @@ def manage_pdf():
             st.session_state["select_all"] = False
 
         with st.form("manage_files", clear_on_submit=True):
-            st.write(files)
-            st.session_state
             file_dict = {
                 file: st.checkbox(file, value=st.session_state["select_all"], key=file)
                 for file in files
@@ -90,5 +92,5 @@ def delete_files(file_dict):
 
 
 if __name__ == "__main__":
-    upload_pdf()
-    manage_pdf()    
+    upload_pdfs()
+    manage_pdfs()
