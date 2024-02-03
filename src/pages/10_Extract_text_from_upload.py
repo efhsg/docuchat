@@ -21,16 +21,23 @@ def upload_pdfs():
                 return
 
             for uploaded_file in files:
-                pdf_file_path = get_pdf_file_path(uploaded_file.name)
-                if os.path.exists(pdf_file_path):
-                    st.warning(f"'{uploaded_file.name}' already exists. File skipped.")
+                if file_already_exists(uploaded_file.name):
+                    st.warning(
+                        f"A file with the name '{uploaded_file.name}' already exists in some format. File skipped."
+                    )
                     continue
+                pdf_file_path = get_pdf_file_path(uploaded_file.name)
                 save_pdf_file(uploaded_file, pdf_file_path)
                 success, text = extract_text(uploaded_file)
                 if not success:
                     delete_file_and_extracted_text(uploaded_file.name, True)
                     continue
                 save_text_file(text, get_text_file_path(uploaded_file.name))
+
+
+def file_already_exists(file_name):
+    base_name = os.path.splitext(file_name)[0]
+    return any(f.startswith(base_name) for f in get_files_upload_dir_by_extension())
 
 
 def ensure_upload_dir():
@@ -47,23 +54,32 @@ def save_pdf_file(uploaded_file, file_path):
 
 def extract_text(uploaded_file):
     file_extension = uploaded_file.name.split(".")[-1].lower()
-    try:
-        with st.spinner(text="Extracting text"):
-            st.info(f"File: {uploaded_file.name}")
-            if file_extension == "pdf":
-                reader = PdfReader(uploaded_file)
-                text = "".join(page.extract_text() or "" for page in reader.pages)
-            elif file_extension == "txt":
-                text = uploaded_file.getvalue().decode("utf-8")
-            else:
-                st.warning(
-                    f"File type '{file_extension}' is not supported for text extraction."
-                )
-                return False, ""
-            return True, text
-    except Exception as e:
-        st.error(f"Failed to process '{uploaded_file.name}'. Error: {e}")
+    extractors = {
+        "pdf": extract_text_from_pdf,
+        "txt": extract_text_from_txt,
+    }
+
+    if file_extension in extractors:
+        try:
+            with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
+                st.info(f"File: {uploaded_file.name}")
+                text = extractors[file_extension](uploaded_file)
+                return True, text
+        except Exception as e:
+            st.error(f"Failed to process '{uploaded_file.name}'. Error: {e}")
+            return False, ""
+    else:
+        st.warning(f"File type '{file_extension}' is not supported.")
         return False, ""
+
+
+def extract_text_from_pdf(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    return "".join(page.extract_text() or "" for page in reader.pages)
+
+
+def extract_text_from_txt(uploaded_file):
+    return uploaded_file.getvalue().decode("utf-8")
 
 
 def save_text_file(text, file_path):
@@ -85,7 +101,7 @@ def manage_pdfs():
     with st.sidebar:
         st.title("Manage files")
 
-        files = get_files_by_extension()
+        files = get_files_upload_dir_by_extension()
         if not files:
             st.write("No files found")
             return
@@ -118,7 +134,7 @@ def manage_pdfs():
         )
 
 
-def get_files_by_extension():
+def get_files_upload_dir_by_extension():
     all_files = os.listdir(Config.UPLOAD_DIR)
     return [
         file for file in all_files if file.lower().endswith(Config.UPLOAD_EXTENSIONS)
