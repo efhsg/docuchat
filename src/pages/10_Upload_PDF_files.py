@@ -45,15 +45,17 @@ def manage_pdf():
     with st.sidebar:
         st.title("Manage files")
 
-        if "select_all" not in st.session_state:
-            st.session_state["select_all"] = False
-
         files = get_files_by_extension()
         if not files:
             st.write("No files found")
             return
 
+        if "select_all" not in st.session_state:
+            st.session_state["select_all"] = False
+
         with st.form("manage_files", clear_on_submit=True):
+            st.write(files)
+            st.session_state
             file_dict = {
                 file: st.checkbox(file, value=st.session_state["select_all"], key=file)
                 for file in files
@@ -89,4 +91,4 @@ def delete_files(file_dict):
 
 if __name__ == "__main__":
     upload_pdf()
-    manage_pdf()
+    manage_pdf()    
