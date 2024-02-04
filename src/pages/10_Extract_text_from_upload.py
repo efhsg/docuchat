@@ -28,7 +28,7 @@ def upload_pdfs():
             for uploaded_file in files:
                 if file_already_exists(uploaded_file.name):
                     st.warning(
-                        f"A file with the name '{uploaded_file.name}' already exists in some format. File skipped."
+                        f"Skipped: '{uploaded_file.name}'. A file already exists in some format"
                     )
                     continue
                 pdf_file_path = get_pdf_file_path(uploaded_file.name)
@@ -73,10 +73,10 @@ def extract_text(uploaded_file):
         try:
             with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
                 text = extractors[file_extension](uploaded_file)
-                st.info(f"Done: {uploaded_file.name}")
+                st.info(f"Done: '{uploaded_file.name}'")
                 return True, text
         except Exception as e:
-            st.error(f"Failed to process '{uploaded_file.name}'. Error: {e}")
+            st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
             return False, ""
     else:
         st.warning(f"File type '{file_extension}' is not supported.")
