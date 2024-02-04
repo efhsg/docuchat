@@ -11,9 +11,14 @@ def upload_pdfs():
             "Select files",
             type=Config.UPLOAD_EXTENSIONS,
             accept_multiple_files=True,
+            disabled=st.session_state["upload_disabled"],
         )
 
-        upload = st.form_submit_button("Upload")
+        upload = st.form_submit_button(
+            "Upload",
+            on_click=lambda: st.session_state.update(upload_disabled=True),
+            disabled=st.session_state["upload_disabled"],
+        )
 
         if upload:
             if not files:
@@ -33,6 +38,11 @@ def upload_pdfs():
                     delete_file_and_extracted_text(uploaded_file.name, True)
                     continue
                 save_text_file(text, get_text_file_path(uploaded_file.name))
+
+    if st.session_state["upload_disabled"]:
+        if st.button("Clear"):
+            st.session_state["upload_disabled"] = False
+            st.rerun()
 
 
 def file_already_exists(file_name):
@@ -62,8 +72,8 @@ def extract_text(uploaded_file):
     if file_extension in extractors:
         try:
             with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
-                st.info(f"File: {uploaded_file.name}")
                 text = extractors[file_extension](uploaded_file)
+                st.info(f"Done: {uploaded_file.name}")
                 return True, text
         except Exception as e:
             st.error(f"Failed to process '{uploaded_file.name}'. Error: {e}")
@@ -169,5 +179,8 @@ if __name__ == "__main__":
         st.session_state["select_all"] = False
     if "delete_extracted_text" not in st.session_state:
         st.session_state["delete_extracted_text"] = False
+    if "upload_disabled" not in st.session_state:
+        st.session_state["upload_disabled"] = False
+
     upload_pdfs()
     manage_pdfs()
