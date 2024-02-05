@@ -1,7 +1,17 @@
 import streamlit as st
 import os
+from PIL import Image
 from Config import Config
 from pypdf import PdfReader
+
+
+image = Image.open("./img/logo_small.png")
+st.set_page_config(
+    page_title="Extract text from uploads",
+    page_icon=image,
+    layout="wide",
+    initial_sidebar_state="auto",
+)
 
 
 def upload_pdfs():
