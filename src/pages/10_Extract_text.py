@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from Config import Config
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 
 def upload_pdfs():
