@@ -1,6 +1,6 @@
 .env
 .venv
-.venv-test
 .vscode/
 src/upload/
-src/__pycache__/
+__pycache__/
+.pytest_cache/

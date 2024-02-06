@@ -1,15 +1,22 @@
 import streamlit as st
 from PIL import Image
 
+from pathlib import Path
+
 
 def home_page():
-    image = Image.open("./img/logo_small.png")
+    current_file_path = Path(__file__).resolve()
+    logo_image_path = str(current_file_path.parent / "img/logo_small.png")
+    image = Image.open(logo_image_path)
+
     st.set_page_config(
         page_title="DocuChat Home",
         page_icon=image,
         layout="wide",
         initial_sidebar_state="auto",
     )
+
+    st.write(logo_image_path)
 
     col1, col2 = st.columns([1, 1])
 
@@ -23,7 +30,7 @@ def home_page():
         )
 
     with col2:
-        st.image("./img/logo_small.png", width=150)  # Adjust width as needed
+        st.image(logo_image_path, width=175)
 
     st.markdown("---")
     st.header("How DocuChat Works")
