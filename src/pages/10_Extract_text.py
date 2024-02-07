@@ -1,7 +1,7 @@
 import streamlit as st
 from PIL import Image
 from Config import Config
-from Extract_text import (
+from components.reader.extract_text import (
     ensure_upload_dir,
     file_already_exists,
     save_pdf_file,

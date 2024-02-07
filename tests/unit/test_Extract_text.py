@@ -1,6 +1,6 @@
 from unittest import TestCase, mock
 from unittest.mock import patch, MagicMock, mock_open
-from Extract_text import (
+from components.reader.extract_text import (
     get_pdf_file_path,
     get_text_file_path,
     ensure_upload_dir,
@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class TestEnsureUploadDir(TestCase):
-    @patch("Extract_text.os.makedirs")
-    @patch("Extract_text.os.path.exists")
-    @patch("Extract_text.Config")
+    @patch("components.reader.extract_text.os.makedirs")
+    @patch("components.reader.extract_text.os.path.exists")
+    @patch("components.reader.extract_text.Config")
     def test_ensure_upload_dir(self, mock_config, mock_exists, mock_makedirs):
         mock_config.UPLOAD_DIR = "/fake/upload/dir"
         mock_config.TEXT_DIR = "/fake/text/dir"
@@ -48,8 +48,8 @@ class TestEnsureUploadDir(TestCase):
 
 
 class TestExtractText(TestCase):
-    @patch("Extract_text.extract_text_from_pdf")
-    @patch("Extract_text.extract_text_from_txt")
+    @patch("components.reader.extract_text.extract_text_from_pdf")
+    @patch("components.reader.extract_text.extract_text_from_txt")
     def test_extract_text_supported_file_types(
         self, mock_extract_txt, mock_extract_pdf
     ):
@@ -87,7 +87,7 @@ class TestExtractText(TestCase):
 
 
 class TestExtractTextFromPDF(TestCase):
-    @patch("Extract_text.PdfReader")
+    @patch("components.reader.extract_text.PdfReader")
     def test_extract_text_from_pdf(self, mock_pdf_reader):
         mock_page = MagicMock()
         mock_page.extract_text.return_value = "Sample text"
@@ -113,8 +113,8 @@ class TestExtractTextFromTXT(TestCase):
 
 
 class TestSaveTextFile(TestCase):
-    @patch("Extract_text.os.path.exists", return_value=False)
-    @patch("Extract_text.open", new_callable=mock_open, create=True)
+    @patch("components.reader.extract_text.os.path.exists", return_value=False)
+    @patch("components.reader.extract_text.open", new_callable=mock_open, create=True)
     def test_save_text_file(self, mock_file_open, mock_exists):
         text = "Sample text"
         file_path = "/fake/path/to/text_file.txt"
@@ -127,7 +127,7 @@ class TestSaveTextFile(TestCase):
 
 
 class FilePathTest(TestCase):
-    @patch("Extract_text.Config")
+    @patch("components.reader.extract_text.Config")
     def test_get_pdf_file_path(self, mock_config):
         mock_config.UPLOAD_DIR = "/fake/upload/dir"
 
@@ -137,7 +137,7 @@ class FilePathTest(TestCase):
         result_path = get_pdf_file_path(file_name)
         self.assertEqual(expected_path, result_path)
 
-    @patch("Extract_text.Config")
+    @patch("components.reader.extract_text.Config")
     def test_get_text_file_path(self, mock_config):
         mock_config.TEXT_DIR = "/fake/text/dir"
         file_name = "document.pdf"
@@ -147,8 +147,8 @@ class FilePathTest(TestCase):
 
 
 class TestGetFilesUploadDirByExtension(TestCase):
-    @patch("Extract_text.os.listdir")
-    @patch("Extract_text.Config")
+    @patch("components.reader.extract_text.os.listdir")
+    @patch("components.reader.extract_text.Config")
     def test_get_files_upload_dir_by_extension(self, mock_config, mock_listdir):
 
         mock_config.UPLOAD_DIR = "/fake/upload/dir"
@@ -168,10 +168,10 @@ class TestGetFilesUploadDirByExtension(TestCase):
 
 
 class TestDeleteFileAndExtractedText(TestCase):
-    @patch("Extract_text.os.remove")
-    @patch("Extract_text.os.path.join")
-    @patch("Extract_text.get_text_file_path")
-    @patch("Extract_text.Config")
+    @patch("components.reader.extract_text.os.remove")
+    @patch("components.reader.extract_text.os.path.join")
+    @patch("components.reader.extract_text.get_text_file_path")
+    @patch("components.reader.extract_text.Config")
     def test_delete_file_and_extracted_text(
         self, mock_config, mock_get_text_file_path, mock_path_join, mock_remove
     ):
@@ -197,7 +197,7 @@ class TestDeleteFileAndExtractedText(TestCase):
 
 
 class TestDeleteFiles(TestCase):
-    @patch("Extract_text.delete_file_and_extracted_text")
+    @patch("components.reader.extract_text.delete_file_and_extracted_text")
     def test_delete_files(self, mock_delete_file_and_extracted_text):
         file_dict = {
             "file1.txt": True,
