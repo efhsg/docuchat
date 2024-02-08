@@ -1,9 +1,6 @@
 from streamlit.testing.v1 import AppTest
-import logging
-
-logger = logging.getLogger(__name__)
 
 
-def test_home_page():
-    at = AppTest.from_file("./src/pages/10_Extract_text.py").run()
+def test_10_Extract_text():
+    at = AppTest.from_file("src/pages/10_Extract_data.py").run()
     assert not at.exception

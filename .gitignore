@@ -1,6 +1,6 @@
 .env
 .venv
 .vscode/
-src/upload/
+data/
 __pycache__/
 .pytest_cache/

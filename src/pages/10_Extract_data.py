@@ -1,30 +1,28 @@
 import streamlit as st
 from PIL import Image
 from Config import Config
-from components.reader.extract_text import (
-    ensure_upload_dir,
-    file_already_exists,
-    save_pdf_file,
-    extract_text,
-    save_text_file,
-    get_pdf_file_path,
+from components.reader.save_text import (
+    ensure_data_dir,
+    extracted_text_already_exists,
+    save_file_to_text,
     get_text_file_path,
-    delete_file_and_extracted_text,
-    get_files_upload_dir_by_extension,
-    delete_files,
+    delete_extracted_text,
+    get_extracted_data,
+    delete_extracted_text_dict,
 )
+from components.reader.extract_text import extract_text
 
 image = Image.open(Config.logo_small_path)
 st.set_page_config(
-    page_title="Extract text from uploads",
+    page_title="Read text from uploads",
     page_icon=image,
     layout="wide",
     initial_sidebar_state="auto",
 )
 
 
-def upload_pdfs():
-    ensure_upload_dir()
+def upload_files():
+    ensure_data_dir()
     with st.form("upload", clear_on_submit=True):
         files = st.file_uploader(
             "Select files",
@@ -45,20 +43,18 @@ def upload_pdfs():
                 return
 
             for uploaded_file in files:
-                if file_already_exists(uploaded_file.name):
+                if extracted_text_already_exists(uploaded_file.name):
                     st.warning(
-                        f"Skipped: '{uploaded_file.name}'. A file already exists in some format."
+                        f"Skipped: '{uploaded_file.name}'. Extract already exist."
                     )
                     continue
-                pdf_file_path = get_pdf_file_path(uploaded_file.name)
-                save_pdf_file(uploaded_file, pdf_file_path)
                 try:
                     with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
                         text = extract_text(uploaded_file)
-                    save_text_file(text, get_text_file_path(uploaded_file.name))
+                    save_file_to_text(text, get_text_file_path(uploaded_file.name))
                     st.info(f"Done: '{uploaded_file.name}'")
                 except Exception as e:
-                    delete_file_and_extracted_text(uploaded_file.name, True)
+                    delete_extracted_text(uploaded_file.name)
                     st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
 
     if st.session_state.get("upload_disabled", False):
@@ -67,11 +63,11 @@ def upload_pdfs():
             st.rerun()
 
 
-def manage_pdfs():
+def manage_extracted_text():
     with st.sidebar:
-        st.title("Manage files")
+        st.title("Manage extracted data")
 
-        files = get_files_upload_dir_by_extension()
+        files = get_extracted_data()
         if not files:
             st.write("No files found")
             return
@@ -84,9 +80,7 @@ def manage_pdfs():
 
             delete = st.form_submit_button("Delete")
             if delete:
-                delete_files(
-                    file_dict, st.session_state.get("delete_extracted_text", False)
-                )
+                delete_extracted_text_dict(file_dict)
                 st.session_state["select_all"] = False
                 st.session_state["upload_disabled"] = False
                 st.rerun()
@@ -99,23 +93,12 @@ def manage_pdfs():
             ),
         )
 
-        st.checkbox(
-            "Also delete extracted text",
-            key="delete_tekst",
-            value=st.session_state["delete_extracted_text"],
-            on_change=lambda: st.session_state.update(
-                delete_extracted_text=not st.session_state["delete_extracted_text"]
-            ),
-        )
-
 
 if __name__ == "__main__":
     if "select_all" not in st.session_state:
         st.session_state["select_all"] = False
-    if "delete_extracted_text" not in st.session_state:
-        st.session_state["delete_extracted_text"] = False
     if "upload_disabled" not in st.session_state:
         st.session_state["upload_disabled"] = False
 
-    upload_pdfs()
-    manage_pdfs()
+    upload_files()
+    manage_extracted_text()

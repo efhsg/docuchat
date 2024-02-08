@@ -15,3 +15,5 @@ services:
       - .env
     volumes:
       - ./src:/src
+      - ./data:/data
+      
