@@ -1,18 +1,18 @@
 import streamlit as st
 from PIL import Image
-from Config import Config
+from config import Config
 from components.reader.save_text import (
-    ensure_data_dir,
-    extracted_text_already_exists,
-    save_file_to_text,
-    get_text_file_path,
+    file_already_exists,
+    save_extracted_text,
     delete_extracted_text,
-    get_extracted_data,
+    get_filenames_extracted_text,
     delete_extracted_text_dict,
 )
 from components.reader.extract_text import extract_text
 
-image = Image.open(Config.logo_small_path)
+config_instance = Config()
+
+image = Image.open(config_instance.logo_small_path)
 st.set_page_config(
     page_title="Read text from uploads",
     page_icon=image,
@@ -22,7 +22,6 @@ st.set_page_config(
 
 
 def upload_files():
-    ensure_data_dir()
     with st.form("upload", clear_on_submit=True):
         files = st.file_uploader(
             "Select files",
@@ -43,7 +42,7 @@ def upload_files():
                 return
 
             for uploaded_file in files:
-                if extracted_text_already_exists(uploaded_file.name):
+                if file_already_exists(uploaded_file.name):
                     st.warning(
                         f"Skipped: '{uploaded_file.name}'. Extract already exist."
                     )
@@ -51,7 +50,7 @@ def upload_files():
                 try:
                     with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
                         text = extract_text(uploaded_file)
-                    save_file_to_text(text, get_text_file_path(uploaded_file.name))
+                    save_extracted_text(text, uploaded_file.name)
                     st.info(f"Done: '{uploaded_file.name}'")
                 except Exception as e:
                     delete_extracted_text(uploaded_file.name)
@@ -67,7 +66,7 @@ def manage_extracted_text():
     with st.sidebar:
         st.title("Manage extracted data")
 
-        files = get_extracted_data()
+        files = get_filenames_extracted_text()
         if not files:
             st.write("No files found")
             return

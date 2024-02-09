@@ -1,4 +1,3 @@
-from Config import Config
 from pypdf import PdfReader
 
 

@@ -1,19 +1,19 @@
 import streamlit as st
 from PIL import Image
-from Config import Config
+from config import Config
+from database_manager import DatabaseManager
+
+config_instance = Config()
 
 
 def home_page():
-
-    image = Image.open(Config.logo_small_path)
-
+    image = Image.open(config_instance.logo_small_path)
     st.set_page_config(
         page_title="DocuChat Home",
         page_icon=image,
         layout="wide",
         initial_sidebar_state="auto",
     )
-
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -26,7 +26,7 @@ def home_page():
         )
 
     with col2:
-        st.image(Config.logo_small_path, width=175)
+        st.image(config_instance.logo_small_path, width=175)
 
     st.markdown("---")
     st.header("How DocuChat Works")
@@ -53,5 +53,12 @@ def home_page():
     )
 
 
+def setup_db():
+    db_manager = DatabaseManager()
+    db_manager.create_db_and_table()
+
+
 if __name__ == "__main__":
+    config_instance.setup_directories()
+    setup_db()
     home_page()
