@@ -30,13 +30,13 @@ class DatabaseManager:
         )
         self.connection.commit()
 
-    def get_filenames_of_extracted_texts(self):
+    def get_names_of_extracted_texts(self):
         cursor = self.connection.cursor()
         cursor.execute("SELECT name FROM extracted_texts")
         filenames = cursor.fetchall()
         return [filename[0] for filename in filenames]
 
-    def filename_exists(self, name):
+    def name_exists(self, name):
         cursor = self.connection.cursor()
         cursor.execute(
             """

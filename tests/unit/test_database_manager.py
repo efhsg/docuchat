@@ -54,21 +54,21 @@ class TestDatabaseManager(unittest.TestCase):
             "test_file_3.txt",
             "test_file_4.txt",
         ]
-        actual_names = self.db_manager.get_filenames_of_extracted_texts()
+        actual_names = self.db_manager.get_names_of_extracted_texts()
         self.assertListEqual(sorted(actual_names), sorted(expected_names))
 
     def test_name_exists(self):
-        self.assertTrue(self.db_manager.filename_exists("test_file_1.txt"))
-        self.assertTrue(self.db_manager.filename_exists("test_file_2.txt"))
-        self.assertFalse(self.db_manager.filename_exists("nonexistent_file.txt"))
+        self.assertTrue(self.db_manager.name_exists("test_file_1.txt"))
+        self.assertTrue(self.db_manager.name_exists("test_file_2.txt"))
+        self.assertFalse(self.db_manager.name_exists("nonexistent_file.txt"))
 
     def test_delete_extracted_texts_bulk(self):
         names_to_delete = ["test_file_1.txt", "test_file_3.txt"]
         self.db_manager.delete_extracted_texts_bulk(names_to_delete)
         for name in names_to_delete:
-            self.assertFalse(self.db_manager.filename_exists(name))
-        self.assertTrue(self.db_manager.filename_exists("test_file_2.txt"))
-        self.assertTrue(self.db_manager.filename_exists("test_file_4.txt"))
+            self.assertFalse(self.db_manager.name_exists(name))
+        self.assertTrue(self.db_manager.name_exists("test_file_2.txt"))
+        self.assertTrue(self.db_manager.name_exists("test_file_4.txt"))
 
 
 if __name__ == "__main__":
