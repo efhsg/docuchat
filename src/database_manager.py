@@ -9,22 +9,45 @@ class DatabaseManager:
 
     def create_db_and_table(self):
         cursor = self.connection.cursor()
+
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS extracted_texts (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
-                text_content TEXT NOT NULL
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            text TEXT NOT NULL
             )
             """
         )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS knowledge_bases (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+            )
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS knowledge_base_texts (
+            knowledge_base_id INTEGER,
+            extracted_text_id INTEGER,
+            PRIMARY KEY (knowledge_base_id, extracted_text_id),
+            FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE,
+            FOREIGN KEY (extracted_text_id) REFERENCES extracted_texts(id) ON DELETE CASCADE
+            )
+            """
+        )
+
         self.connection.commit()
 
     def save_extracted_text_to_db(self, text, name="extracted_text"):
         cursor = self.connection.cursor()
         cursor.execute(
             """
-            INSERT INTO extracted_texts (name, text_content) VALUES (?, ?)
+            INSERT INTO extracted_texts (name, text) VALUES (?, ?)
             """,
             (name, text),
         )

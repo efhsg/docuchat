@@ -18,7 +18,7 @@ class Config:
 
     @property
     def db_path(self):
-        return self.data_dir / "extracted_texts.db"
+        return self.data_dir / "text_kb.sqlite"
 
     @property
     def logo_small_path(self):

@@ -22,8 +22,8 @@ class TestDatabaseManager(unittest.TestCase):
             ("test_file_3.txt", "This is the third test."),
             ("test_file_4.txt", "This is the fourth test."),
         ]
-        for name, text_content in test_data:
-            self.db_manager.save_extracted_text_to_db(text_content, name)
+        for name, text in test_data:
+            self.db_manager.save_extracted_text_to_db(text, name)
 
     def test_create_db_and_table(self):
         cursor = self.conn.cursor()
@@ -39,7 +39,7 @@ class TestDatabaseManager(unittest.TestCase):
         self.db_manager.save_extracted_text_to_db(test_text, test_name)
         cursor = self.conn.cursor()
         cursor.execute(
-            "SELECT name, text_content FROM extracted_texts WHERE name = ?",
+            "SELECT name, text FROM extracted_texts WHERE name = ?",
             (test_name,),
         )
         result = cursor.fetchone()
