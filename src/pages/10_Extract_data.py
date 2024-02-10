@@ -4,7 +4,6 @@ from config import Config
 from components.reader.save_text import (
     file_already_exists,
     save_extracted_text,
-    delete_extracted_text,
     get_filenames_extracted_text,
     delete_extracted_text_dict,
 )
@@ -53,7 +52,6 @@ def upload_files():
                     save_extracted_text(text, uploaded_file.name)
                     st.info(f"Done: '{uploaded_file.name}'")
                 except Exception as e:
-                    delete_extracted_text(uploaded_file.name)
                     st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
 
     if st.session_state.get("upload_disabled", False):

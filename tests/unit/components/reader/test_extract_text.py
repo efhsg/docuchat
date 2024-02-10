@@ -25,22 +25,18 @@ class TestExtractText(TestCase):
         mock_extract_pdf.return_value = "Extracted PDF content"
         mock_extract_txt.return_value = "Extracted TXT content"
 
-        # Test PDF extraction
         result_pdf = extract_text(mock_uploaded_file_pdf)
         mock_extract_pdf.assert_called_once_with(mock_uploaded_file_pdf)
         self.assertEqual(result_pdf, "Extracted PDF content")
 
-        # Test TXT extraction
         result_txt = extract_text(mock_uploaded_file_txt)
         mock_extract_txt.assert_called_once_with(mock_uploaded_file_txt)
         self.assertEqual(result_txt, "Extracted TXT content")
 
     def test_extract_text_unsupported_file_type(self):
-        # Mock the uploaded_file object with unsupported file extension
         mock_uploaded_file_unsupported = mock.MagicMock()
         mock_uploaded_file_unsupported.name = "test.unsupported"
 
-        # Test unsupported file type raises ValueError
         with self.assertRaises(ValueError) as context:
             extract_text(mock_uploaded_file_unsupported)
 

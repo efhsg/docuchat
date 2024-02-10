@@ -21,18 +21,6 @@ def save_extracted_text(text, filename):
     db_manager.save_extracted_text_to_db(text, filename)
 
 
-def get_text_file_path(file_name):
-    file_name_without_extension = file_name.rsplit(".", 1)[0]
-    return os.path.join(config_instance.data_dir, file_name_without_extension + ".txt")
-
-
-def delete_extracted_text(name):
-    try:
-        os.remove(config_instance.data_dir / name)
-    except FileNotFoundError:
-        pass
-
-
 def delete_extracted_text_dict(file_dict):
     db_manager = DatabaseManager()
     filenames_to_delete = [
