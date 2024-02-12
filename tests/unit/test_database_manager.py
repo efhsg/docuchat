@@ -1,74 +1,206 @@
-import sqlite3
 import unittest
+from unittest.mock import patch, MagicMock
 from database_manager import DatabaseManager
 
 
 class TestDatabaseManager(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.conn = sqlite3.connect(":memory:")
-        cls.db_manager = DatabaseManager(connection=cls.conn)
-        cls.db_manager.create_db_and_table()
+    @patch("database_manager.pymysql.connect")  # Patch where connections are made
+    def test_save_extracted_text_to_db(self, mock_connect):
+        # Mocks with basic structure
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_config = MagicMock()
+        mock_compression_service = MagicMock()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.conn.close()
+        # Configure your mocks
+        mock_connect.return_value = mock_connection
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_compression_service.compress.return_value = b"compressed_data"
 
-    def setUp(self):
-        self.conn.execute("DELETE FROM extracted_texts")
-        test_data = [
-            ("test_file_1.txt", "This is the first test."),
-            ("test_file_2.txt", "This is the second test."),
-            ("test_file_3.txt", "This is the third test."),
-            ("test_file_4.txt", "This is the fourth test."),
-        ]
-        for name, text in test_data:
-            self.db_manager.save_extracted_text_to_db(text, name)
-
-    def test_create_db_and_table(self):
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='extracted_texts'"
+        # Create DatabaseManager instance
+        db_manager = DatabaseManager(
+            config=mock_config,
+            connection=mock_connection,
+            compression_service=mock_compression_service,
         )
-        table_exists = cursor.fetchone()
-        self.assertIsNotNone(table_exists)
 
-    def test_save_extracted_text_to_db(self):
+        # Test Data
         test_name = "unique_test_file.txt"
         test_text = "Unique test text content."
-        self.db_manager.save_extracted_text_to_db(test_text, test_name)
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "SELECT name, text FROM extracted_texts WHERE name = ?",
-            (test_name,),
+
+        # Execute the method
+        db_manager.save_extracted_text_to_db(test_text, test_name)
+
+        query = mock_cursor.execute.call_args[0][0].strip()
+        expected_query = """
+                INSERT INTO extracted_texts (name, text) VALUES (%s, %s)
+                """.strip()
+        assert query == expected_query
+
+        mock_connection.commit.assert_called()
+
+    @patch("database_manager.pymysql.connect")
+    def test_get_text_by_name(self, mock_connect):
+        # Mocks with basic structure
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_config = MagicMock()
+        mock_compression_service = MagicMock()
+
+        # Configure your mocks
+        mock_connect.return_value = mock_connection
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_compression_service.decompress.return_value = (
+            "Decompressed test text content."
         )
-        result = cursor.fetchone()
-        self.assertIsNotNone(result)
-        self.assertEqual(result[0], test_name)
-        self.assertEqual(result[1], test_text)
 
-    def test_get_names_of_extracted_texts(self):
-        expected_names = [
-            "test_file_1.txt",
-            "test_file_2.txt",
-            "test_file_3.txt",
-            "test_file_4.txt",
+        # Simulate database response
+        mock_cursor.fetchone.return_value = {"text": b"compressed_data"}
+
+        # Create DatabaseManager instance
+        db_manager = DatabaseManager(
+            config=mock_config,
+            connection=mock_connection,
+            compression_service=mock_compression_service,
+        )
+
+        # Test Data
+        test_name = "unique_test_file.txt"
+
+        # Execute the method
+        result_text = db_manager.get_text_by_name(test_name)
+
+        # Assert that the decompress method was called with the compressed data
+        mock_compression_service.decompress.assert_called_with(b"compressed_data")
+
+        # Assert the fetched text is as expected
+        self.assertEqual(result_text, "Decompressed test text content.")
+
+        # Assert the correct query was executed
+        mock_cursor.execute.assert_called_with(
+            "SELECT text FROM extracted_texts WHERE name = %s", (test_name,)
+        )
+
+    @patch("database_manager.pymysql.connect")
+    def test_get_names_of_extracted_texts(self, mock_connect):
+        # Mocks with basic structure
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_config = MagicMock()
+
+        # Configure your mocks
+        mock_connect.return_value = mock_connection
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+
+        # Simulate database response with a list of names
+        test_names = [
+            {"name": "file1.txt"},
+            {"name": "file2.txt"},
+            {"name": "file3.txt"},
         ]
-        actual_names = self.db_manager.get_names_of_extracted_texts()
-        self.assertListEqual(sorted(actual_names), sorted(expected_names))
+        mock_cursor.fetchall.return_value = test_names
 
-    def test_name_exists(self):
-        self.assertTrue(self.db_manager.name_exists("test_file_1.txt"))
-        self.assertTrue(self.db_manager.name_exists("test_file_2.txt"))
-        self.assertFalse(self.db_manager.name_exists("nonexistent_file.txt"))
+        # Create DatabaseManager instance
+        db_manager = DatabaseManager(config=mock_config, connection=mock_connection)
 
-    def test_delete_extracted_texts_bulk(self):
-        names_to_delete = ["test_file_1.txt", "test_file_3.txt"]
-        self.db_manager.delete_extracted_texts_bulk(names_to_delete)
-        for name in names_to_delete:
-            self.assertFalse(self.db_manager.name_exists(name))
-        self.assertTrue(self.db_manager.name_exists("test_file_2.txt"))
-        self.assertTrue(self.db_manager.name_exists("test_file_4.txt"))
+        # Execute the method
+        result_names = db_manager.get_names_of_extracted_texts()
+
+        # Assert the fetched names match the test data
+        self.assertListEqual(result_names, [name["name"] for name in test_names])
+
+        # Assert the correct query was executed
+        mock_cursor.execute.assert_called_with("SELECT name FROM extracted_texts")
+
+    @patch("database_manager.pymysql.connect")
+    def test_name_exists(self, mock_connect):
+        # Mocks with basic structure
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_config = MagicMock()
+
+        # Configure your mocks
+        mock_connect.return_value = mock_connection
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+
+        # Scenario 1: Name exists
+        mock_cursor.fetchone.return_value = True  # Simulate finding an entry
+
+        # Create DatabaseManager instance
+        db_manager = DatabaseManager(config=mock_config, connection=mock_connection)
+
+        # Test Data
+        test_name_exists = "existing_file.txt"
+        test_name_not_exists = "non_existing_file.txt"
+
+        # Execute the method for a name that exists
+        result_exists = db_manager.name_exists(test_name_exists)
+        self.assertTrue(result_exists)
+
+        # Adjust mock for a name that does not exist
+        mock_cursor.fetchone.return_value = None  # Simulate not finding an entry
+
+        # Execute the method for a name that does not exist
+        result_not_exists = db_manager.name_exists(test_name_not_exists)
+        self.assertFalse(result_not_exists)
+
+        # Prepare expected calls with whitespace stripped
+        expected_calls = [
+            unittest.mock.call(
+                """
+                SELECT 1 FROM extracted_texts WHERE name = %s LIMIT 1
+                """.strip(),
+                (test_name_exists,),
+            ),
+            unittest.mock.call(
+                """
+                SELECT 1 FROM extracted_texts WHERE name = %s LIMIT 1
+                """.strip(),
+                (test_name_not_exists,),
+            ),
+        ]
+
+        # Actual calls with whitespace stripped for comparison
+        actual_calls = [
+            unittest.mock.call(c.args[0].strip(), *c.args[1:])
+            for c in mock_cursor.execute.call_args_list
+        ]
+
+        # Assert the correct query was executed for both checks
+        self.assertEqual(expected_calls, actual_calls)
+
+    @patch("database_manager.pymysql.connect")
+    def test_delete_extracted_texts_bulk(self, mock_connect):
+        # Mock setup
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_config = MagicMock()
+        mock_connect.return_value = mock_connection
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+
+        # DatabaseManager instance
+        db_manager = DatabaseManager(config=mock_config, connection=mock_connection)
+
+        # Test data
+        names_to_delete = ["file1.txt", "file2.txt", "file3.txt"]
+
+        # Method execution
+        db_manager.delete_extracted_texts_bulk(names_to_delete)
+
+        # Expected SQL command and parameters
+        placeholders = ", ".join(
+            ["%s"] * len(names_to_delete)
+        )  # Adapt number of placeholders
+        expected_query = f"DELETE FROM extracted_texts WHERE name IN ({placeholders})"
+        expected_params = names_to_delete  # Use list if your implementation does so
+
+        # Assertion corrected for formatting and parameter structure
+        actual_query, actual_params = mock_cursor.execute.call_args[0]
+        self.assertEqual(actual_query.strip(), expected_query)
+        self.assertEqual(actual_params, expected_params)
+
+        # Verify commit
+        mock_connection.commit.assert_called_once()
 
 
 if __name__ == "__main__":

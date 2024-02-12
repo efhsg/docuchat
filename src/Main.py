@@ -54,11 +54,10 @@ def home_page():
 
 
 def setup_db():
-    db_manager = DatabaseManager()
+    db_manager = DatabaseManager(config=config_instance)
     db_manager.create_db_and_table()
 
 
 if __name__ == "__main__":
-    config_instance.setup_directories()
     setup_db()
     home_page()

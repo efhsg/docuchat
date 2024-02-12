@@ -37,8 +37,8 @@ def upload_files():
 
         if upload:
             if not files:
-                st.error("No files to upload")
-                return
+                st.session_state["upload_disabled"] = False
+                st.rerun()
 
             for uploaded_file in files:
                 if file_already_exists(uploaded_file.name):

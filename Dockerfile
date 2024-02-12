@@ -29,4 +29,4 @@ RUN adduser --uid $USER_ID --disabled-password --gecos "" $USER_NAME \
 USER $USER_NAME
 
 # Command to run the application
-CMD ["streamlit", "run", "Main.py"]
+CMD ["streamlit", "run", "Main.py", "--server.port", "8502"]

@@ -3,17 +3,35 @@ version: '3.4'
 services:
   docuchat:
     image: docuchat
+    container_name: python_docuchat 
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
         USER_ID: ${USER_ID:-1000}
         USER_NAME: ${USER_NAME:-appuser}
+    environment:
+      - RUNNING_IN_DOCKER=true        
     ports:
-      - "8501:8501"        
+      - "8502:8502"
     env_file:
       - .env
     volumes:
       - ./src:/src
       - ./data:/data
-      
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_docuchat
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - ./db-data:/var/lib/mysql

@@ -1,4 +1,6 @@
 streamlit
+pymysql
 python-dotenv
 pypdf
 pytest
+alembic
