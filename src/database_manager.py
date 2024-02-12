@@ -2,8 +2,13 @@ import pymysql
 from config import Config
 import zlib
 
+from components.logger.logger import Logger
+
 
 class DatabaseManager:
+
+    logger = Logger.get_logger()
+
     def __init__(self, config=None, connection=None, compression_service=None):
         self.config = config or Config()
         self.connection = connection or self.create_connection()
@@ -20,7 +25,7 @@ class DatabaseManager:
             )
         except pymysql.Error as e:
             error_message = f"Failed to connect to MySQL database at '{self.config.db_host}' with user '{self.config.db_user}'. Error: {e}"
-            print(error_message)
+            self.logger.critical(error_message)
             raise pymysql.Error(error_message) from e
 
     def create_db_and_table(self):
@@ -70,7 +75,7 @@ class DatabaseManager:
                 self.connection.commit()
         except Exception as e:
             error_message = f"Failed to save '{name}'. Error: {e}"
-            print(error_message)
+            self.logger.critical(error_message)
             raise pymysql.Error(error_message) from e
 
     def get_text_by_name(self, name):
