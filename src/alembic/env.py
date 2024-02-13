@@ -8,11 +8,10 @@ from alembic import context
 
 from pathlib import Path
 
-project_root = Path(__file__).resolve().parents[1]
+project_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(project_root / "src"))
 
 from config import Config
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

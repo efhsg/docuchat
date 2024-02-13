@@ -1,6 +1,8 @@
-import pymysql
-from config import Config
 import zlib
+import pymysql
+from alembic.config import Config as AlembicConfig
+from alembic import command
+from config import Config
 
 from components.logger.logger import Logger
 
@@ -46,6 +48,27 @@ class DatabaseManager:
     def has_latest_migration_run(self):
         current_version = self.get_current_migration_version()
         return current_version == self.config.latest_migration_version
+
+    def check_and_apply_migrations(self):
+        path = self.config.project_root / "src/alembic/alembic.ini"
+        self.logger.info(path)
+        alembic_cfg = AlembicConfig(
+            self.config.project_root / "src/alembic/alembic.ini"
+        )
+        alembic_cfg.set_main_option("sqlalchemy.url", self.config.database_url)
+
+        if not self.has_latest_migration_run():
+            self.logger.warning(
+                "Database migrations are pending. Attempting to apply them automatically..."
+            )
+            try:
+                command.upgrade(alembic_cfg, "head")
+                self.logger.info("Database migrations applied successfully!")
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to automatically apply migrations. Please review manually. Error: {e}"
+                )
+                raise
 
     def save_extracted_text_to_db(self, text, name):
         try:
