@@ -9,33 +9,16 @@ class Logger:
     _logger = None
     _base_dir = Path(__file__).resolve().parent
     _example_config_path = _base_dir / "logging.example.ini"
+    config_filename = _base_dir / "logging.ini"
 
     @classmethod
     def _get_config_path(cls):
-        config_filename = "logging.ini"
-        return cls._base_dir / config_filename
+        return cls._base_dir / cls.config_filename
 
     @classmethod
     def _prepare_config_file(cls, config_path):
         if not config_path.exists():
             copyfile(cls._example_config_path, config_path)
-
-            logs_dir = os.environ.get("LOGS_DIR", "data/logs")
-            logs_dir_path = Path(logs_dir)
-            os.makedirs(logs_dir_path, exist_ok=True)
-
-            with open(config_path, "r") as file:
-                config_content = file.read()
-
-            config_content = config_content.replace(
-                "docuchat.log", str(logs_dir_path / "docuchat.log")
-            )
-            config_content = config_content.replace(
-                "docuchat_errors.log", str(logs_dir_path / "docuchat_errors.log")
-            )
-
-            with open(config_path, "w") as file:
-                file.write(config_content)
 
     @classmethod
     def _load_config(cls, config_path):
