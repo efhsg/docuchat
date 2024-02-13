@@ -48,3 +48,11 @@ class Config:
     @property
     def db_port(self):
         return os.getenv("DB_PORT", "3306")
+
+    @property
+    def database_url(self):
+        return f"mysql+pymysql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
+    @property
+    def latest_migration_version(self):
+        return "d0090ad818e3"

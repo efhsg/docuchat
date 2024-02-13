@@ -28,39 +28,24 @@ class DatabaseManager:
             self.logger.critical(error_message)
             raise pymysql.Error(error_message) from e
 
-    def create_db_and_table(self):
-        with self.connection.cursor() as cursor:
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS extracted_texts (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL UNIQUE,
-                text LONGBLOB NOT NULL
+    def get_current_migration_version(self):
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT version_num FROM alembic_version ORDER BY version_num DESC LIMIT 1"
                 )
-                """
-            )
+                result = cursor.fetchone()
+                if result:
+                    return result["version_num"]
+                else:
+                    return None
+        except Exception as e:
+            self.logger.error(f"Unable to fetch current migration version: {e}")
+            return None
 
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS knowledge_bases (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL UNIQUE
-                )
-                """
-            )
-
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS knowledge_base_texts (
-                knowledge_base_id INT,
-                extracted_text_id INT,
-                PRIMARY KEY (knowledge_base_id, extracted_text_id),
-                FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE,
-                FOREIGN KEY (extracted_text_id) REFERENCES extracted_texts(id) ON DELETE CASCADE
-                )
-                """
-            )
-            self.connection.commit()
+    def has_latest_migration_run(self):
+        current_version = self.get_current_migration_version()
+        return current_version == self.config.latest_migration_version
 
     def save_extracted_text_to_db(self, text, name):
         try:

@@ -53,11 +53,15 @@ def home_page():
     )
 
 
-def setup_db():
+def check_db():
     db_manager = DatabaseManager(config=config_instance)
-    db_manager.create_db_and_table()
+    if not db_manager.has_latest_migration_run():
+        st.error(
+            "Database is not fully updated with all migrations. Please ensure all Alembic migrations have been applied."
+        )
+        st.stop()
 
 
 if __name__ == "__main__":
-    setup_db()
+    check_db()
     home_page()
