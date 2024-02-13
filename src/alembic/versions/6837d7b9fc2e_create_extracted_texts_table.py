@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.mysql import LONGBLOB
 
 # revision identifiers, used by Alembic.
 revision = "6837d7b9fc2e"
@@ -23,7 +24,7 @@ def upgrade():
         "extracted_texts",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
         sa.Column("name", sa.String(255), nullable=False, unique=True),
-        sa.Column("text", sa.LargeBinary, nullable=False),
+        sa.Column("text", LONGBLOB, nullable=False),
         mysql_charset="utf8mb4",
         mysql_collate="utf8mb4_0900_ai_ci",
     )

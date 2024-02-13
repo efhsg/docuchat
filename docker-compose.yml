@@ -17,8 +17,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./src:/src
-      - ./data:/data
+      - .:/app
     depends_on:
       - mysql
 

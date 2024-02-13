@@ -12,10 +12,7 @@ class Logger:
 
     @classmethod
     def _get_config_path(cls):
-        running_in_docker = os.environ.get("RUNNING_IN_DOCKER", "false") == "true"
-        config_filename = (
-            "logging.docker.ini" if running_in_docker else "logging.venv.ini"
-        )
+        config_filename = "logging.ini"
         return cls._base_dir / config_filename
 
     @classmethod
@@ -23,11 +20,7 @@ class Logger:
         if not config_path.exists():
             copyfile(cls._example_config_path, config_path)
 
-            logs_dir = (
-                os.environ.get("LOGS_DIR_DOCKER", "/data/logs")
-                if os.environ.get("RUNNING_IN_DOCKER", "false") == "true"
-                else os.environ.get("LOGS_DIR_VENV", "data/logs")
-            )
+            logs_dir = os.environ.get("LOGS_DIR", "data/logs")
             logs_dir_path = Path(logs_dir)
             os.makedirs(logs_dir_path, exist_ok=True)
 
