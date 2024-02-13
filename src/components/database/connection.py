@@ -3,11 +3,13 @@ from dotenv import load_dotenv
 import pymysql
 from pathlib import Path
 from components.logger.logger import Logger
+from config import Config
 
 
 class Connection:
     def __init__(self):
-        self._load_env()
+
+        load_dotenv(Config().project_root / ".env")
 
         self._db_host = (
             os.getenv("DB_HOST_DOCKER")

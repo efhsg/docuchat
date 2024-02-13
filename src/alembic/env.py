@@ -33,7 +33,6 @@ target_metadata = None
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-
 config.set_main_option("sqlalchemy.url", Connection().database_url)
 
 
