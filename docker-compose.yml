@@ -6,7 +6,7 @@ services:
     container_name: python_docuchat 
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./docker/Dockerfile
       args:
         USER_ID: ${USER_ID:-1000}
         USER_NAME: ${USER_NAME:-appuser}
