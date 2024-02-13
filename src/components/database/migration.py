@@ -6,7 +6,7 @@ from components.database.connection import Connection
 from components.logger.logger import Logger
 
 
-class Migration:
+class Migrations:
     logger = Logger.get_logger()
 
     def __init__(self, config=None, connection=None):

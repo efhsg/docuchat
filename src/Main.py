@@ -1,7 +1,7 @@
 import streamlit as st
 from PIL import Image
 from config import Config
-from components.database.migration import Migration
+from components.database.migration import Migrations
 
 config_instance = Config()
 
@@ -54,7 +54,7 @@ def home_page():
 
 
 def check_db():
-    db_manager = Migration(config=config_instance)
+    db_manager = Migrations(config=config_instance)
     try:
         db_manager.check_and_apply_migrations()
     except Exception as e:
