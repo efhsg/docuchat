@@ -1,17 +1,17 @@
 from logging.config import fileConfig
-
 import sys
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from alembic import context
-
-from pathlib import Path
 
 project_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(project_root / "src"))
 
-from components.database.connection import Connection
+from config import Config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,8 +32,6 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-
-config.set_main_option("sqlalchemy.url", Connection().database_url)
 
 
 def run_migrations_offline() -> None:
@@ -79,6 +77,23 @@ def run_migrations_online() -> None:
         with context.begin_transaction():
             context.run_migrations()
 
+
+def __get_database_url():
+    load_dotenv(Config().project_root / ".env")
+    db_host = (
+        os.getenv("DB_HOST_DOCKER")
+        if os.getenv("RUNNING_IN_DOCKER", "false") == "true"
+        else os.getenv("DB_HOST_VENV")
+    )
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    db_name = os.getenv("DB_DATABASE")
+    db_port = os.getenv("DB_PORT", "3306")
+
+    return f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+
+config.set_main_option("sqlalchemy.url", __get_database_url())
 
 if context.is_offline_mode():
     run_migrations_offline()

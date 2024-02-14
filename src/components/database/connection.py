@@ -34,7 +34,3 @@ class Connection:
             error_message = f"Failed to connect to MySQL database: {e}"
             self.logger.critical(error_message)
             raise
-
-    @property
-    def database_url(self):
-        return f"mysql+pymysql://{self._db_user}:{self._db_password}@{self._db_host}:{self._db_port}/{self._db_name}"
