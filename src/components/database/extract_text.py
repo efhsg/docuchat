@@ -1,73 +1,60 @@
-import pymysql
-
 from config import Config
 from components.database.connection import Connection
 from components.database.text_compression import TextCompression
 from components.logger.logger import Logger
+from sqlalchemy.orm.exc import NoResultFound
+from components.logger.logger import Logger
+from components.database.text_compression import TextCompression
+from components.database.models import ExtractedText
 
 
 class ExtractText:
 
     logger = Logger.get_logger()
 
-    def __init__(self, config=None, connection=None, compression_service=None):
+    def __init__(self, config=None, session=None, compression_service=None):
         self.config = config or Config()
-        self.connection = connection or Connection().create_connection()
+        self.session = session or Connection().create_session()
         self.compression_service = compression_service or TextCompression()
 
     def save_extracted_text_to_db(self, text, name):
         try:
-            compressed_text = self.compression_service.compress(text)
-            with self.connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO extracted_texts (name, text) VALUES (%s, %s)
-                    """,
-                    (name, compressed_text),
-                )
-                self.connection.commit()
+            new_text = ExtractedText(
+                name=name, text=self.compression_service.compress(text)
+            )
+            self.session.add(new_text)
+            self.session.commit()
         except Exception as e:
+            self.session.rollback()
             error_message = f"Failed to save '{name}'. Error: {e}"
             self.logger.critical(error_message)
-            raise pymysql.Error(error_message) from e
+            raise
 
     def get_text_by_name(self, name):
-        with self.connection.cursor() as cursor:
-            cursor.execute("SELECT text FROM extracted_texts WHERE name = %s", (name,))
-            result = cursor.fetchone()
-            if result:
-                return self.compression_service.decompress(result["text"])
-            else:
-                return None
+        try:
+            result = self.session.query(ExtractedText).filter_by(name=name).one()
+            return self.compression_service.decompress(result.text)
+        except NoResultFound:
+            return None
 
     def get_names_of_extracted_texts(self):
-        with self.connection.cursor() as cursor:
-            cursor.execute("SELECT name FROM extracted_texts")
-            filenames = cursor.fetchall()
-            return [filename["name"] for filename in filenames]
+        result = self.session.query(ExtractedText.name).all()
+        return [name[0] for name in result]
 
     def name_exists(self, name):
-        with self.connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT 1 FROM extracted_texts WHERE name = %s LIMIT 1
-                """,
-                (name,),
-            )
-            result = cursor.fetchone()
-            return result is not None
+        result = self.session.query(ExtractedText.id).filter_by(name=name).first()
+        return result is not None
 
     def delete_extracted_texts_bulk(self, names):
         if not names:
             return
-        placeholders = ", ".join(
-            ["%s"] * len(names)
-        )  # Create placeholders for the query
-        with self.connection.cursor() as cursor:
-            cursor.execute(
-                f"""
-                DELETE FROM extracted_texts WHERE name IN ({placeholders})
-                """,
-                names,
-            )
-            self.connection.commit()
+        try:
+            self.session.query(ExtractedText).filter(
+                ExtractedText.name.in_(names)
+            ).delete(synchronize_session="fetch")
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            error_message = f"Failed to delete texts. Error: {e}"
+            self.logger.critical(error_message)
+            raise

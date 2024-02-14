@@ -55,7 +55,7 @@ def upload_files():
                     st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
 
     if st.session_state.get("upload_disabled", False):
-        if st.button("Clear"):
+        if st.button("Ok"):
             st.session_state["upload_disabled"] = False
             st.rerun()
 

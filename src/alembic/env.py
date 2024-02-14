@@ -25,8 +25,10 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+from components.database.models import Base
+
+target_metadata = Base.metadata
+# target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -78,7 +80,7 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
-def __get_database_url():
+def _database_uri():
     load_dotenv(Config().project_root / ".env")
     db_host = (
         os.getenv("DB_HOST_DOCKER")
@@ -93,7 +95,7 @@ def __get_database_url():
     return f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
-config.set_main_option("sqlalchemy.url", __get_database_url())
+config.set_main_option("sqlalchemy.url", _database_uri())
 
 if context.is_offline_mode():
     run_migrations_offline()

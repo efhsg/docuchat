@@ -38,7 +38,7 @@ class Migration:
         )
 
         if not self.has_latest_migration_run():
-            self.logger.warning("Database migrations are applied.")
+            self.logger.info("Data model not up to date. Applying database migrations.")
             try:
                 command.upgrade(alembic_cfg, "head")
                 self.logger.info("Database migrations applied successfully!")

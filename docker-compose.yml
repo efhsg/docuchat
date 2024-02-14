@@ -11,6 +11,7 @@ services:
         USER_ID: ${USER_ID:-1000}
         USER_NAME: ${USER_NAME:-appuser}
     environment:
+      - TZ=${TIMEZONE:-Europe/Amsterdam}    
       - RUNNING_IN_DOCKER=true        
     ports:
       - "8502:8502"
@@ -25,11 +26,14 @@ services:
     image: mysql:8.0
     container_name: mysql_docuchat
     command: --default-authentication-plugin=mysql_native_password
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      - TZ=${TIMEZONE:-Europe/Amsterdam}  
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
     ports:
       - "${DB_PORT:-3306}:3306"
     volumes:
