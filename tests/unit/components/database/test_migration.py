@@ -36,6 +36,21 @@ class TestMigration(unittest.TestCase):
         version = migration.get_current_migration_version()
         self.assertIsNone(version)
 
+    @patch("components.database.connection.Connection.create_connection")
+    @patch("components.database.migration.Logger.get_logger")
+    def test_get_current_migration_version_exception(
+        self, mock_get_logger, mock_create_connection
+    ):
+        mock_connection = MagicMock()
+        mock_connection.cursor.return_value.__enter__.side_effect = Exception(
+            "Database error"
+        )
+        mock_create_connection.return_value = mock_connection
+        mock_logger = mock_get_logger.return_value
+        migration = Migration()
+        version = migration.get_current_migration_version()
+        self.assertIsNone(version)
+
 
 if __name__ == "__main__":
     unittest.main()
