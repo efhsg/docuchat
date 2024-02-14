@@ -1,7 +1,5 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import pymysql
 from sqlalchemy.exc import SQLAlchemyError
 from components.database.connection import Connection

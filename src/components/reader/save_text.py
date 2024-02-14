@@ -1,5 +1,5 @@
 from config import Config
-from components.database.extract_text import ExtractText
+from components.database.db_extract_text import ExtractText
 
 config_instance = Config()
 
