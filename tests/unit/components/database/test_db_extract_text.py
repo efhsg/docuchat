@@ -22,7 +22,7 @@ class TestExtractText(unittest.TestCase):
         extract_text_instance = ExtractText(
             session=mock_session, compression_service=TextCompression()
         )
-        extract_text_instance.save_extracted_text_to_db("dummy text", "dummy name")
+        extract_text_instance.save_extracted_text("dummy text", "dummy name")
 
         mock_compress.assert_called_once_with("dummy text")
         mock_session.add.assert_called_once()
@@ -43,7 +43,7 @@ class TestExtractText(unittest.TestCase):
         )
 
         with self.assertRaises(SQLAlchemyError):
-            extract_text_instance.save_extracted_text_to_db("dummy text", "dummy name")
+            extract_text_instance.save_extracted_text("dummy text", "dummy name")
 
         mock_compress.assert_called_once_with("dummy text")
         mock_session.add.assert_called_once()

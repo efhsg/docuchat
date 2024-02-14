@@ -17,7 +17,7 @@ class ExtractText:
         self.session = session or Connection().create_session()
         self.compression_service = compression_service or TextCompression()
 
-    def save_extracted_text_to_db(self, text, name):
+    def save_extracted_text(self, text, name):
         try:
             new_text = ExtractedText(
                 name=name, text=self.compression_service.compress(text)

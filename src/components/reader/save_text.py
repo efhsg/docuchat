@@ -17,7 +17,7 @@ def get_filenames_extracted_text():
 
 def save_extracted_text(text, filename):
     extract_text = ExtractText()
-    extract_text.save_extracted_text_to_db(text, filename)
+    extract_text.save_extracted_text(text, filename)
 
 
 def delete_extracted_text_dict(file_dict):
