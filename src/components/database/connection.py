@@ -8,15 +8,12 @@ from config import Config
 
 class Connection:
     def __init__(self):
-
         load_dotenv(Config().project_root / ".env")
-
         self._db_host = (
             os.getenv("DB_HOST_DOCKER")
             if os.getenv("RUNNING_IN_DOCKER", "false") == "true"
             else os.getenv("DB_HOST_VENV")
         )
-
         self._db_user = os.getenv("DB_USER")
         self._db_password = os.getenv("DB_PASSWORD")
         self._db_name = os.getenv("DB_DATABASE")

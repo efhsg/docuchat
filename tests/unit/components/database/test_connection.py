@@ -1,28 +1,53 @@
 import unittest
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 import pymysql
 from components.database.connection import Connection
 
 
 class TestConnection(unittest.TestCase):
-    @patch("components.database.connection.Config")
-    @patch("pymysql.connect")
-    def test_create_connection_success(self, mock_connect, mock_config):
-        mock_config_instance = mock_config.return_value
-        mock_config_instance.db_host = "localhost"
-        mock_config_instance.db_user = "user"
-        mock_config_instance.db_password = "password"
-        mock_config_instance.db_name = "test_db"
+    @patch("os.getenv")
+    def test_create_connection_success(self, mock_getenv):
+        mock_getenv.side_effect = lambda x, default=None: {
+            "DB_HOST_DOCKER": "localhost",
+            "RUNNING_IN_DOCKER": "false",
+            "DB_HOST_VENV": "localhost",
+            "DB_USER": "user",
+            "DB_PASSWORD": "password",
+            "DB_DATABASE": "test_db",
+            "DB_PORT": "3306",
+        }.get(x, default)
+        with patch("pymysql.connect") as mock_connect:
+            connection_instance = Connection()
+            connection_instance.create_connection()
+            mock_connect.assert_called_once_with(
+                host="localhost",
+                user="user",
+                password="password",
+                database="test_db",
+                port=3306,
+                cursorclass=pymysql.cursors.DictCursor,
+            )
 
-        connection_instance = Connection(mock_config_instance)
-        connection = connection_instance.create_connection()
+    @patch("os.getenv")
+    @patch("components.database.connection.Logger.get_logger")
+    def test_create_connection_failure(self, mock_get_logger, mock_getenv):
+        mock_getenv.side_effect = lambda x, default=None: {
+            "DB_HOST_DOCKER": "localhost",
+            "RUNNING_IN_DOCKER": "false",
+            "DB_HOST_VENV": "localhost",
+            "DB_USER": "user",
+            "DB_PASSWORD": "password",
+            "DB_DATABASE": "test_db",
+            "DB_PORT": "3306",
+        }.get(x, default)
+        mock_logger = mock_get_logger.return_value
+        with patch("pymysql.connect") as mock_connect:
+            mock_connect.side_effect = pymysql.Error("Connection failed")
+            connection_instance = Connection()
+            with self.assertRaises(pymysql.Error):
+                connection_instance.create_connection()
+            mock_logger.critical.assert_called_once()
 
-        mock_connect.assert_called_once_with(
-            host="localhost",
-            user="user",
-            password="password",
-            database="test_db",
-            cursorclass=pymysql.cursors.DictCursor,
-        )
-        self.assertIsNotNone(connection)
+
+if __name__ == "__main__":
+    unittest.main()
