@@ -23,11 +23,6 @@ class Connection:
         self._db_port = os.getenv("DB_PORT", "3306")
         self.logger = Logger.get_logger()
 
-    def _load_env(self):
-        project_root = Path(__file__).resolve().parent.parent.parent
-        dotenv_path = project_root / ".env"
-        load_dotenv(dotenv_path)
-
     def create_connection(self):
         try:
             return pymysql.connect(
