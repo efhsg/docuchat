@@ -17,15 +17,9 @@ class Connection:
             else os.getenv("DB_HOST_VENV")
         )
 
-        self._db_user = os.getenv(
-            "DB_USER",
-        )
-        self._db_password = os.getenv(
-            "DB_PASSWORD",
-        )
-        self._db_name = os.getenv(
-            "DB_DATABASE",
-        )
+        self._db_user = os.getenv("DB_USER")
+        self._db_password = os.getenv("DB_PASSWORD")
+        self._db_name = os.getenv("DB_DATABASE")
         self._db_port = os.getenv("DB_PORT", "3306")
         self.logger = Logger.get_logger()
 
