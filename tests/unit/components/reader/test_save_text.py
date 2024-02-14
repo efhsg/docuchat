@@ -36,7 +36,7 @@ class TestSaveText(unittest.TestCase):
         mock_instance = mock_ExtractText.return_value
 
         save_extracted_text("sample text", "new_file.txt")
-        mock_instance.save_extracted_text_to_db.assert_called_once_with(
+        mock_instance.save_extracted_text.assert_called_once_with(
             "sample text", "new_file.txt"
         )
 
