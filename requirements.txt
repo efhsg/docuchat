@@ -1,5 +1,6 @@
 streamlit
 pymysql
+cryptography
 python-dotenv
 pypdf
 pytest
