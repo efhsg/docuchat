@@ -1,17 +1,13 @@
 import streamlit as st
 from PIL import Image
 from config import Config
-from components.reader.save_text import (
-    file_already_exists,
-    save_extracted_text,
-    get_filenames_extracted_text,
-    delete_extracted_text_dict,
-)
 from components.reader.extract_text import extract_text
+from components.reader.text_repository import TextRepository
 
-config_instance = Config()
+config = Config()
+text_repository = TextRepository()
 
-image = Image.open(config_instance.logo_small_path)
+image = Image.open(config.logo_small_path)
 st.set_page_config(
     page_title="Read text from uploads",
     page_icon=image,
@@ -41,15 +37,15 @@ def upload_files():
                 st.rerun()
 
             for uploaded_file in files:
-                if file_already_exists(uploaded_file.name):
+                if text_repository.text_exists(uploaded_file.name):
                     st.warning(
-                        f"Skipped: '{uploaded_file.name}'. Extract already exist."
+                        f"Skipped: '{uploaded_file.name}'. Extracted tekst already exist."
                     )
                     continue
                 try:
                     with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
                         text = extract_text(uploaded_file)
-                    save_extracted_text(text, uploaded_file.name)
+                    text_repository.save_text(text, uploaded_file.name)
                     st.info(f"Done: '{uploaded_file.name}'")
                 except Exception as e:
                     st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
@@ -64,7 +60,7 @@ def manage_extracted_text():
     with st.sidebar:
         st.title("Manage extracted data")
 
-        files = get_filenames_extracted_text()
+        files = text_repository.list_text_names()
         if not files:
             st.write("No files found")
             return
@@ -77,7 +73,7 @@ def manage_extracted_text():
 
             delete = st.form_submit_button("Delete")
             if delete:
-                delete_extracted_text_dict(file_dict)
+                text_repository.delete_texts(file_dict)
                 st.session_state["select_all"] = False
                 st.session_state["upload_disabled"] = False
                 st.rerun()

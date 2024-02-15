@@ -1,14 +1,14 @@
 from config import Config
 from components.database.connection import Connection
-from components.database.text_compression import TextCompression
+from components.reader.text_compression import TextCompression
 from components.logger.logger import Logger
 from sqlalchemy.orm.exc import NoResultFound
 from components.logger.logger import Logger
-from components.database.text_compression import TextCompression
+from components.reader.text_compression import TextCompression
 from components.database.models import ExtractedText
 
 
-class ExtractText:
+class DBReader:
 
     logger = Logger.get_logger()
 
