@@ -1,19 +1,18 @@
+from components.reader.reader_repository import ReaderRepository
 from config import Config
 from components.database.connection import Connection
-from components.reader.text_compression import TextCompression
 from sqlalchemy.orm.exc import NoResultFound
 from components.logger.logger import Logger
-from components.reader.text_compression import TextCompression
 from components.database.models import ExtractedText, Domain
 
 
-class DBReader:
+class SqlalchemyReaderRepository(ReaderRepository):
 
-    def __init__(self, config=None, session=None, compression_service=None):
+    def __init__(self, config=None, session=None, compressor=None, logger=None):
         self.config = config or Config()
         self.session = session or Connection().create_session()
-        self.compression_service = compression_service or TextCompression()
-        self.logger = Logger.get_logger()
+        self.compressor = compressor
+        self.logger = logger or Logger.get_logger()
 
     def save_text(self, text, name, domain_id=None):
         try:
@@ -24,7 +23,7 @@ class DBReader:
                 if not domain_exists:
                     raise ValueError(f"Domain ID {domain_id} does not exist.")
 
-            compressed_text = self.compression_service.compress(text)
+            compressed_text = self.compressor.compress(text)
             new_text = ExtractedText(
                 name=name,
                 text=compressed_text,
@@ -42,7 +41,7 @@ class DBReader:
     def get_text_by_name(self, name):
         try:
             result = self.session.query(ExtractedText).filter_by(name=name).one()
-            return self.compression_service.decompress(result.text)
+            return self.compressor.decompress(result.text)
         except NoResultFound:
             return None
 

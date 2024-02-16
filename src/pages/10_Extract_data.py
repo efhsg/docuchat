@@ -1,12 +1,11 @@
 import streamlit as st
 from PIL import Image
 from config import Config
-from components.reader.text_repository import TextRepository
-from components.reader.text_extractor import TextExtractor
+from injector import get_reader_repository, get_text_extractor
 
 config = Config()
-text_repository = TextRepository()
-text_extractor = TextExtractor()
+reader_repository = get_reader_repository()
+text_extractor = get_text_extractor()
 
 image = Image.open(config.logo_small_path)
 st.set_page_config(
@@ -38,7 +37,7 @@ def upload_files():
                 st.rerun()
 
             for uploaded_file in files:
-                if text_repository.text_exists(uploaded_file.name):
+                if reader_repository.text_exists(uploaded_file.name):
                     st.warning(
                         f"Skipped: '{uploaded_file.name}'. Extracted tekst already exist."
                     )
@@ -46,7 +45,7 @@ def upload_files():
                 try:
                     with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
                         text = text_extractor.extract_text(uploaded_file)
-                    text_repository.save_text(text, uploaded_file.name)
+                    reader_repository.save_text(text, uploaded_file.name)
                     st.info(f"Done: '{uploaded_file.name}'")
                 except Exception as e:
                     st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
@@ -61,7 +60,7 @@ def manage_extracted_text():
     with st.sidebar:
         st.title("Manage extracted data")
 
-        files = text_repository.list_text_names()
+        files = reader_repository.list_text_names()
         if not files:
             st.write("No files found")
             return
@@ -80,7 +79,7 @@ def manage_extracted_text():
                     if is_checked
                 ]
                 if texts_to_delete:
-                    text_repository.delete_texts(texts_to_delete)
+                    reader_repository.delete_texts(texts_to_delete)
                     st.session_state["select_all"] = False
                     st.session_state["upload_disabled"] = False
                     st.rerun()

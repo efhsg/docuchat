@@ -1,7 +1,9 @@
 import zlib
+from components.reader.text_compressor import TextCompressor
 
 
-class TextCompression:
+class ZlibTextCompressor(TextCompressor):
+
     @staticmethod
     def compress(text):
         return zlib.compress(text.encode("utf-8"))

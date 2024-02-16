@@ -1,14 +1,14 @@
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
-from components.reader.text_extractor import TextExtractor
+from components.reader.file_text_extractor import FileTextExtractor
 
 
-class TestTextExtractor(TestCase):
+class TestFileTextExtractor(TestCase):
 
     def setUp(self):
-        self.text_extractor = TextExtractor()
+        self.text_extractor = FileTextExtractor()
 
-    @patch("components.reader.text_extractor.PdfReader")
+    @patch("components.reader.file_text_extractor.PdfReader")
     def test_extract_text_from_pdf(self, mock_pdf_reader):
         mock_page = MagicMock()
         mock_page.extract_text.return_value = "Sample text"
@@ -30,7 +30,9 @@ class TestTextExtractor(TestCase):
         self.assertEqual(result_text, "Sample text in bytes")
 
     def test_extract_text_supported_file_types(self):
-        with patch("components.reader.text_extractor.PdfReader") as mock_pdf_reader:
+        with patch(
+            "components.reader.file_text_extractor.PdfReader"
+        ) as mock_pdf_reader:
             mock_pdf_reader.return_value.pages = [
                 MagicMock(extract_text=MagicMock(return_value="PDF content"))
             ]
