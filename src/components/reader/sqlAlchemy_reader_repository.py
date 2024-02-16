@@ -1,4 +1,4 @@
-from components.reader.interfaces.reader_repository import ReaderRepository
+from .interfaces.reader_repository import ReaderRepository
 from config import Config
 from components.database.connection import Connection
 from sqlalchemy.orm.exc import NoResultFound
