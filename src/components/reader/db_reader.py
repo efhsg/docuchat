@@ -1,7 +1,6 @@
 from config import Config
 from components.database.connection import Connection
 from components.reader.text_compression import TextCompression
-from components.logger.logger import Logger
 from sqlalchemy.orm.exc import NoResultFound
 from components.logger.logger import Logger
 from components.reader.text_compression import TextCompression
@@ -10,12 +9,11 @@ from components.database.models import ExtractedText, Domain
 
 class DBReader:
 
-    logger = Logger.get_logger()
-
     def __init__(self, config=None, session=None, compression_service=None):
         self.config = config or Config()
         self.session = session or Connection().create_session()
         self.compression_service = compression_service or TextCompression()
+        self.logger = Logger.get_logger()
 
     def save_text(self, text, name, domain_id=None):
         try:
