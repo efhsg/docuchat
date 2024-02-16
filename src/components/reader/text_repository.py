@@ -15,13 +15,13 @@ class TextRepository:
         """
         Lists all saved text names.
         """
-        return self.db_reader.get_names_of_texts()
+        return self.db_reader.list_text_names()
 
     def text_exists(self, name):
         """
         Checks if a text name already exists.
         """
-        return self.db_reader.name_exists(name)
+        return self.db_reader.text_exists(name)
 
     def delete_texts(self, names):
         """

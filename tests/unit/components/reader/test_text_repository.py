@@ -22,23 +22,23 @@ class TestTextRepository(unittest.TestCase):
         self.mock_DBReader.save_text.assert_called_once_with(text, name, domain_id)
 
     def test_text_exists_true(self):
-        self.mock_DBReader.name_exists.return_value = True
+        self.mock_DBReader.text_exists.return_value = True
         exists = self.text_repository.text_exists("existing_file.txt")
         self.assertTrue(exists)
-        self.mock_DBReader.name_exists.assert_called_once_with("existing_file.txt")
+        self.mock_DBReader.text_exists.assert_called_once_with("existing_file.txt")
 
     def test_text_exists_false(self):
-        self.mock_DBReader.name_exists.return_value = False
+        self.mock_DBReader.text_exists.return_value = False
         exists = self.text_repository.text_exists("non_existing_file.txt")
         self.assertFalse(exists)
-        self.mock_DBReader.name_exists.assert_called_once_with("non_existing_file.txt")
+        self.mock_DBReader.text_exists.assert_called_once_with("non_existing_file.txt")
 
     def test_list_text_names(self):
         expected_names = ["file1.txt", "file2.txt"]
-        self.mock_DBReader.get_names_of_texts.return_value = expected_names
+        self.mock_DBReader.list_text_names.return_value = expected_names
         names = self.text_repository.list_text_names()
         self.assertEqual(names, expected_names)
-        self.mock_DBReader.get_names_of_texts.assert_called_once()
+        self.mock_DBReader.list_text_names.assert_called_once()
 
     def test_delete_texts(self):
         names_to_delete = ["file1.txt", "file3.txt"]

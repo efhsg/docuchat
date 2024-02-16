@@ -93,7 +93,7 @@ class TestExtractText(unittest.TestCase):
         mock_query.all.return_value = [("name1",), ("name2",)]
 
         extract_text_instance = DBReader(session=mock_session)
-        result = extract_text_instance.get_names_of_texts()
+        result = extract_text_instance.list_text_names()
 
         mock_session.query.assert_called_once_with(ExtractedText.name)
         self.assertEqual(result, ["name1", "name2"])
@@ -107,7 +107,7 @@ class TestExtractText(unittest.TestCase):
         mock_filter_by.first.return_value = MagicMock(id=1)
 
         extract_text_instance = DBReader(session=mock_session)
-        result = extract_text_instance.name_exists("existing name")
+        result = extract_text_instance.text_exists("existing name")
 
         self.assertTrue(result)
 
@@ -120,7 +120,7 @@ class TestExtractText(unittest.TestCase):
         mock_filter_by.first.return_value = None
 
         extract_text_instance = DBReader(session=mock_session)
-        result = extract_text_instance.name_exists("non-existing name")
+        result = extract_text_instance.text_exists("non-existing name")
 
         self.assertFalse(result)
 

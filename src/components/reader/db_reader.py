@@ -46,11 +46,11 @@ class DBReader:
         except NoResultFound:
             return None
 
-    def get_names_of_texts(self):
+    def list_text_names(self):
         result = self.session.query(ExtractedText.name).all()
         return [name[0] for name in result]
 
-    def name_exists(self, name):
+    def text_exists(self, name):
         result = self.session.query(ExtractedText.id).filter_by(name=name).first()
         return result is not None
 
