@@ -22,7 +22,7 @@ class TestExtractText(unittest.TestCase):
         extract_text_instance = DBReader(
             session=mock_session, compression_service=TextCompression()
         )
-        extract_text_instance.save_extracted_text("dummy text", "dummy name")
+        extract_text_instance.save_text("dummy text", "dummy name")
 
         mock_compress.assert_called_once_with("dummy text")
         mock_session.add.assert_called_once()
@@ -43,7 +43,7 @@ class TestExtractText(unittest.TestCase):
         )
 
         with self.assertRaises(SQLAlchemyError):
-            extract_text_instance.save_extracted_text("dummy text", "dummy name")
+            extract_text_instance.save_text("dummy text", "dummy name")
 
         mock_compress.assert_called_once_with("dummy text")
         mock_session.add.assert_called_once()
@@ -93,7 +93,7 @@ class TestExtractText(unittest.TestCase):
         mock_query.all.return_value = [("name1",), ("name2",)]
 
         extract_text_instance = DBReader(session=mock_session)
-        result = extract_text_instance.get_names_of_extracted_texts()
+        result = extract_text_instance.get_names_of_texts()
 
         mock_session.query.assert_called_once_with(ExtractedText.name)
         self.assertEqual(result, ["name1", "name2"])
@@ -130,7 +130,7 @@ class TestExtractText(unittest.TestCase):
         mock_create_session.return_value = mock_session
 
         extract_text_instance = DBReader(session=mock_session)
-        extract_text_instance.delete_extracted_texts_bulk(["name1", "name2"])
+        extract_text_instance.delete_texts(["name1", "name2"])
 
         mock_session.query.assert_called_once_with(ExtractedText)
         assert mock_session.commit.called
@@ -144,7 +144,7 @@ class TestExtractText(unittest.TestCase):
         extract_text_instance = DBReader(session=mock_session)
 
         with self.assertRaises(SQLAlchemyError):
-            extract_text_instance.delete_extracted_texts_bulk(["name1", "name2"])
+            extract_text_instance.delete_texts(["name1", "name2"])
 
         assert mock_session.rollback.called
 
@@ -154,7 +154,7 @@ class TestExtractText(unittest.TestCase):
         mock_create_session.return_value = mock_session
 
         extract_text_instance = DBReader(session=mock_session)
-        extract_text_instance.delete_extracted_texts_bulk([])
+        extract_text_instance.delete_texts([])
 
         mock_session.query.assert_not_called()
         mock_session.commit.assert_not_called()
