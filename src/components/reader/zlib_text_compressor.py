@@ -1,5 +1,5 @@
 import zlib
-from components.reader.text_compressor import TextCompressor
+from components.reader.interfaces.text_compressor import TextCompressor
 
 
 class ZlibTextCompressor(TextCompressor):

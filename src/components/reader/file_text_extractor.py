@@ -1,5 +1,5 @@
 from pypdf import PdfReader
-from .text_extractor import TextExtractor
+from .interfaces.text_extractor import TextExtractor
 
 
 class FileTextExtractor(TextExtractor):
