@@ -1,4 +1,5 @@
 from .interfaces.reader_repository import ReaderRepository
+from sqlalchemy.exc import IntegrityError
 from config import Config
 from components.database.connection import Connection
 from sqlalchemy.orm.exc import NoResultFound
@@ -13,6 +14,41 @@ class SqlalchemyReaderRepository(ReaderRepository):
         self.session = session or Connection().create_session()
         self.compressor = compressor
         self.logger = logger or Logger.get_logger()
+
+    def create_domain(self, name):
+        try:
+            new_domain = Domain(name=name)
+            self.session.add(new_domain)
+            self.session.commit()
+        except IntegrityError:
+            self.session.rollback()
+            self.logger.error(f"Domain with name '{name}' already exists.")
+            raise
+
+    def list_domains(self):
+        return self.session.query(Domain.name).all()
+
+    def delete_domain(self, name):
+        try:
+            self.session.query(Domain).filter_by(name=name).delete()
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            self.logger.error(f"Failed to delete domain '{name}'. Error: {e}")
+            raise
+
+    def update_domain(self, old_name, new_name):
+        try:
+            domain = self.session.query(Domain).filter_by(name=old_name).first()
+            if domain:
+                domain.name = new_name
+                self.session.commit()
+            else:
+                raise ValueError(f"Domain with name '{old_name}' does not exist.")
+        except Exception as e:
+            self.session.rollback()
+            self.logger.error(f"Failed to update domain '{old_name}'. Error: {e}")
+            raise
 
     def save_text(self, text, name, domain_id=None):
         try:

@@ -2,11 +2,50 @@ import unittest
 from unittest.mock import patch, MagicMock
 from sqlalchemy.exc import SQLAlchemyError
 from components.reader.sqlAlchemy_reader_repository import SqlalchemyReaderRepository
-from components.database.models import ExtractedText
+from components.database.models import Domain, ExtractedText
 from components.reader.zlib_text_compressor import ZlibTextCompressor
 
 
 class TestSqlalchemyReaderRepository(unittest.TestCase):
+
+    @patch("components.reader.sqlAlchemy_reader_repository.Connection.create_session")
+    def test_create_domain_success(self, mock_create_session):
+        mock_session = MagicMock()
+        mock_create_session.return_value = mock_session
+        reader_repository = SqlalchemyReaderRepository(session=mock_session)
+        reader_repository.create_domain("test_domain")
+        mock_session.add.assert_called_once()
+        self.assertTrue(mock_session.commit.called)
+
+    @patch("components.reader.sqlAlchemy_reader_repository.Connection.create_session")
+    def test_list_domains(self, mock_create_session):
+        mock_session = MagicMock()
+        mock_create_session.return_value = mock_session
+        mock_session.query.return_value.all.return_value = [("domain1",), ("domain2",)]
+        reader_repository = SqlalchemyReaderRepository(session=mock_session)
+        result = reader_repository.list_domains()
+        self.assertEqual(result, [("domain1",), ("domain2",)])
+
+    @patch("components.reader.sqlAlchemy_reader_repository.Connection.create_session")
+    def test_delete_domain_success(self, mock_create_session):
+        mock_session = MagicMock()
+        mock_create_session.return_value = mock_session
+        reader_repository = SqlalchemyReaderRepository(session=mock_session)
+        reader_repository.delete_domain("test_domain")
+        self.assertTrue(mock_session.commit.called)
+
+    @patch("components.reader.sqlAlchemy_reader_repository.Connection.create_session")
+    def test_update_domain_success(self, mock_create_session):
+        mock_session = MagicMock()
+        mock_create_session.return_value = mock_session
+        domain = Domain(name="old_name")
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            domain
+        )
+        reader_repository = SqlalchemyReaderRepository(session=mock_session)
+        reader_repository.update_domain("old_name", "new_name")
+        self.assertEqual(domain.name, "new_name")
+        self.assertTrue(mock_session.commit.called)
 
     @patch("components.reader.sqlAlchemy_reader_repository.Connection.create_session")
     @patch("components.reader.zlib_text_compressor.ZlibTextCompressor.compress")
