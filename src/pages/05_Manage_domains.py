@@ -41,7 +41,7 @@ def manage_domains():
 
     existing_domains = [domain[0] for domain in reader_repository.list_domains()]
 
-    with st.sidebar.form("manage_domain_form"):
+    with st.sidebar.form("manage_domain_form", clear_on_submit=True):
         domain_name_to_delete_or_update = st.selectbox(
             "Select Domain to Delete or Update",
             existing_domains,
