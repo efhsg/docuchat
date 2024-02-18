@@ -18,6 +18,10 @@ class SqlalchemyReaderRepository(ReaderRepository):
         self.default_domain_name = self.config.default_domain_name
 
     def create_domain(self, name):
+        if name.lower() == self.default_domain_name.lower():
+            raise ValueError(
+                f"Cannot create domain with default name '{self.default_domain_name}'."
+            )
         with self.session.begin():
             try:
                 new_domain = Domain(name=name)
