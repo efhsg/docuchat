@@ -4,17 +4,18 @@ from dotenv import load_dotenv
 
 
 class Config:
-
-    current_file_path = Path(__file__).resolve()
-
-    @property
-    def project_root(self):
-        return self.current_file_path.parent.parent
+    _current_file_path = Path(__file__).resolve()
 
     def __init__(self):
         load_dotenv(self.project_root / ".env")
 
-    UPLOAD_EXTENSIONS = ("pdf", "txt")
+    @property
+    def project_root(self):
+        return self._current_file_path.parent.parent
+
+    @property
+    def upload_extensions(self):
+        return ("pdf", "txt")
 
     @property
     def data_dir(self):
@@ -28,3 +29,7 @@ class Config:
     @property
     def latest_migration_version(self):
         return "d0090ad818e3"
+
+    @property
+    def default_domain_name(self):
+        return os.getenv("DEFAULT_DOMAIN_NAME", "default").lower()

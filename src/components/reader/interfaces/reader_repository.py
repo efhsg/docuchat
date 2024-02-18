@@ -12,11 +12,19 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
+    def list_domains_without_default(self):
+        pass
+
+    @abstractmethod
     def delete_domain(self, name):
         pass
 
     @abstractmethod
     def update_domain(self, old_name, new_name):
+        pass
+
+    @abstractmethod
+    def domain_exists(self, name):
         pass
 
     @abstractmethod

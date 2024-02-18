@@ -20,7 +20,7 @@ def upload_files():
     with st.form("upload", clear_on_submit=True):
         files = st.file_uploader(
             "Select files",
-            type=Config.UPLOAD_EXTENSIONS,
+            type=Config().upload_extensions,
             accept_multiple_files=True,
             disabled=st.session_state.get("upload_disabled", False),
         )

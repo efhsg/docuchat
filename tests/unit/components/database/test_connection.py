@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import pymysql
 from sqlalchemy.exc import SQLAlchemyError
-from components.database.connection import Connection
+from components.database.connector import Connector
 
 
 class TestConnection(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestConnection(unittest.TestCase):
             "DB_PORT": "3306",
         }.get(x, default)
         with patch("pymysql.connect") as mock_connect:
-            connection_instance = Connection()
+            connection_instance = Connector()
             connection_instance.create_connection()
             mock_connect.assert_called_once_with(
                 host="localhost",
@@ -30,7 +30,7 @@ class TestConnection(unittest.TestCase):
             )
 
     @patch("os.getenv")
-    @patch("components.database.connection.Logger.get_logger")
+    @patch("components.database.connector.Logger.get_logger")
     def test_create_connection_failure(self, mock_get_logger, mock_getenv):
         mock_getenv.side_effect = lambda x, default=None: {
             "DB_HOST_DOCKER": "localhost",
@@ -44,14 +44,14 @@ class TestConnection(unittest.TestCase):
         mock_logger = mock_get_logger.return_value
         with patch("pymysql.connect") as mock_connect:
             mock_connect.side_effect = pymysql.Error("Connection failed")
-            connection_instance = Connection()
+            connection_instance = Connector()
             with self.assertRaises(pymysql.Error):
                 connection_instance.create_connection()
             mock_logger.critical.assert_called_once()
 
-    @patch("components.database.connection.os.getenv")
-    @patch("components.database.connection.create_engine")
-    @patch("components.database.connection.sessionmaker", autospec=True)
+    @patch("components.database.connector.os.getenv")
+    @patch("components.database.connector.create_engine")
+    @patch("components.database.connector.sessionmaker", autospec=True)
     def test_create_session_success(
         self, mock_sessionmaker, mock_create_engine, mock_getenv
     ):
@@ -71,16 +71,16 @@ class TestConnection(unittest.TestCase):
         session = MagicMock()
         session_factory.return_value = session
 
-        connection_instance = Connection()
+        connection_instance = Connector()
         created_session = connection_instance.create_session()
         expected_uri = f"mysql+pymysql://user:password@localhost:3306/test_db"
         mock_create_engine.assert_called_once_with(expected_uri)
         mock_sessionmaker.assert_called_once_with(bind=mock_engine)
         self.assertIsNotNone(created_session)
 
-    @patch("components.database.connection.os.getenv")
-    @patch("components.database.connection.create_engine")
-    @patch("components.database.connection.sessionmaker", autospec=True)
+    @patch("components.database.connector.os.getenv")
+    @patch("components.database.connector.create_engine")
+    @patch("components.database.connector.sessionmaker", autospec=True)
     def test_create_session_failure(
         self, mock_sessionmaker, mock_create_engine, mock_getenv
     ):
@@ -96,7 +96,7 @@ class TestConnection(unittest.TestCase):
 
         mock_create_engine.side_effect = SQLAlchemyError("Engine creation failed")
 
-        connection_instance = Connection()
+        connection_instance = Connector()
 
         with self.assertRaises(SQLAlchemyError) as context:
             connection_instance.create_session()

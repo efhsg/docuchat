@@ -9,7 +9,7 @@ from components.logger.logger import Logger
 from config import Config
 
 
-class Connection:
+class Connector:
     def __init__(self):
         load_dotenv(Config().project_root / ".env")
         self._db_host = (

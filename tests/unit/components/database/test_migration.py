@@ -8,7 +8,7 @@ logger = Logger.get_logger()
 
 
 class TestMigration(unittest.TestCase):
-    @patch("components.database.connection.Connection.create_connection")
+    @patch("components.database.connector.Connector.create_connection")
     @patch("components.database.migration.Logger.get_logger")
     def test_get_current_migration_version_success(
         self, mock_get_logger, mock_create_connection
@@ -22,7 +22,7 @@ class TestMigration(unittest.TestCase):
         version = migration.get_current_migration_version()
         self.assertEqual(version, "abc123")
 
-    @patch("components.database.connection.Connection.create_connection")
+    @patch("components.database.connector.Connector.create_connection")
     @patch("components.database.migration.Logger.get_logger")
     def test_get_current_migration_version_none(
         self, mock_get_logger, mock_create_connection
@@ -36,7 +36,7 @@ class TestMigration(unittest.TestCase):
         version = migration.get_current_migration_version()
         self.assertIsNone(version)
 
-    @patch("components.database.connection.Connection.create_connection")
+    @patch("components.database.connector.Connector.create_connection")
     @patch("components.database.migration.Logger.get_logger")
     def test_get_current_migration_version_exception(
         self, mock_get_logger, mock_create_connection
