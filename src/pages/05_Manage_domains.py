@@ -12,6 +12,8 @@ def manage_domains():
         st.session_state["message"] = None
     if "message_type" not in st.session_state:
         st.session_state["message_type"] = None
+    if "last_selected_domain" not in st.session_state:
+        st.session_state["last_selected_domain"] = None
 
     if st.session_state["message"]:
         if st.session_state["message_type"] == "success":
@@ -31,18 +33,24 @@ def manage_domains():
                         f"Domain '{new_domain_name}' created successfully!"
                     )
                     st.session_state["message_type"] = "success"
+                    st.session_state["last_selected_domain"] = new_domain_name
                 except Exception as e:
-                    st.session_state["message"] = e
+                    st.session_state["message"] = str(e)
                     st.session_state["message_type"] = "error"
                 st.rerun()
 
     existing_domains = reader_repository.list_domains_without_default()
+    last_selected_index = 0
+    if st.session_state["last_selected_domain"] in existing_domains:
+        last_selected_index = existing_domains.index(
+            st.session_state["last_selected_domain"]
+        )
 
     with st.sidebar.form("manage_domain_form", clear_on_submit=True):
         domain_name_to_delete_or_update = st.selectbox(
             "Select Domain to Delete or Update",
             existing_domains,
-            index=0,
+            index=last_selected_index,
             key="select_domain",
         )
         new_domain_name = st.text_input(
@@ -61,8 +69,9 @@ def manage_domains():
                     f"Domain '{domain_name_to_delete_or_update}' deleted successfully!"
                 )
                 st.session_state["message_type"] = "success"
+                st.session_state["last_selected_domain"] = None
             except Exception as e:
-                st.session_state["message"] = e
+                st.session_state["message"] = str(e)
                 st.session_state["message_type"] = "error"
             st.rerun()
 
@@ -75,8 +84,9 @@ def manage_domains():
                     f"Domain '{domain_name_to_delete_or_update}' updated to '{new_domain_name}' successfully!"
                 )
                 st.session_state["message_type"] = "success"
+                st.session_state["last_selected_domain"] = new_domain_name
             except Exception as e:
-                st.session_state["message"] = e
+                st.session_state["message"] = str(e)
                 st.session_state["message_type"] = "error"
             st.rerun()
 
