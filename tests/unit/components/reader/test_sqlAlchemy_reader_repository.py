@@ -1,8 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from sqlalchemy.exc import SQLAlchemyError
 from components.reader.sqlAlchemy_reader_repository import SqlalchemyReaderRepository
-from components.database.models import Domain, ExtractedText
 from components.reader.zlib_text_compressor import ZlibTextCompressor
 
 
@@ -67,9 +65,16 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
         mock_session = MagicMock()
         mock_create_session.return_value = mock_session
         mock_session.query.return_value.filter_by.return_value.first.return_value = None
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
+        mock_logger = MagicMock()
+        mock_logger.error = MagicMock()
+        reader_repository = SqlalchemyReaderRepository(
+            session=mock_session, logger=mock_logger
+        )
+
         with self.assertRaises(ValueError):
             reader_repository.update_domain("default_domain", "new_name")
+
+        mock_logger.error.assert_called()
 
     @patch("injector.get_session")
     def test_update_default_domain_failure(self, mock_create_session):

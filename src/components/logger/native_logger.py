@@ -1,11 +1,11 @@
+from .interfaces.logger import Logger
 import logging
 import logging.config
-import os
 from pathlib import Path
 from shutil import copyfile
 
 
-class Logger:
+class NativeLogger(Logger):
     _logger = None
     _base_dir = Path(__file__).resolve().parent
     _example_config_path = _base_dir / "logging.example.ini"
@@ -34,5 +34,5 @@ class Logger:
 
     @staticmethod
     def get_logger(name="docuchat"):
-        Logger._ensure_configured()
+        NativeLogger._ensure_configured()
         return logging.getLogger(name)

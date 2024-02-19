@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from .interfaces.connector import Connector
 
-from components.logger.logger import Logger
+from components.logger.native_logger import NativeLogger
 from config import Config
 
 
@@ -22,7 +22,7 @@ class MySQLConnector(Connector):
         self._db_password = os.getenv("DB_PASSWORD")
         self._db_name = os.getenv("DB_DATABASE")
         self._db_port = os.getenv("DB_PORT", "3306")
-        self.logger = Logger.get_logger()
+        self.logger = NativeLogger.get_logger()
 
     def get_connection(self):
         try:

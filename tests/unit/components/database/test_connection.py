@@ -30,7 +30,7 @@ class TestConnection(unittest.TestCase):
             )
 
     @patch("os.getenv")
-    @patch("components.database.mysql_connector.Logger.get_logger")
+    @patch("components.database.mysql_connector.NativeLogger.get_logger")
     def test_get_connection_failure(self, mock_get_logger, mock_getenv):
         mock_getenv.side_effect = lambda x, default=None: {
             "DB_HOST_DOCKER": "localhost",

@@ -1,9 +1,10 @@
 from sqlalchemy import func
+
+from components.logger.interfaces.logger import Logger
+from components.reader.interfaces.text_compressor import TextCompressor
 from .interfaces.reader_repository import ReaderRepository
 from config import Config
-from components.database.interfaces.connector import Connector
 from sqlalchemy.orm.exc import NoResultFound
-from components.logger.logger import Logger
 from components.database.models import ExtractedText, Domain
 from sqlalchemy.orm import Session
 
@@ -11,12 +12,16 @@ from sqlalchemy.orm import Session
 class SqlalchemyReaderRepository(ReaderRepository):
 
     def __init__(
-        self, config=None, session: Session = None, compressor=None, logger=None
+        self,
+        config=None,
+        session: Session = None,
+        compressor: TextCompressor = None,
+        logger: Logger = None,
     ):
         self.config = config or Config()
         self.session = session
         self.compressor = compressor
-        self.logger = logger or Logger.get_logger()
+        self.logger = logger
         self.default_domain_name = self.config.default_domain_name
 
     def create_domain(self, name):

@@ -3,11 +3,11 @@ from alembic import command
 
 from config import Config
 from components.database.mysql_connector import MySQLConnector
-from components.logger.logger import Logger
+from components.logger.native_logger import NativeLogger
 
 
 class Migration:
-    logger = Logger.get_logger()
+    logger = NativeLogger.get_logger()
 
     def __init__(self, config=None, connection=None):
         self.config = config or Config()

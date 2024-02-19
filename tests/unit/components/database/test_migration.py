@@ -2,14 +2,14 @@ import unittest
 from unittest.mock import patch, MagicMock
 from components.database.migration import Migration
 
-from components.logger.logger import Logger
+from components.logger.native_logger import NativeLogger
 
-logger = Logger.get_logger()
+logger = NativeLogger.get_logger()
 
 
 class TestMigration(unittest.TestCase):
     @patch("components.database.mysql_connector.MySQLConnector.get_connection")
-    @patch("components.database.migration.Logger.get_logger")
+    @patch("components.database.migration.NativeLogger.get_logger")
     def test_get_current_migration_version_success(
         self, mock_get_logger, mock_get_connection
     ):
@@ -23,7 +23,7 @@ class TestMigration(unittest.TestCase):
         self.assertEqual(version, "abc123")
 
     @patch("components.database.mysql_connector.MySQLConnector.get_connection")
-    @patch("components.database.migration.Logger.get_logger")
+    @patch("components.database.migration.NativeLogger.get_logger")
     def test_get_current_migration_version_none(
         self, mock_get_logger, mock_get_connection
     ):
@@ -37,7 +37,7 @@ class TestMigration(unittest.TestCase):
         self.assertIsNone(version)
 
     @patch("components.database.mysql_connector.MySQLConnector.get_connection")
-    @patch("components.database.migration.Logger.get_logger")
+    @patch("components.database.migration.NativeLogger.get_logger")
     def test_get_current_migration_version_exception(
         self, mock_get_logger, mock_get_connection
     ):
