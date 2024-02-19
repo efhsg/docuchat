@@ -1,18 +1,20 @@
 from sqlalchemy import func
 from .interfaces.reader_repository import ReaderRepository
-from sqlalchemy.exc import IntegrityError
 from config import Config
-from components.database.mysql_connector import MySQLConnector
+from components.database.interfaces.connector import Connector
 from sqlalchemy.orm.exc import NoResultFound
 from components.logger.logger import Logger
 from components.database.models import ExtractedText, Domain
+from sqlalchemy.orm import Session
 
 
 class SqlalchemyReaderRepository(ReaderRepository):
 
-    def __init__(self, config=None, session=None, compressor=None, logger=None):
+    def __init__(
+        self, config=None, session: Session = None, compressor=None, logger=None
+    ):
         self.config = config or Config()
-        self.session = session or MySQLConnector().get_session()
+        self.session = session
         self.compressor = compressor
         self.logger = logger or Logger.get_logger()
         self.default_domain_name = self.config.default_domain_name

@@ -52,7 +52,7 @@ class TestConnection(unittest.TestCase):
     @patch("components.database.mysql_connector.os.getenv")
     @patch("components.database.mysql_connector.create_engine")
     @patch("components.database.mysql_connector.sessionmaker", autospec=True)
-    def test_get_session_success(
+    def test_create_session_success(
         self, mock_sessionmaker, mock_create_engine, mock_getenv
     ):
         mock_getenv.side_effect = lambda x, default=None: {
@@ -81,7 +81,7 @@ class TestConnection(unittest.TestCase):
     @patch("components.database.mysql_connector.os.getenv")
     @patch("components.database.mysql_connector.create_engine")
     @patch("components.database.mysql_connector.sessionmaker", autospec=True)
-    def test_get_session_failure(
+    def test_create_session_failure(
         self, mock_sessionmaker, mock_create_engine, mock_getenv
     ):
         mock_getenv.side_effect = lambda x, default=None: {
