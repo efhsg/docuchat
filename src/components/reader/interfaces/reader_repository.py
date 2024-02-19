@@ -28,7 +28,11 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def save_text(self, text, name, domain_id=None):
+    def list_text_names_by_domain(self, name):
+        pass
+
+    @abstractmethod
+    def save_text(self, text, name, domain_name=None):
         pass
 
     @abstractmethod

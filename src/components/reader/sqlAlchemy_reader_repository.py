@@ -97,26 +97,41 @@ class SqlalchemyReaderRepository(ReaderRepository):
         result = self.session.query(Domain.id).filter_by(name=name).first()
         return result is not None
 
-    def save_text(self, text, name, domain_id=None):
+    def list_text_names_by_domain(self, name):
         try:
-            if domain_id is not None:
-                domain_exists = (
-                    self.session.query(Domain.id).filter_by(id=domain_id).first()
-                )
-                if not domain_exists:
-                    raise ValueError(f"Domain ID {domain_id} does not exist.")
+            domain = self.session.query(Domain).filter_by(name=name).one()
+            result = (
+                self.session.query(ExtractedText.name)
+                .filter_by(domain_id=domain.id)
+                .all()
+            )
+            return [name[0] for name in result]
+        except NoResultFound:
+            self.logger.error(f"Domain '{name}' does not exist.")
+            return []
+        except Exception as e:
+            self.logger.error(f"Failed to list texts for domain '{name}'. Error: {e}")
+            raise
+
+    def save_text(self, text, name, domain_name=None):
+        try:
+            domain_id = None
+            if domain_name:
+                domain = self.session.query(Domain).filter_by(name=domain_name).first()
+                if domain:
+                    domain_id = domain.id
+                else:
+                    raise ValueError(f"Domain name {domain_name} does not exist.")
 
             compressed_text = self.compressor.compress(text)
             new_text = ExtractedText(
-                name=name,
-                text=compressed_text,
-                domain_id=domain_id if domain_id else None,
+                name=name, text=compressed_text, domain_id=domain_id
             )
             self.session.add(new_text)
             self.session.commit()
         except Exception as e:
             self.logger.critical(
-                f"Failed to save '{name}' with domain ID '{domain_id}'. Error: {e}"
+                f"Failed to save '{name}' with domain name '{domain_name}'. Error: {e}"
             )
             self.session.rollback()
             raise
