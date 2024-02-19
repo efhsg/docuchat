@@ -22,7 +22,11 @@ if "upload_disabled" not in st.session_state:
 
 
 selected_domain = st.sidebar.radio(
-    "Select Domain", options=reader_repository.list_domains(), index=0
+    "Select Domain",
+    options=[config.default_domain_name]
+    + reader_repository.list_domains_without_default(),
+    index=0,
+    on_change=lambda: st.session_state.update(select_all=False),
 )
 
 
@@ -34,9 +38,7 @@ with st.sidebar:
     else:
         with st.form("manage_files", clear_on_submit=True):
             file_dict = {
-                file: st.checkbox(
-                    file, value=st.session_state.get(file, False), key=file
-                )
+                file: st.checkbox(file, value=st.session_state["select_all"], key=file)
                 for file in files
             }
             delete = st.form_submit_button("Delete")
@@ -56,17 +58,10 @@ with st.sidebar:
         st.checkbox(
             "Select all files",
             key="select_all_toggle",
-            on_change=lambda: [
-                st.session_state.update(
-                    {
-                        file: not st.session_state.get("select_all", False)
-                        for file in files
-                    }
-                ),
-                st.session_state.update(
-                    select_all=not st.session_state.get("select_all", False)
-                ),
-            ],
+            on_change=lambda: st.session_state.update(
+                select_all=not st.session_state["select_all"]
+            ),
+            value=st.session_state["select_all"],
         )
 
 
