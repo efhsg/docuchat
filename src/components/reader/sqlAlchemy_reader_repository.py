@@ -2,7 +2,7 @@ from sqlalchemy import func
 from .interfaces.reader_repository import ReaderRepository
 from sqlalchemy.exc import IntegrityError
 from config import Config
-from components.database.connector import Connector
+from components.database.mysql_connector import MySQLConnector
 from sqlalchemy.orm.exc import NoResultFound
 from components.logger.logger import Logger
 from components.database.models import ExtractedText, Domain
@@ -12,7 +12,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
 
     def __init__(self, config=None, session=None, compressor=None, logger=None):
         self.config = config or Config()
-        self.session = session or Connector().create_session()
+        self.session = session or MySQLConnector().get_session()
         self.compressor = compressor
         self.logger = logger or Logger.get_logger()
         self.default_domain_name = self.config.default_domain_name

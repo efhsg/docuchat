@@ -2,7 +2,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command
 
 from config import Config
-from components.database.connector import Connector
+from components.database.mysql_connector import MySQLConnector
 from components.logger.logger import Logger
 
 
@@ -11,7 +11,7 @@ class Migration:
 
     def __init__(self, config=None, connection=None):
         self.config = config or Config()
-        self.connection = connection or Connector().create_connection()
+        self.connection = connection or MySQLConnector().get_connection()
 
     def get_current_migration_version(self):
         try:

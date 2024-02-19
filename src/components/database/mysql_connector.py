@@ -4,12 +4,13 @@ from dotenv import load_dotenv
 import pymysql
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from .interfaces.connector import Connector
 
 from components.logger.logger import Logger
 from config import Config
 
 
-class Connector:
+class MySQLConnector(Connector):
     def __init__(self):
         load_dotenv(Config().project_root / ".env")
         self._db_host = (
@@ -23,7 +24,7 @@ class Connector:
         self._db_port = os.getenv("DB_PORT", "3306")
         self.logger = Logger.get_logger()
 
-    def create_connection(self):
+    def get_connection(self):
         try:
             return pymysql.connect(
                 host=self._db_host,
@@ -38,7 +39,7 @@ class Connector:
             self.logger.critical(error_message)
             raise
 
-    def create_session(self):
+    def get_session(self):
         try:
             engine = create_engine(self._database_uri())
             Session = sessionmaker(bind=engine)
