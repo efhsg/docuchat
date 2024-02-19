@@ -9,12 +9,17 @@ from components.reader.zlib_text_compressor import ZlibTextCompressor
 class TestSqlalchemyReaderRepository(unittest.TestCase):
 
     @patch("components.reader.sqlAlchemy_reader_repository.Connector.create_session")
-    def test_create_domain_success(self, mock_create_session):
+    @patch(
+        "components.reader.sqlAlchemy_reader_repository.SqlalchemyReaderRepository.domain_exists",
+        return_value=False,
+    )
+    def test_create_domain_success(self, mock_domain_exists, mock_create_session):
         mock_session = MagicMock()
         mock_create_session.return_value = mock_session
         reader_repository = SqlalchemyReaderRepository(session=mock_session)
         reader_repository.create_domain("test_domain")
         mock_session.add.assert_called_once()
+        mock_session.commit.assert_called_once()
 
     @patch("components.reader.sqlAlchemy_reader_repository.Connector.create_session")
     def test_create_domain_with_default_name_failure(self, mock_create_session):
