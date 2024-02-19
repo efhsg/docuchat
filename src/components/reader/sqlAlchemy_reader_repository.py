@@ -113,16 +113,11 @@ class SqlalchemyReaderRepository(ReaderRepository):
             self.logger.error(f"Failed to list texts for domain '{name}'. Error: {e}")
             raise
 
-    def save_text(self, text, name, domain_name=None):
+    def save_text(self, text, name, domain_name):
         try:
             domain_id = None
             if domain_name:
-                domain = self.session.query(Domain).filter_by(name=domain_name).first()
-                if domain:
-                    domain_id = domain.id
-                else:
-                    raise ValueError(f"Domain name {domain_name} does not exist.")
-
+                domain_id = self._get_domain_id(domain_name)
             compressed_text = self.compressor.compress(text)
             new_text = ExtractedText(
                 name=name, text=compressed_text, domain_id=domain_id
@@ -147,9 +142,22 @@ class SqlalchemyReaderRepository(ReaderRepository):
         result = self.session.query(ExtractedText.name).all()
         return [name[0] for name in result]
 
-    def text_exists(self, name):
-        result = self.session.query(ExtractedText.id).filter_by(name=name).first()
-        return result is not None
+    def text_exists(self, name, domain_name):
+        try:
+            domain_id = self._get_domain_id(domain_name)
+            result = (
+                self.session.query(ExtractedText.id)
+                .filter_by(name=name, domain_id=domain_id)
+                .first()
+            )
+            return result is not None
+        except ValueError:
+            raise ValueError(f"Domain name {domain_name} does not exist.")
+        except Exception as e:
+            self.logger.error(
+                f"Failed to check existence of text '{name}' in domain '{domain_name}'. Error: {e}"
+            )
+            raise
 
     def delete_texts(self, names):
         if not names:
@@ -163,3 +171,11 @@ class SqlalchemyReaderRepository(ReaderRepository):
             self.logger.error(f"Failed to delete texts. Error: {e}")
             self.session.rollback()
             raise
+
+    def _get_domain_id(self, domain_name):
+        domain = self.session.query(Domain).filter_by(name=domain_name).first()
+        if domain:
+            domain_id = domain.id
+        else:
+            raise ValueError(f"Domain name {domain_name} does not exist.")
+        return domain_id

@@ -17,8 +17,8 @@ st.set_page_config(
 
 if "select_all" not in st.session_state:
     st.session_state["select_all"] = False
-if "upload_disabled" not in st.session_state:
-    st.session_state["upload_disabled"] = False
+if "uploading" not in st.session_state:
+    st.session_state["uploading"] = False
 
 
 selected_domain = st.sidebar.radio(
@@ -27,6 +27,7 @@ selected_domain = st.sidebar.radio(
     + reader_repository.list_domains_without_default(),
     index=0,
     on_change=lambda: st.session_state.update(select_all=False),
+    disabled=st.session_state.get("uploading", False),
 )
 
 
@@ -38,10 +39,17 @@ with st.sidebar:
     else:
         with st.form("manage_files", clear_on_submit=True):
             file_dict = {
-                file: st.checkbox(file, value=st.session_state["select_all"], key=file)
+                file: st.checkbox(
+                    file,
+                    value=st.session_state["select_all"],
+                    key=file,
+                    disabled=st.session_state.get("uploading", False),
+                )
                 for file in files
             }
-            delete = st.form_submit_button("Delete")
+            delete = st.form_submit_button(
+                "Delete", disabled=st.session_state.get("uploading", False)
+            )
             if delete:
                 texts_to_delete = [
                     file_name
@@ -62,27 +70,30 @@ with st.sidebar:
                 select_all=not st.session_state["select_all"]
             ),
             value=st.session_state["select_all"],
+            disabled=st.session_state.get("uploading", False),
         )
 
 
 with st.form("upload", clear_on_submit=True):
+    st.subheader(selected_domain)
+
     files = st.file_uploader(
         "Select files",
         type=config.upload_extensions,
         accept_multiple_files=True,
-        disabled=st.session_state.get("upload_disabled", False),
+        disabled=st.session_state.get("uploading", False),
     )
     upload = st.form_submit_button(
         "Upload",
-        on_click=lambda: st.session_state.update(upload_disabled=True),
-        disabled=st.session_state.get("upload_disabled", False),
+        on_click=lambda: st.session_state.update(uploading=True),
+        disabled=st.session_state.get("uploading", False),
     )
     if upload:
         if not files:
-            st.session_state["upload_disabled"] = False
+            st.session_state["uploading"] = False
             st.rerun()
         for uploaded_file in files:
-            if reader_repository.text_exists(uploaded_file.name):
+            if reader_repository.text_exists(uploaded_file.name, selected_domain):
                 st.warning(
                     f"Skipped: '{uploaded_file.name}'. Extracted text already exist."
                 )
@@ -95,7 +106,7 @@ with st.form("upload", clear_on_submit=True):
             except Exception as e:
                 st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
 
-if st.session_state.get("upload_disabled", False):
+if st.session_state.get("uploading", False):
     if st.button("Ok"):
-        st.session_state["upload_disabled"] = False
+        st.session_state["uploading"] = False
         st.rerun()

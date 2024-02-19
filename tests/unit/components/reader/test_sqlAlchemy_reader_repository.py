@@ -109,7 +109,7 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
         self.assertIsInstance(result, list)
 
     def test_save_text_success(self):
-        self.reader_repository.save_text("dummy text", "dummy name")
+        self.reader_repository.save_text("dummy text", "dummy name", "dummy_domain")
         session = self.mock_connector.get_session.return_value
         session.add.assert_called_once()
 
@@ -118,11 +118,16 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
         session.query.return_value.filter_by.return_value.first.return_value = (
             MagicMock()
         )
-        result = self.reader_repository.text_exists("existing name")
+        result = self.reader_repository.text_exists("existing name", "domain_name")
         self.assertTrue(result)
 
     def test_text_exists_not_found(self):
-        session = self.mock_connector.get_session.return_value
-        session.query.return_value.filter_by.return_value.first.return_value = None
-        result = self.reader_repository.text_exists("non-existing name")
-        self.assertFalse(result)
+        self.mock_connector.get_session.return_value.query.return_value.filter_by.return_value.first.return_value = (
+            None
+        )
+
+        with patch.object(self.reader_repository, "_get_domain_id", return_value=1):
+            result = self.reader_repository.text_exists(
+                "non-existing name", "domain_name"
+            )
+            self.assertFalse(result)

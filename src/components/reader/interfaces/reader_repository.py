@@ -32,7 +32,7 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def save_text(self, text, name, domain_name=None):
+    def save_text(self, text, name, domain_name):
         pass
 
     @abstractmethod
@@ -44,7 +44,7 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def text_exists(self, name):
+    def text_exists(self, name, domain_name):
         pass
 
     @abstractmethod

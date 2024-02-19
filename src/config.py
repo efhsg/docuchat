@@ -28,7 +28,7 @@ class Config:
 
     @property
     def latest_migration_version(self):
-        return "d0090ad818e3"
+        return "b72c26e2d17f"
 
     @property
     def default_domain_name(self):
