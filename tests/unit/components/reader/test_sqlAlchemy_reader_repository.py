@@ -1,153 +1,128 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 from components.reader.sqlAlchemy_reader_repository import SqlalchemyReaderRepository
 from components.reader.zlib_text_compressor import ZlibTextCompressor
+from components.logger.native_logger import NativeLogger
 
 
 class TestSqlalchemyReaderRepository(unittest.TestCase):
+    def setUp(self):
+        self.mock_connector = MagicMock()
+        self.mock_connector.get_session.return_value = MagicMock()
+        self.mock_logger = MagicMock(spec=NativeLogger)
+        self.mock_compressor = MagicMock(spec=ZlibTextCompressor)
+        self.reader_repository = SqlalchemyReaderRepository(
+            connector=self.mock_connector,
+            compressor=self.mock_compressor,
+            logger=self.mock_logger,
+        )
 
-    @patch("injector.get_session")
-    @patch(
-        "components.reader.sqlAlchemy_reader_repository.SqlalchemyReaderRepository.domain_exists",
-        return_value=False,
-    )
-    def test_create_domain_success(self, mock_domain_exists, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        reader_repository.create_domain("test_domain")
-        mock_session.add.assert_called_once()
-        mock_session.commit.assert_called_once()
+    def test_create_domain_success(self):
+        self.reader_repository.domain_exists = MagicMock(return_value=False)
+        self.reader_repository.create_domain("test_domain")
+        session = self.mock_connector.get_session.return_value
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
 
-    @patch("injector.get_session")
-    def test_create_domain_with_default_name_failure(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        default_domain_name = reader_repository.config.default_domain_name
+    def test_create_domain_with_default_name_failure(self):
+        default_domain_name = self.reader_repository.config.default_domain_name
         with self.assertRaises(ValueError):
-            reader_repository.create_domain(default_domain_name)
+            self.reader_repository.create_domain(default_domain_name)
 
-    @patch("injector.get_session")
-    def test_list_domains(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        mock_session.query.return_value.all.return_value = [("domain1",), ("domain2",)]
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        result = reader_repository.list_domains()
+    def test_list_domains(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.all.return_value = [("domain1",), ("domain2",)]
+        result = self.reader_repository.list_domains()
         self.assertEqual(result, ["domain1", "domain2"])
 
-    @patch("injector.get_session")
-    def test_list_domains_without_default(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        mock_session.query.return_value.filter.return_value.all.return_value = [
+    def test_list_domains_without_default(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter.return_value.all.return_value = [
             ("domain1",),
             ("domain2",),
         ]
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        domains = reader_repository.list_domains_without_default()
+        domains = self.reader_repository.list_domains_without_default()
         self.assertNotIn(
-            reader_repository.config.default_domain_name.lower(),
+            self.reader_repository.config.default_domain_name.lower(),
             [domain.lower() for domain in domains],
         )
 
-    @patch("injector.get_session")
-    def test_delete_domain_success(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        reader_repository.delete_domain("test_domain")
-        mock_session.query.assert_called_once()
+    def test_delete_domain_success(self):
+        self.reader_repository.delete_domain("test_domain")
+        session = self.mock_connector.get_session.return_value
+        session.query.assert_called_once()
 
-    @patch("injector.get_session")
-    def test_update_domain_success(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        mock_session.query.return_value.filter_by.return_value.first.return_value = None
-        mock_logger = MagicMock()
-        mock_logger.error = MagicMock()
-        reader_repository = SqlalchemyReaderRepository(
-            session=mock_session, logger=mock_logger
+    def test_update_domain_success(self):
+        session = self.mock_connector.get_session.return_value
+        domain_mock = MagicMock()
+        session.query.return_value.filter_by.return_value.first.side_effect = [
+            domain_mock,
+            None,
+        ]
+
+        self.reader_repository.domain_exists = MagicMock(return_value=False)
+
+        try:
+            self.reader_repository.update_domain("existing_domain", "new_unique_domain")
+            update_success = True
+        except ValueError:
+            update_success = False
+
+        self.assertTrue(
+            update_success, "Domain update should succeed without raising ValueError"
         )
 
-        with self.assertRaises(ValueError):
-            reader_repository.update_domain("default_domain", "new_name")
-
-        mock_logger.error.assert_called()
-
-    @patch("injector.get_session")
-    def test_update_default_domain_failure(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        default_domain_name = reader_repository.config.default_domain_name
-        with self.assertRaises(ValueError):
-            reader_repository.update_domain(default_domain_name, "new_name")
-
-    @patch("injector.get_session")
-    def test_delete_default_domain_failure(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        default_domain_name = reader_repository.config.default_domain_name
-        with self.assertRaises(ValueError):
-            reader_repository.delete_domain(default_domain_name)
-
-    @patch("injector.get_session")
-    def test_delete_texts_bulk_success(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        reader_repository.delete_texts(["name1", "name2"])
-        mock_session.query.return_value.filter.return_value.delete.assert_called_once()
-
-    @patch("injector.get_session")
-    @patch("components.reader.zlib_text_compressor.ZlibTextCompressor.decompress")
-    def test_get_text_by_name_found(self, mock_decompress, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        mock_decompress.return_value = "decompressed text"
-        mock_session.query.return_value.filter_by.return_value.one.return_value.text = (
-            b"compressed text"
+        self.assertEqual(
+            domain_mock.name,
+            "new_unique_domain",
+            "Domain name should be updated to 'new_unique_domain'",
         )
-        reader_repository = SqlalchemyReaderRepository(
-            session=mock_session, compressor=ZlibTextCompressor()
+        session.commit.assert_called_once()
+
+    def test_update_default_domain_failure(self):
+        default_domain_name = self.reader_repository.config.default_domain_name
+        with self.assertRaises(ValueError):
+            self.reader_repository.update_domain(default_domain_name, "new_name")
+
+    def test_delete_default_domain_failure(self):
+        default_domain_name = self.reader_repository.config.default_domain_name
+        with self.assertRaises(ValueError):
+            self.reader_repository.delete_domain(default_domain_name)
+
+    def test_delete_texts_bulk_success(self):
+        self.reader_repository.delete_texts(["name1", "name2"])
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter.return_value.delete.assert_called_once()
+
+    def test_get_text_by_name_found(self):
+        self.mock_compressor.decompress.return_value = "decompressed text"
+        session = self.mock_connector.get_session.return_value
+        mocked_query_result = MagicMock(text=b"compressed text")
+        session.query.return_value.filter_by.return_value.one.return_value = (
+            mocked_query_result
         )
-        result = reader_repository.get_text_by_name("dummy name")
+        result = self.reader_repository.get_text_by_name("dummy name")
         self.assertEqual(result, "decompressed text")
 
-    @patch("injector.get_session")
-    def test_list_text_names(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        result = reader_repository.list_text_names()
+    def test_list_text_names(self):
+        result = self.reader_repository.list_text_names()
         self.assertIsInstance(result, list)
 
-    @patch("injector.get_session")
-    def test_save_text_success(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(
-            session=mock_session, compressor=ZlibTextCompressor()
-        )
-        reader_repository.save_text("dummy text", "dummy name")
-        mock_session.add.assert_called_once()
+    def test_save_text_success(self):
+        self.reader_repository.save_text("dummy text", "dummy name")
+        session = self.mock_connector.get_session.return_value
+        session.add.assert_called_once()
 
-    @patch("injector.get_session")
-    def test_text_exists_found(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        result = reader_repository.text_exists("existing name")
+    def test_text_exists_found(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.first.return_value = (
+            MagicMock()
+        )
+        result = self.reader_repository.text_exists("existing name")
         self.assertTrue(result)
 
-    @patch("injector.get_session")
-    def test_text_exists_not_found(self, mock_create_session):
-        mock_session = MagicMock()
-        mock_create_session.return_value = mock_session
-        mock_session.query.return_value.filter_by.return_value.first.return_value = None
-        reader_repository = SqlalchemyReaderRepository(session=mock_session)
-        result = reader_repository.text_exists("non-existing name")
+    def test_text_exists_not_found(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.first.return_value = None
+        result = self.reader_repository.text_exists("non-existing name")
         self.assertFalse(result)

@@ -9,16 +9,11 @@ from components.logger.native_logger import NativeLogger
 from sqlalchemy.orm import Session
 
 
-def get_session() -> Session:
-    connector: Connector = MySQLConnector()
-    return connector.get_session()
-
-
 def get_reader_repository() -> ReaderRepository:
-    session = get_session()
+    connector: Connector = MySQLConnector()
     logger = NativeLogger.get_logger("docuchat")
     return SqlalchemyReaderRepository(
-        session=session, compressor=ZlibTextCompressor(), logger=logger
+        connector=connector, compressor=ZlibTextCompressor(), logger=logger
     )
 
 
