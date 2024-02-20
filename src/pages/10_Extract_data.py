@@ -109,6 +109,6 @@ with st.form("upload", clear_on_submit=True):
                 st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
 
 if st.session_state.get("uploading", False):
-    if st.button("Ok"):
+    if st.button("Clear"):
         st.session_state["uploading"] = False
         st.rerun()
