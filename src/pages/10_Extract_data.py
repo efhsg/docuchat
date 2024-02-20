@@ -2,6 +2,8 @@ import streamlit as st
 from PIL import Image
 from config import Config
 from injector import get_reader_repository, get_text_extractor, get_logger
+from pages.utils.extracted_data import manage_extracted_data
+
 
 config = Config()
 reader_repository = get_reader_repository()
@@ -17,6 +19,10 @@ def add_message(message, message_type):
         st.session_state["message_counts"][message_type] = 1
     if message_type == "error":
         st.error(message)
+    elif message_type == "warning":
+        st.warning(message)
+    elif message_type == "info":
+        st.info(message)
 
 
 def display_summary():
@@ -96,46 +102,11 @@ selected_domain = st.sidebar.radio(
 )
 
 with st.sidebar:
-    st.title(f"Extracted to {selected_domain}")
-    files = reader_repository.list_text_names_by_domain(selected_domain)
-    if not files:
-        st.write("No files found")
-    else:
-        with st.form("manage_files", clear_on_submit=True):
-            file_dict = {
-                file: st.checkbox(
-                    file,
-                    value=st.session_state["select_all"],
-                    key=file,
-                    disabled=st.session_state.get("uploading", False),
-                )
-                for file in files
-            }
-            delete = st.form_submit_button(
-                "Delete", disabled=st.session_state.get("uploading", False)
-            )
-            if delete:
-                texts_to_delete = [
-                    file_name
-                    for file_name, is_checked in file_dict.items()
-                    if is_checked
-                ]
-                if texts_to_delete:
-                    reader_repository.delete_texts(texts_to_delete)
-                    for text in texts_to_delete:
-                        if text in st.session_state:
-                            del st.session_state[text]
-                    st.rerun()
-
-        st.checkbox(
-            "Select all files",
-            key="select_all_toggle",
-            on_change=lambda: st.session_state.update(
-                select_all=not st.session_state["select_all"]
-            ),
-            value=st.session_state["select_all"],
-            disabled=st.session_state.get("uploading", False),
-        )
+    manage_extracted_data(
+        reader_repository,
+        selected_domain,
+        uploading=st.session_state.get("uploading", False),
+    )
 
 with st.form("upload", clear_on_submit=True):
     st.subheader(selected_domain)
@@ -168,18 +139,21 @@ with st.form("upload", clear_on_submit=True):
                     "warning",
                 )
                 continue
-            try:
-                with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
+            with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
+                try:
                     text = text_extractor.extract_text(uploaded_file)
-                reader_repository.save_text(text, uploaded_file.name, selected_domain)
-                add_message(f"Done: '{uploaded_file.name}'", "info")
-            except Exception as e:
-                add_message(
-                    f"Failed to process: '{uploaded_file.name}'. Error: {e}", "error"
-                )
+                    reader_repository.save_text(
+                        text, uploaded_file.name, selected_domain
+                    )
+                    add_message(f"Done: '{uploaded_file.name}'", "info")
+                except Exception as e:
+                    add_message(
+                        f"Failed to process: '{uploaded_file.name}'. Error: {e}",
+                        "error",
+                    )
         st.session_state["select_all"] = False
         st.session_state["uploading"] = False
         st.rerun()
 
-if not st.session_state.uploading and st.session_state["total_files"] > 0:
+if not st.session_state.uploading and st.session_state.total_files > 0:
     display_summary()

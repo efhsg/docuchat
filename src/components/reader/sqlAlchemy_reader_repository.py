@@ -1,5 +1,6 @@
 from sqlalchemy import func
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError
 
 from components.logger.interfaces.logger import Logger
 from components.reader.interfaces.text_compressor import TextCompressor
@@ -64,15 +65,25 @@ class SqlalchemyReaderRepository(ReaderRepository):
     def delete_domain(self, name):
         if name.lower() == self.config.default_domain_name:
             raise ValueError(
-                f"The default domain '{self.config.default_domain_name}' domain cannot be deleted."
+                f"The default domain '{self.config.default_domain_name}' cannot be deleted."
             )
         try:
             self.session.query(Domain).filter_by(name=name).delete()
             self.session.commit()
+        except IntegrityError:
+            self.logger.error(
+                f"Cannot delete domain '{name}' as it still has associated texts."
+            )
+            self.session.rollback()
+            raise ValueError(
+                f"Domain '{name}' cannot be deleted as it still contains extracted texts."
+            )
         except Exception as e:
             self.logger.error(f"Failed to delete domain '{name}'. Error: {e}")
             self.session.rollback()
-            raise ValueError(f"Failed to delete domain '{name}'. Error: {e}")
+            raise ValueError(
+                f"An error occurred while deleting domain '{name}'. Please try again."
+            )
 
     def update_domain(self, old_name, new_name):
         if old_name.lower() == self.config.default_domain_name:
