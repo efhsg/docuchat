@@ -76,7 +76,6 @@ with st.sidebar:
 
 with st.form("upload", clear_on_submit=True):
     st.subheader(selected_domain)
-
     files = st.file_uploader(
         "Select files",
         type=config.upload_extensions,
@@ -89,10 +88,13 @@ with st.form("upload", clear_on_submit=True):
         disabled=st.session_state.get("uploading", False),
     )
     if upload:
+        upload_progress = st.progress(0)
         if not files:
             st.session_state["uploading"] = False
             st.rerun()
-        for uploaded_file in files:
+        total_files = len(files)
+        for i, uploaded_file in enumerate(files):
+            upload_progress.progress((i + 1) / total_files)
             if reader_repository.text_exists(uploaded_file.name, selected_domain):
                 st.warning(
                     f"Skipped: '{uploaded_file.name}'. Extracted text already exist."
