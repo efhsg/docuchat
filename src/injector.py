@@ -7,6 +7,10 @@ from components.reader.file_text_extractor import FileTextExtractor
 from components.logger.native_logger import NativeLogger
 
 
+def get_logger(name: str = "docuchat"):
+    return NativeLogger.get_logger(name)
+
+
 def get_reader_repository() -> ReaderRepository:
     return SqlalchemyReaderRepository(
         connector=MySQLConnector(),

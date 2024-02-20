@@ -1,11 +1,69 @@
 import streamlit as st
 from PIL import Image
 from config import Config
-from injector import get_reader_repository, get_text_extractor
+from injector import get_reader_repository, get_text_extractor, get_logger
 
 config = Config()
 reader_repository = get_reader_repository()
 text_extractor = get_text_extractor()
+logger = get_logger()
+
+
+def add_message(message, message_type):
+    st.session_state["messages"].append({"text": message, "type": message_type})
+    if message_type in st.session_state["message_counts"]:
+        st.session_state["message_counts"][message_type] += 1
+    else:
+        st.session_state["message_counts"][message_type] = 1
+    if message_type == "error":
+        st.error(message)
+
+
+def display_summary():
+    extracted = st.session_state["message_counts"].get("info", 0)
+    warnings = st.session_state["message_counts"].get("warning", 0)
+    errors = st.session_state["message_counts"].get("error", 0)
+    total = st.session_state["total_files"]
+    st.write(
+        f"Total files: {total}, Files extracted: {extracted}, Warnings: {warnings}, Errors: {errors}"
+    )
+
+    col1, col2 = st.columns([1, 15])
+    with col1:
+        if st.button("Clear"):
+            clear_messages()
+            st.experimental_rerun()
+    with col2:
+        if not st.session_state.get("show_details"):
+            if st.button(
+                "Show details",
+            ):
+                st.session_state["show_details"] = True
+                st.rerun()
+
+    if st.session_state.get("show_details", False):
+        display_and_log(st.session_state["messages"])
+
+
+def display_and_log(messages):
+    ordered_messages = sorted(
+        messages, key=lambda x: {"error": 0, "warning": 1, "info": 2}[x["type"]]
+    )
+    for message in ordered_messages:
+        if message["type"] == "error":
+            st.error(message["text"])
+        elif message["type"] == "warning":
+            st.warning(message["text"])
+        elif message["type"] == "info":
+            st.info(message["text"])
+
+
+def clear_messages():
+    st.session_state["messages"] = []
+    st.session_state["message_counts"] = {"info": 0, "warning": 0, "error": 0}
+    st.session_state["total_files"] = 0
+    st.session_state["show_details"] = False
+
 
 image = Image.open(config.logo_small_path)
 st.set_page_config(
@@ -19,7 +77,14 @@ if "select_all" not in st.session_state:
     st.session_state["select_all"] = False
 if "uploading" not in st.session_state:
     st.session_state["uploading"] = False
-
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+if "message_counts" not in st.session_state:
+    st.session_state["message_counts"] = {}
+if "total_files" not in st.session_state:
+    st.session_state["total_files"] = 0
+if "show_details" not in st.session_state:
+    st.session_state["show_details"] = False
 
 selected_domain = st.sidebar.radio(
     "Select Domain",
@@ -30,9 +95,8 @@ selected_domain = st.sidebar.radio(
     disabled=st.session_state.get("uploading", False),
 )
 
-
 with st.sidebar:
-    st.title("Extracted to domain")
+    st.title(f"Extracted to {selected_domain}")
     files = reader_repository.list_text_names_by_domain(selected_domain)
     if not files:
         st.write("No files found")
@@ -73,42 +137,49 @@ with st.sidebar:
             disabled=st.session_state.get("uploading", False),
         )
 
-
 with st.form("upload", clear_on_submit=True):
     st.subheader(selected_domain)
     files = st.file_uploader(
         "Select files",
         type=config.upload_extensions,
         accept_multiple_files=True,
-        disabled=st.session_state.get("uploading", False),
+        disabled=st.session_state.get("uploading", False)
+        or st.session_state["total_files"] > 0,
     )
     upload = st.form_submit_button(
         "Upload",
         on_click=lambda: st.session_state.update(uploading=True),
-        disabled=st.session_state.get("uploading", False),
+        disabled=st.session_state.get("uploading", False)
+        or st.session_state["total_files"] > 0,
     )
     if upload:
+        clear_messages()
         upload_progress = st.progress(0)
         if not files:
             st.session_state["uploading"] = False
             st.rerun()
         total_files = len(files)
+        st.session_state["total_files"] = total_files
         for i, uploaded_file in enumerate(files):
             upload_progress.progress((i + 1) / total_files)
             if reader_repository.text_exists(uploaded_file.name, selected_domain):
-                st.warning(
-                    f"Skipped: '{uploaded_file.name}'. Extracted text already exist."
+                add_message(
+                    f"Skipped: '{uploaded_file.name}'. Extracted text already exists.",
+                    "warning",
                 )
                 continue
             try:
                 with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
                     text = text_extractor.extract_text(uploaded_file)
                 reader_repository.save_text(text, uploaded_file.name, selected_domain)
-                st.info(f"Done: '{uploaded_file.name}'")
+                add_message(f"Done: '{uploaded_file.name}'", "info")
             except Exception as e:
-                st.error(f"Failed to process: '{uploaded_file.name}'. Error: {e}")
-
-if st.session_state.get("uploading", False):
-    if st.button("Clear"):
+                add_message(
+                    f"Failed to process: '{uploaded_file.name}'. Error: {e}", "error"
+                )
+        st.session_state["select_all"] = False
         st.session_state["uploading"] = False
         st.rerun()
+
+if not st.session_state.uploading and st.session_state["total_files"] > 0:
+    display_summary()
