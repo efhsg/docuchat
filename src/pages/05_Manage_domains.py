@@ -1,7 +1,9 @@
 import streamlit as st
+from config import Config
 from injector import get_reader_repository
 from pages.utils.extracted_data import manage_extracted_data
 
+config = Config()
 reader_repository = get_reader_repository()
 
 st.sidebar.title("Manage Domains")
@@ -41,7 +43,9 @@ with st.sidebar:
                 st.session_state["message_type"] = "error"
             st.rerun()
 
-existing_domains = reader_repository.list_domains_without_default()
+existing_domains = [
+    config.default_domain_name
+] + reader_repository.list_domains_without_default()
 last_selected_index = 0
 if st.session_state["last_selected_domain"] in existing_domains:
     last_selected_index = existing_domains.index(
