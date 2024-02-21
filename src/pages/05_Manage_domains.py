@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 from config import Config
 from injector import get_reader_repository
@@ -26,22 +27,41 @@ if st.session_state["message"]:
         st.sidebar.error(st.session_state["message"])
     st.session_state["message"] = None
 
+
+def create_domain(new_domain_name):
+    if not new_domain_name.strip():
+        return "Please enter a domain name.", "error"
+    elif len(new_domain_name) > config.max_domain_name_length:
+        return (
+            f"Domain name must be {config.max_domain_name_length} characters or fewer.",
+            "error",
+        )
+    elif not re.match(config.domain_name_pattern, new_domain_name):
+        return (
+            "Invalid domain name. Only letters, digits, spaces, and special characters (.@#$%^&*()_+?![]{}<->) are allowed.",
+            "error",
+        )
+    else:
+        try:
+            reader_repository.create_domain(new_domain_name)
+            return f"Domain '{new_domain_name}' created successfully!", "success"
+        except Exception as e:
+            return str(e), "error"
+
+
 with st.sidebar:
     with st.form("create_domain_form", clear_on_submit=True):
         new_domain_name = st.text_input("Domain Name", key="create_domain_input")
         create_domain_button = st.form_submit_button("Create Domain")
-        if create_domain_button and new_domain_name:
-            try:
-                reader_repository.create_domain(new_domain_name)
-                st.session_state["message"] = (
-                    f"Domain '{new_domain_name}' created successfully!"
-                )
-                st.session_state["message_type"] = "success"
-                st.session_state["last_selected_domain"] = new_domain_name
-            except Exception as e:
-                st.session_state["message"] = str(e)
-                st.session_state["message_type"] = "error"
-            st.rerun()
+
+    if create_domain_button:
+        message, message_type = create_domain(new_domain_name)
+        st.session_state["message"] = message
+        st.session_state["message_type"] = message_type
+        if message_type == "success":
+            st.session_state["last_selected_domain"] = new_domain_name
+        st.experimental_rerun()
+
 
 existing_domains = [
     config.default_domain_name

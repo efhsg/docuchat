@@ -33,3 +33,11 @@ class Config:
     @property
     def default_domain_name(self):
         return os.getenv("DEFAULT_DOMAIN_NAME", "default").lower()
+
+    @property
+    def max_domain_name_length(self):
+        return int(os.getenv("MAX_DOMAIN_NAME_LENGTH", 255))
+
+    @property
+    def domain_name_pattern(self):
+        return r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]{}<>!?-]+$"
