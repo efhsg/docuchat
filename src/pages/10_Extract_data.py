@@ -4,7 +4,6 @@ from config import Config
 from injector import get_reader_repository, get_text_extractor, get_logger
 from pages.utils.extracted_data import manage_extracted_data
 
-
 config = Config()
 reader_repository = get_reader_repository()
 text_extractor = get_text_extractor()
@@ -38,12 +37,10 @@ def display_summary():
     with col1:
         if st.button("Clear"):
             clear_messages()
-            st.experimental_rerun()
+            st.rerun()
     with col2:
         if not st.session_state.get("show_details"):
-            if st.button(
-                "Show details",
-            ):
+            if st.button("Show details"):
                 st.session_state["show_details"] = True
                 st.rerun()
 
@@ -92,14 +89,20 @@ if "total_files" not in st.session_state:
 if "show_details" not in st.session_state:
     st.session_state["show_details"] = False
 
-selected_domain = st.sidebar.radio(
+
+domain_options = [
+    config.default_domain_name
+] + reader_repository.list_domains_without_default()
+selected_domain = st.sidebar.selectbox(
     "Select Domain",
-    options=[config.default_domain_name]
-    + reader_repository.list_domains_without_default(),
+    domain_options,
     index=0,
-    on_change=lambda: st.session_state.update(select_all=False),
     disabled=st.session_state.get("uploading", False),
 )
+
+if selected_domain and selected_domain != st.session_state.get("last_selected_domain"):
+    st.session_state.update(select_all=False, last_selected_domain=selected_domain)
+    st.rerun()
 
 with st.sidebar:
     manage_extracted_data(
