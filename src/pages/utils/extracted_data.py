@@ -6,7 +6,7 @@ from components.reader.interfaces.reader_repository import ReaderRepository
 def manage_extracted_data(
     reader_repository: ReaderRepository, selected_domain: str, uploading: bool
 ) -> None:
-    st.title(f"Extracted to {selected_domain}")
+    st.title(f"Texts in {selected_domain}")
 
     files = reader_repository.list_text_names_by_domain(selected_domain)
 
@@ -38,7 +38,7 @@ def manage_extracted_data(
                     st.experimental_rerun()
 
         st.checkbox(
-            "Select all files",
+            "Select all texts",
             key="select_all_toggle",
             on_change=lambda: st.session_state.update(
                 select_all=not st.session_state["select_all"]
