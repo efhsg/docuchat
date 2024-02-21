@@ -18,7 +18,7 @@ def validate_domain_name(domain_name):
         )
     elif not re.match(config.domain_name_pattern, domain_name):
         return (
-            "Invalid domain name. Only letters, digits, spaces, and special characters (.@#$%^&*()_+?![]\/{}<->) are allowed.",
+            "Invalid domain name. Only letters, digits, spaces, and special characters (.@#$%^&*()_+?![]/{}<->) are allowed.",
             "error",
         )
     return None, "success"

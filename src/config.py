@@ -40,4 +40,4 @@ class Config:
 
     @property
     def domain_name_pattern(self):
-        return r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]\/\\{}<>!?-]+$"
+        return r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]/{}<>!?-]+$"
