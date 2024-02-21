@@ -24,111 +24,155 @@ def validate_domain_name(domain_name):
     return None, "success"
 
 
-def create_or_update_domain(domain_name, action, selected_domain=None):
+def create_domain(domain_name):
     message, message_type = validate_domain_name(domain_name)
     if message_type == "error":
         return message, message_type
     try:
-        if action == "create":
-            reader_repository.create_domain(domain_name)
-            return f"Domain '{domain_name}' created successfully!", "success"
-        elif action == "update" and selected_domain:
-            reader_repository.update_domain(selected_domain, domain_name)
-            return (
-                f"Domain '{selected_domain}' updated to '{domain_name}' successfully!",
-                "success",
-            )
+        reader_repository.create_domain(domain_name)
+        return f"Domain '{domain_name}' created successfully!", "success"
     except Exception as e:
         return str(e), "error"
 
 
-st.sidebar.title("Manage Domains")
-
-if "message" not in st.session_state:
-    st.session_state["message"] = None
-if "message_type" not in st.session_state:
-    st.session_state["message_type"] = None
-if "last_selected_domain" not in st.session_state:
-    st.session_state["last_selected_domain"] = None
-if "select_all" not in st.session_state:
-    st.session_state["select_all"] = False
-if "selected_domain" not in st.session_state:
-    st.session_state["selected_domain"] = None
-
-if st.session_state["message"]:
-    if st.session_state["message_type"] == "success":
-        st.sidebar.success(st.session_state["message"])
-    elif st.session_state["message_type"] == "error":
-        st.sidebar.error(st.session_state["message"])
-    st.session_state["message"] = None
-
-with st.sidebar:
-    with st.form("create_domain_form", clear_on_submit=True):
-        new_domain_name = st.text_input("Domain Name", key="create_domain_input")
-        create_domain_button = st.form_submit_button("Create Domain")
-        if create_domain_button:
-            message, message_type = create_or_update_domain(new_domain_name, "create")
-            st.session_state["message"] = message
-            st.session_state["message_type"] = message_type
-            if message_type == "success":
-                st.session_state["last_selected_domain"] = new_domain_name
-            st.rerun()
-
-existing_domains = [
-    config.default_domain_name
-] + reader_repository.list_domains_without_default()
-last_selected_index = 0
-if st.session_state["last_selected_domain"] in existing_domains:
-    last_selected_index = existing_domains.index(
-        st.session_state["last_selected_domain"]
-    )
-
-selected_domain = st.sidebar.selectbox(
-    "Select Domain", existing_domains, index=last_selected_index, key="select_domain"
-)
-
-
-with st.sidebar.form("manage_domain_form", clear_on_submit=True):
-    new_domain_name_for_update = st.text_input(
-        "New Domain Name ", key="update_domain_input"
-    )
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        update_domain_button = st.form_submit_button("Update")
-    with col2:
-        delete_domain_button = st.form_submit_button(label="🗑️ Delete")
-
-
-if delete_domain_button and selected_domain:
+def update_domain(selected_domain, new_domain_name):
+    message, message_type = validate_domain_name(new_domain_name)
+    if message_type == "error":
+        return message, message_type
     try:
-        reader_repository.delete_domain(selected_domain)
-        st.session_state["message"] = (
-            f"Domain '{selected_domain}' deleted successfully!"
+        reader_repository.update_domain(selected_domain, new_domain_name)
+        return (
+            f"Domain '{selected_domain}' updated to '{new_domain_name}' successfully!",
+            "success",
         )
-        st.session_state["message_type"] = "success"
-        st.session_state["last_selected_domain"] = None
-        st.session_state["select_all"] = False
     except Exception as e:
-        st.session_state["message"] = str(e)
-        st.session_state["message_type"] = "error"
-    st.rerun()
+        return str(e), "error"
 
-if update_domain_button and selected_domain and new_domain_name_for_update:
-    message, message_type = create_or_update_domain(
-        new_domain_name_for_update, "update", selected_domain
-    )
-    st.session_state["message"] = message
-    st.session_state["message_type"] = message_type
-    if message_type == "success":
-        st.session_state["last_selected_domain"] = new_domain_name_for_update
-    st.rerun()
 
-if selected_domain:
+def setup_session_state():
+    for key in [
+        "message",
+        "message_type",
+        "last_selected_domain",
+        "select_all",
+        "selected_domain",
+    ]:
+        if key not in st.session_state:
+            st.session_state[key] = None if key != "select_all" else False
+
+
+def show_messages():
+    if st.session_state["message"]:
+        if st.session_state["message_type"] == "success":
+            st.sidebar.success(st.session_state["message"])
+        elif st.session_state["message_type"] == "error":
+            st.sidebar.error(st.session_state["message"])
+        st.session_state["message"] = None
+
+
+def domain_creation_form():
     with st.sidebar:
-        manage_extracted_data(
-            reader_repository,
-            selected_domain,
-            uploading=st.session_state.get("uploading", False),
+        with st.form("create_domain_form", clear_on_submit=True):
+            new_domain_name = st.text_input("Domain Name", key="create_domain_input")
+            create_domain_button = st.form_submit_button("Create Domain")
+            if create_domain_button:
+                message, message_type = create_domain(new_domain_name)
+                st.session_state["message"] = message
+                st.session_state["message_type"] = message_type
+                if message_type == "success":
+                    st.session_state["last_selected_domain"] = new_domain_name
+                st.rerun()
+
+
+def get_existing_domains(config, reader_repository):
+    existing_domains = [
+        config.default_domain_name
+    ] + reader_repository.list_domains_without_default()
+
+    return existing_domains
+
+
+def get_last_selected_index(existing_domains):
+    last_selected_index = 0
+    if st.session_state["last_selected_domain"] in existing_domains:
+        last_selected_index = existing_domains.index(
+            st.session_state["last_selected_domain"]
         )
 
-st.title("Manage Extracted Text")
+    return last_selected_index
+
+
+def select_domain(existing_domains, last_selected_index):
+    with st.sidebar:
+        selected_domain = st.selectbox(
+            "Select Domain",
+            existing_domains,
+            index=last_selected_index,
+            key="select_domain",
+        )
+
+    return selected_domain
+
+
+def domain_management_form(selected_domain):
+    with st.sidebar.form("manage_domain_form", clear_on_submit=True):
+        new_domain_name = st.text_input("New Domain Name ", key="update_domain_input")
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            update_domain_button = st.form_submit_button("Update")
+        with col2:
+            delete_domain_button = st.form_submit_button(label="🗑️ Delete")
+
+    if delete_domain_button and selected_domain:
+        try:
+            reader_repository.delete_domain(selected_domain)
+            st.session_state["message"] = (
+                f"Domain '{selected_domain}' deleted successfully!"
+            )
+            st.session_state["message_type"] = "success"
+            st.session_state["last_selected_domain"] = None
+            st.session_state["select_all"] = False
+        except Exception as e:
+            st.session_state["message"] = str(e)
+            st.session_state["message_type"] = "error"
+        st.rerun()
+
+    if update_domain_button and selected_domain and new_domain_name:
+        message, message_type = update_domain(selected_domain, new_domain_name)
+        st.session_state["message"] = message
+        st.session_state["message_type"] = message_type
+        if message_type == "success":
+            st.session_state["last_selected_domain"] = new_domain_name
+        st.rerun()
+
+
+def extracted_data(selected_domain):
+    if selected_domain:
+        with st.sidebar:
+            manage_extracted_data(
+                reader_repository,
+                selected_domain,
+                uploading=st.session_state.get("uploading", False),
+            )
+
+
+def main():
+    st.sidebar.title("Manage Domains")
+    st.title("Manage Extracted Text")
+
+    setup_session_state()
+    show_messages()
+
+    domain_creation_form()
+
+    existing_domains = get_existing_domains(config, reader_repository)
+    last_selected_index = get_last_selected_index(existing_domains)
+    selected_domain = select_domain(existing_domains, last_selected_index)
+
+    domain_management_form(selected_domain)
+
+    extracted_data(selected_domain)
+
+
+if __name__ == "__main__":
+    main()
