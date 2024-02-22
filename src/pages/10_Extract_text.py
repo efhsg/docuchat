@@ -33,7 +33,7 @@ def display_summary():
         f"Total files: {total}, Files extracted: {extracted}, Warnings: {warnings}, Errors: {errors}"
     )
 
-    col1, col2 = st.columns([1, 15])
+    col1, col2 = st.columns([1, 12])
     with col1:
         if st.button("Clear"):
             clear_messages()
