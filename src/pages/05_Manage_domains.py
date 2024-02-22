@@ -1,11 +1,13 @@
 import re
+from PIL import Image
 import streamlit as st
 from config import Config
-from injector import get_reader_repository
+from injector import get_logger, get_reader_repository
 from pages.utils.extracted_data import manage_extracted_data
 
 config = Config()
 reader_repository = get_reader_repository()
+logger = get_logger()
 
 
 def validate_domain_name(domain_name):
@@ -56,9 +58,22 @@ def setup_session_state():
         "last_selected_domain",
         "select_all",
         "selected_domain",
+        "source_domain",
+        "target_domain",
     ]:
         if key not in st.session_state:
             st.session_state[key] = None if key != "select_all" else False
+
+
+def setup_page():
+    image = Image.open(config.logo_small_path)
+    st.set_page_config(
+        page_title="Read text from uploads",
+        page_icon=image,
+        layout="wide",
+        initial_sidebar_state="auto",
+    )
+    st.sidebar.title("Manage Domains")
 
 
 def show_messages():
@@ -84,12 +99,8 @@ def domain_creation_form():
                 st.rerun()
 
 
-def get_existing_domains(config, reader_repository):
-    existing_domains = [
-        config.default_domain_name
-    ] + reader_repository.list_domains_without_default()
-
-    return existing_domains
+def get_existing_domains():
+    return reader_repository.list_domains()
 
 
 def get_last_selected_index(existing_domains):
@@ -156,22 +167,137 @@ def extracted_data(selected_domain):
             )
 
 
-def main():
-    st.sidebar.title("Manage Domains")
-    st.title("Manage Extracted Text")
+def select_domain_texts(source_domain_texts, domain):
+    with st.container(border=True):
+        selected_texts = {
+            text: st.checkbox(text, key=f"{domain}_{text}")
+            for text in source_domain_texts
+        }
+        return [text for text, selected in selected_texts.items() if selected]
 
+
+def move_texts(source_domain, target_domain, texts):
+    try:
+        skipped_texts = reader_repository.move_text(source_domain, target_domain, texts)
+        st.session_state["skipped_texts"] = skipped_texts
+        st.rerun()
+    except Exception as e:
+        st.error(f"Failed to move texts: {str(e)}")
+
+
+def display_domain_texts(domain):
+    if domain:
+        with st.container(border=True):
+            extracted_texts = reader_repository.list_text_names_by_domain(domain)
+            for text in extracted_texts:
+                st.text(text)
+
+
+def update_source_domain():
+    st.session_state["source_domain"] = st.session_state["source_domain_selection"]
+
+
+def update_target_domain():
+    st.session_state["target_domain"] = st.session_state["target_domain_selection"]
+
+
+def domain_text_management():
+
+    source_domain_options = reader_repository.get_domains_with_extracted_texts()
+
+    if len(reader_repository.list_domains_without_default()) == 0:
+        st.info("You can add domains in the side menu.")
+        return
+
+    if len(source_domain_options) == 0:
+        st.info("You can 'Extract text' with the option in the side menu.")
+        return
+
+    st.title("Move Texts")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        source_domain_index = (
+            0
+            if st.session_state["source_domain"] not in source_domain_options
+            else source_domain_options.index(st.session_state["source_domain"])
+        )
+        st.session_state["source_domain"] = source_domain_options[source_domain_index]
+        source_domain_selection = st.selectbox(
+            "Select source domain",
+            source_domain_options,
+            key="source_domain_selection",
+            index=source_domain_index,
+            on_change=update_source_domain,
+        )
+        source_domain_texts = reader_repository.list_text_names_by_domain(
+            source_domain_selection
+        )
+        if len(source_domain_texts) > 0:
+            selected_source_texts = select_domain_texts(
+                source_domain_texts, source_domain_selection
+            )
+        else:
+            if len(source_domain_options) > 0:
+                st.warning("No texts found")
+
+    target_domain_options = [
+        domain for domain in get_existing_domains() if domain != source_domain_selection
+    ]
+
+    with col2:
+        target_domain_index = (
+            0
+            if st.session_state["target_domain"] not in target_domain_options
+            else target_domain_options.index(st.session_state["target_domain"])
+        )
+
+        st.selectbox(
+            "Select target domain",
+            target_domain_options,
+            index=target_domain_index,
+            key="target_domain_selection",
+            on_change=update_target_domain,
+        )
+        display_domain_texts(target_domain_options[target_domain_index])
+
+    if len(source_domain_texts) > 0:
+        if st.button("Move Selected Texts"):
+            if not selected_source_texts:
+                st.error("Please select at least one text to move.")
+            else:
+                move_texts(
+                    source_domain_options[source_domain_index],
+                    target_domain_options[target_domain_index],
+                    selected_source_texts,
+                )
+    if "skipped_texts" in st.session_state and st.session_state["skipped_texts"]:
+        st.warning(
+            "To move the following texts, delete them first from the target domain:"
+        )
+        skipped_list = "\n".join(
+            f"- {text}" for text in st.session_state["skipped_texts"]
+        )
+        st.markdown(skipped_list)
+        del st.session_state["skipped_texts"]
+
+
+def main():
     setup_session_state()
+    setup_page()
     show_messages()
 
     domain_creation_form()
 
-    existing_domains = get_existing_domains(config, reader_repository)
+    existing_domains = get_existing_domains()
     last_selected_index = get_last_selected_index(existing_domains)
     selected_domain = select_domain(existing_domains, last_selected_index)
 
     domain_management_form(selected_domain)
 
     extracted_data(selected_domain)
+
+    domain_text_management()
 
 
 if __name__ == "__main__":

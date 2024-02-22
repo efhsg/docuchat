@@ -90,7 +90,8 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
             self.reader_repository.delete_domain(default_domain_name)
 
     def test_delete_texts_bulk_success(self):
-        self.reader_repository.delete_texts(["name1", "name2"])
+        default_domain_name = self.reader_repository.config.default_domain_name
+        self.reader_repository.delete_texts(["name1", "name2"], default_domain_name)
         session = self.mock_connector.get_session.return_value
         session.query.return_value.filter.return_value.delete.assert_called_once()
 

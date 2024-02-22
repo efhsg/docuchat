@@ -31,7 +31,7 @@ def manage_extracted_data(
                     if is_checked
                 ]
                 if texts_to_delete:
-                    reader_repository.delete_texts(texts_to_delete)
+                    reader_repository.delete_texts(texts_to_delete, selected_domain)
                     for text in texts_to_delete:
                         if text in st.session_state:
                             del st.session_state[text]

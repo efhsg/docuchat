@@ -16,6 +16,10 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
+    def get_domains_with_extracted_texts(self):
+        pass
+
+    @abstractmethod
     def delete_domain(self, name):
         pass
 
@@ -48,5 +52,9 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def delete_texts(self, names):
+    def delete_texts(self, names, domain_name):
+        pass
+
+    @abstractmethod
+    def move_text(self, source_domain_name, target_domain_name, text_names):
         pass

@@ -2,7 +2,7 @@ from sqlalchemy import func
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
 
-from components.logger.interfaces.logger import Logger
+from logging import Logger as StandardLogger
 from components.reader.interfaces.text_compressor import TextCompressor
 from components.database.interfaces.connector import Connector
 from .interfaces.reader_repository import ReaderRepository
@@ -18,7 +18,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
         config=None,
         connector: Connector = None,
         compressor: TextCompressor = None,
-        logger: Logger = None,
+        logger: StandardLogger = None,
     ):
         self.config = config or Config()
 
@@ -60,6 +60,22 @@ class SqlalchemyReaderRepository(ReaderRepository):
             return [domain[0] for domain in domains]
         except Exception as e:
             self.logger.error(f"Failed to list domains without default. Error: {e}")
+            raise
+
+    def get_domains_with_extracted_texts(self):
+        try:
+            domains_with_texts = (
+                self.session.query(Domain.name)
+                .join(ExtractedText, Domain.id == ExtractedText.domain_id)
+                .group_by(Domain.name)
+                .having(func.count(ExtractedText.id) > 0)
+                .all()
+            )
+            return [domain[0] for domain in domains_with_texts]
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list domains with at least one text. Error: {e}"
+            )
             raise
 
     def delete_domain(self, name):
@@ -114,6 +130,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
             result = (
                 self.session.query(ExtractedText.name)
                 .filter_by(domain_id=domain.id)
+                .order_by(ExtractedText.name)
                 .all()
             )
             return [name[0] for name in result]
@@ -170,18 +187,66 @@ class SqlalchemyReaderRepository(ReaderRepository):
             )
             raise
 
-    def delete_texts(self, names):
+    def delete_texts(self, names, domain_name):
         if not names:
             return
         try:
+            domain_id = self._get_domain_id(domain_name)
             self.session.query(ExtractedText).filter(
-                ExtractedText.name.in_(names)
+                ExtractedText.name.in_(names), ExtractedText.domain_id == domain_id
             ).delete(synchronize_session="fetch")
             self.session.commit()
         except Exception as e:
             self.logger.error(f"Failed to delete texts. Error: {e}")
             self.session.rollback()
             raise
+
+    def move_text(self, source_domain_name, target_domain_name, text_names):
+        try:
+            skipped_texts = []
+
+            source_domain_id = self._get_domain_id(source_domain_name)
+            target_domain_id = self._get_domain_id(target_domain_name)
+
+            if source_domain_id == target_domain_id:
+                raise ValueError("Source and target domains must be different.")
+
+            existing_texts_in_target = self.list_text_names_by_domain(
+                target_domain_name
+            )
+
+            texts_to_move = (
+                self.session.query(ExtractedText)
+                .filter(
+                    ExtractedText.domain_id == source_domain_id,
+                    ExtractedText.name.in_(text_names),
+                )
+                .all()
+            )
+
+            for text in texts_to_move:
+                if text.name in existing_texts_in_target:
+                    skipped_texts.append(text.name)
+                    continue
+                text.domain_id = target_domain_id
+
+            self.session.commit()
+
+            if skipped_texts:
+                self.logger.info(
+                    f"Skipped moving texts that already exist in the target domain: {skipped_texts}"
+                )
+
+            self.logger.info(
+                f"Moved texts from domain '{source_domain_name}' to '{target_domain_name}', except for skipped texts."
+            )
+            return skipped_texts
+        except Exception as e:
+            self.session.rollback()
+            self.logger.error(
+                f"Failed to move texts from '{source_domain_name}' to '{target_domain_name}'. Error: {e}"
+            )
+            raise ValueError(f"Failed to move texts due to an error: {e}")
 
     def _get_domain_id(self, domain_name):
         domain = self.session.query(Domain).filter_by(name=domain_name).first()
