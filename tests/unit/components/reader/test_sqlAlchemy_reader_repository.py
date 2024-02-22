@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+from sqlalchemy.orm.exc import NoResultFound
 from components.reader.sqlAlchemy_reader_repository import SqlalchemyReaderRepository
 from components.reader.zlib_text_compressor import ZlibTextCompressor
 from components.logger.native_logger import NativeLogger
@@ -132,3 +133,83 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
                 "non-existing name", "domain_name"
             )
             self.assertFalse(result)
+
+    def test_list_text_names_by_domain_success(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.one.return_value = MagicMock(
+            id=1
+        )
+        session.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = [
+            ("text1",),
+            ("text2",),
+        ]
+        result = self.reader_repository.list_text_names_by_domain("domain1")
+        self.assertEqual(result, ["text1", "text2"])
+
+    def test_list_text_names_by_domain_no_result(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.one.side_effect = (
+            NoResultFound
+        )
+        self.mock_logger.error = MagicMock()
+        result = self.reader_repository.list_text_names_by_domain("non_existent_domain")
+        self.assertEqual(result, [])
+        self.mock_logger.error.assert_called_once()
+
+    def test_list_text_names_by_domain_exception(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.one.side_effect = Exception(
+            "Unexpected error"
+        )
+        with self.assertRaises(Exception):
+            self.reader_repository.list_text_names_by_domain("domain_with_error")
+
+    def test_move_text_success(self):
+        self.reader_repository._get_domain_id = MagicMock(side_effect=[1, 2])
+        self.reader_repository.list_text_names_by_domain = MagicMock(return_value=[])
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter.return_value.all.return_value = [
+            MagicMock(name="text1", domain_id=1),
+        ]
+        self.mock_logger.info = MagicMock()
+        skipped_texts = self.reader_repository.move_text(
+            "source_domain", "target_domain", ["text1"]
+        )
+        self.assertEqual(skipped_texts, [])
+        self.mock_logger.info.assert_called()
+
+    def test_move_text_source_target_same(self):
+        self.mock_logger.error = MagicMock()
+        with self.assertRaises(ValueError):
+            self.reader_repository.move_text(
+                "source_domain", "source_domain", ["text1"]
+            )
+        self.mock_logger.error.assert_called_once()
+
+    def test_move_text_exception(self):
+        self.reader_repository._get_domain_id = MagicMock(side_effect=[1, 2])
+        self.reader_repository.list_text_names_by_domain = MagicMock(return_value=[])
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter.return_value.all.side_effect = Exception(
+            "Unexpected error"
+        )
+        self.mock_logger.error = MagicMock()
+        with self.assertRaises(ValueError):
+            self.reader_repository.move_text(
+                "source_domain", "target_domain", ["text1"]
+            )
+        self.mock_logger.error.assert_called_once()
+
+    def test_get_domain_id_found(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.first.return_value = (
+            MagicMock(id=1)
+        )
+        domain_id = self.reader_repository._get_domain_id("existing_domain")
+        self.assertEqual(domain_id, 1)
+
+    def test_get_domain_id_not_found(self):
+        session = self.mock_connector.get_session.return_value
+        session.query.return_value.filter_by.return_value.first.return_value = None
+        with self.assertRaises(ValueError):
+            self.reader_repository._get_domain_id("non_existing_domain")
