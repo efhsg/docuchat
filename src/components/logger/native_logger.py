@@ -1,5 +1,6 @@
 from .interfaces.logger import Logger
 import logging
+from logging import Logger as StandardLogger
 import logging.config
 from pathlib import Path
 from shutil import copyfile
@@ -33,6 +34,6 @@ class NativeLogger(Logger):
             cls._logger = True
 
     @staticmethod
-    def get_logger(name="docuchat"):
+    def get_logger(name="docuchat") -> StandardLogger:
         NativeLogger._ensure_configured()
         return logging.getLogger(name)
