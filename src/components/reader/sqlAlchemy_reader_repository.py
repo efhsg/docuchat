@@ -147,14 +147,28 @@ class SqlalchemyReaderRepository(ReaderRepository):
             if domain_name:
                 domain_id = self._get_domain_id(domain_name)
             compressed_text = self.compressor.compress(text)
-            new_text = ExtractedText(
-                name=name, text=compressed_text, domain_id=domain_id
-            )
-            self.session.add(new_text)
+
+            if self.text_exists(name, domain_name):
+                existing_text = (
+                    self.session.query(ExtractedText)
+                    .filter_by(name=name, domain_id=domain_id)
+                    .first()
+                )
+                existing_text.text = compressed_text
+                self.logger.info(f"Updated '{name}' with domain name '{domain_name}'.")
+            else:
+                new_text = ExtractedText(
+                    name=name, text=compressed_text, domain_id=domain_id
+                )
+                self.session.add(new_text)
+                self.logger.info(
+                    f"Saved new '{name}' with domain name '{domain_name}'."
+                )
+
             self.session.commit()
         except Exception as e:
             self.logger.critical(
-                f"Failed to save '{name}' with domain name '{domain_name}'. Error: {e}"
+                f"Failed to save/update '{name}' with domain name '{domain_name}'. Error: {e}"
             )
             self.session.rollback()
             raise

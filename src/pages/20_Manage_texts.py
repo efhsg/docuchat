@@ -12,6 +12,7 @@ def setup_session_state():
         "context_domain": None,
         "context_text": None,
         "show_text": False,
+        "edit_text": False,
     }
 
     for key, value in default_values.items():
@@ -38,10 +39,24 @@ def manage_texts(selected_domain):
     )
     if selected_text:
         handle_text_renaming(selected_domain, selected_text)
-        if st.button("Show text"):
-            st.session_state["show_text"] = not st.session_state["show_text"]
+
+        col1, col2 = st.columns([1, 5])
+
+        with col1:
+            if st.button("Show text"):
+                st.session_state["show_text"] = not st.session_state["show_text"]
+                st.session_state["edit_text"] = False
+
+        with col2:
+            if st.button("Edit text"):
+                st.session_state["edit_text"] = not st.session_state["edit_text"]
+                st.session_state["show_text"] = False
+
         if st.session_state.get("show_text"):
-            display_text_content(selected_domain, selected_text)
+            handle_text_content(selected_domain, selected_text, edit_mode=False)
+
+        if st.session_state.get("edit_text"):
+            handle_text_content(selected_domain, selected_text, edit_mode=True)
 
 
 def select_text(text_options):
@@ -71,17 +86,32 @@ def handle_text_renaming(selected_domain, selected_text):
             st.rerun()
 
 
-def display_text_content(selected_domain, selected_text):
+def handle_text_content(selected_domain, selected_text, edit_mode):
     try:
         text_content = reader_repository.get_text_by_name(
             selected_text, selected_domain
         )
         if text_content is not None:
-            st.text_area("content", value=text_content, height=400, disabled=True)
+            if edit_mode:
+                edited_text = st.text_area(
+                    "Edit content", value=text_content, height=400
+                )
+                if st.button("Save changes"):
+                    reader_repository.save_text(
+                        edited_text, selected_text, selected_domain
+                    )
+                    st.session_state["edit_text"] = False
+                    st.session_state["show_text"] = True
+                    st.rerun()
+            else:
+                st.text_area("content", value=text_content, height=400, disabled=True)
         else:
             st.error("Text content not found.")
     except Exception as e:
-        st.error(f"An error occurred while displaying the text content: {e}")
+        logger.error(
+            f"An error occurred while displaying or editing the text content: {e}"
+        )
+        st.error(f"An error occurred while displaying or editing the text content: {e}")
 
 
 def main():
