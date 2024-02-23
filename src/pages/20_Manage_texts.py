@@ -1,6 +1,7 @@
 import streamlit as st
 from injector import get_config, get_logger, get_reader_repository
 from pages.utils.utils import get_index
+from pages.utils.utils import setup_page
 
 config = get_config()
 reader_repository = get_reader_repository()
@@ -115,6 +116,7 @@ def handle_text_content(selected_domain, selected_text, edit_mode):
 
 
 def main():
+    setup_page()
     setup_session_state()
     manage_texts(select_domain())
 

@@ -1,13 +1,27 @@
 import streamlit as st
-from PIL import Image
-from config import Config
 from injector import get_config, get_reader_repository, get_text_extractor, get_logger
 from pages.utils.extracted_data import manage_extracted_data
+from pages.utils.utils import setup_page
 
 config = get_config()
 reader_repository = get_reader_repository()
 text_extractor = get_text_extractor()
 logger = get_logger()
+
+
+def setup_session_state():
+    if "select_all" not in st.session_state:
+        st.session_state["select_all"] = False
+    if "uploading" not in st.session_state:
+        st.session_state["uploading"] = False
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = []
+    if "message_counts" not in st.session_state:
+        st.session_state["message_counts"] = {}
+    if "total_files" not in st.session_state:
+        st.session_state["total_files"] = 0
+    if "show_details" not in st.session_state:
+        st.session_state["show_details"] = False
 
 
 def add_message(message, message_type):
@@ -66,31 +80,6 @@ def clear_messages():
     st.session_state["message_counts"] = {"info": 0, "warning": 0, "error": 0}
     st.session_state["total_files"] = 0
     st.session_state["show_details"] = False
-
-
-def setup_session_state():
-    if "select_all" not in st.session_state:
-        st.session_state["select_all"] = False
-    if "uploading" not in st.session_state:
-        st.session_state["uploading"] = False
-    if "messages" not in st.session_state:
-        st.session_state["messages"] = []
-    if "message_counts" not in st.session_state:
-        st.session_state["message_counts"] = {}
-    if "total_files" not in st.session_state:
-        st.session_state["total_files"] = 0
-    if "show_details" not in st.session_state:
-        st.session_state["show_details"] = False
-
-
-def setup_page():
-    image = Image.open(config.logo_small_path)
-    st.set_page_config(
-        page_title="Read text from uploads",
-        page_icon=image,
-        layout="wide",
-        initial_sidebar_state="auto",
-    )
 
 
 def get_domains():
@@ -177,8 +166,8 @@ def show_summary():
 
 
 def main():
-    setup_session_state()
     setup_page()
+    setup_session_state()
     selected_domain = select_domain()
     extracted_data(selected_domain)
     upload_files(selected_domain)

@@ -2,18 +2,13 @@ import streamlit as st
 from PIL import Image
 from config import Config
 from components.database.migration import Migration
+from pages.utils.utils import setup_page
 
 config_instance = Config()
 
 
 def home_page():
-    image = Image.open(config_instance.logo_small_path)
-    st.set_page_config(
-        page_title="DocuChat Home",
-        page_icon=image,
-        layout="wide",
-        initial_sidebar_state="auto",
-    )
+    setup_page()
     col1, col2 = st.columns([1, 1])
 
     with col1:

@@ -4,6 +4,7 @@ import streamlit as st
 from config import Config
 from injector import get_logger, get_reader_repository, get_config
 from pages.utils.extracted_data import manage_extracted_data
+from pages.utils.utils import setup_page
 
 config = get_config()
 reader_repository = get_reader_repository()
@@ -63,17 +64,6 @@ def setup_session_state():
     ]:
         if key not in st.session_state:
             st.session_state[key] = None if key != "select_all" else False
-
-
-def setup_page():
-    image = Image.open(config.logo_small_path)
-    st.set_page_config(
-        page_title="Read text from uploads",
-        page_icon=image,
-        layout="wide",
-        initial_sidebar_state="auto",
-    )
-    st.sidebar.title("Manage Domains")
 
 
 def show_messages():
@@ -283,8 +273,8 @@ def domain_text_management():
 
 
 def main():
-    setup_session_state()
     setup_page()
+    setup_session_state()
     show_messages()
 
     domain_creation_form()
