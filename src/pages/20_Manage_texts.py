@@ -8,9 +8,14 @@ logger = get_logger()
 
 
 def setup_session_state():
-    session_state_keys = ["context_domain", "context_text"]
-    for key in session_state_keys:
-        st.session_state.setdefault(key, None)
+    default_values = {
+        "context_domain": None,
+        "context_text": None,
+        "show_text": False,
+    }
+
+    for key, value in default_values.items():
+        st.session_state.setdefault(key, value)
 
 
 def select_domain():
@@ -33,7 +38,10 @@ def manage_texts(selected_domain):
     )
     if selected_text:
         handle_text_renaming(selected_domain, selected_text)
-        display_text_content(selected_domain, selected_text)
+        if st.button("Show text"):
+            st.session_state["show_text"] = not st.session_state["show_text"]
+        if st.session_state.get("show_text"):
+            display_text_content(selected_domain, selected_text)
 
 
 def select_text(text_options):
