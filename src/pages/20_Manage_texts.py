@@ -73,7 +73,6 @@ def display_text_content(selected_domain, selected_text):
         else:
             st.error("Text content not found.")
     except Exception as e:
-        logger.error(f"Error displaying text content: {e}")
         st.error(f"An error occurred while displaying the text content: {e}")
 
 
