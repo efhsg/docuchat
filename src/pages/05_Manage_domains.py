@@ -2,10 +2,10 @@ import re
 from PIL import Image
 import streamlit as st
 from config import Config
-from injector import get_logger, get_reader_repository
+from injector import get_logger, get_reader_repository, get_config
 from pages.utils.extracted_data import manage_extracted_data
 
-config = Config()
+config = get_config()
 reader_repository = get_reader_repository()
 logger = get_logger()
 
@@ -203,7 +203,7 @@ def update_target_domain():
 
 def domain_text_management():
 
-    source_domain_options = reader_repository.get_domains_with_extracted_texts()
+    source_domain_options = reader_repository.list_domains_with_extracted_texts()
 
     if len(reader_repository.list_domains_without_default()) == 0:
         st.info("You can add domains in the side menu.")

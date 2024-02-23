@@ -16,7 +16,7 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def get_domains_with_extracted_texts(self):
+    def list_domains_with_extracted_texts(self):
         pass
 
     @abstractmethod
@@ -40,7 +40,7 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def get_text_by_name(self, name):
+    def get_text_by_name(self, text_name, domain_name):
         pass
 
     @abstractmethod
@@ -57,4 +57,8 @@ class ReaderRepository(ABC):
 
     @abstractmethod
     def move_text(self, source_domain_name, target_domain_name, text_names):
+        pass
+
+    @abstractmethod
+    def update_text_name(old_name, new_name, domain_name):
         pass

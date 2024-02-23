@@ -1,10 +1,10 @@
 import streamlit as st
 from PIL import Image
 from config import Config
-from injector import get_reader_repository, get_text_extractor, get_logger
+from injector import get_config, get_reader_repository, get_text_extractor, get_logger
 from pages.utils.extracted_data import manage_extracted_data
 
-config = Config()
+config = get_config()
 reader_repository = get_reader_repository()
 text_extractor = get_text_extractor()
 logger = get_logger()
@@ -94,11 +94,7 @@ def setup_page():
 
 
 def get_domains():
-    domains = [
-        config.default_domain_name
-    ] + reader_repository.list_domains_without_default()
-
-    return domains
+    return reader_repository.list_domains()
 
 
 def select_domain():

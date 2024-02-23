@@ -62,7 +62,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
             self.logger.error(f"Failed to list domains without default. Error: {e}")
             raise
 
-    def get_domains_with_extracted_texts(self):
+    def list_domains_with_extracted_texts(self):
         try:
             domains_with_texts = (
                 self.session.query(Domain.name)
@@ -159,10 +159,18 @@ class SqlalchemyReaderRepository(ReaderRepository):
             self.session.rollback()
             raise
 
-    def get_text_by_name(self, name):
+    def get_text_by_name(self, text_name, domain_name):
         try:
-            result = self.session.query(ExtractedText).filter_by(name=name).one()
-            return self.compressor.decompress(result.text)
+            domain_id = self._get_domain_id(domain_name)
+            result = (
+                self.session.query(ExtractedText)
+                .filter_by(name=text_name, domain_id=domain_id)
+                .first()
+            )
+            if result:
+                return self.compressor.decompress(result.text)
+            else:
+                return None
         except NoResultFound:
             return None
 
@@ -255,3 +263,33 @@ class SqlalchemyReaderRepository(ReaderRepository):
         else:
             raise ValueError(f"Domain name {domain_name} does not exist.")
         return domain_id
+
+    def update_text_name(self, old_name, new_name, domain_name) -> bool:
+        if old_name == new_name:
+            return False
+
+        try:
+            domain_id = self._get_domain_id(domain_name)
+            text_to_update = (
+                self.session.query(ExtractedText)
+                .filter_by(name=old_name, domain_id=domain_id)
+                .one()
+            )
+            if self.text_exists(new_name, domain_name):
+                raise ValueError(
+                    f"A text with the name '{new_name}' already exists in the domain '{domain_name}'."
+                )
+
+            text_to_update.name = new_name
+            self.session.commit()
+        except NoResultFound:
+            raise ValueError(
+                f"The text '{old_name}' does not exist in the domain '{domain_name}'."
+            )
+        except Exception as e:
+            self.session.rollback()
+            self.logger.error(
+                f"Failed to rename text '{old_name}' to '{new_name}'. Error: {e}"
+            )
+            raise
+        return True
