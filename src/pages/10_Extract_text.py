@@ -25,17 +25,12 @@ def setup_session_state() -> None:
 
 
 def add_message(message, message_type):
-    st.session_state["messages"].append({"text": message, "type": message_type})
-    if message_type in st.session_state["message_counts"]:
-        st.session_state["message_counts"][message_type] += 1
-    else:
-        st.session_state["message_counts"][message_type] = 1
-    if message_type == "error":
-        st.error(message)
-    elif message_type == "warning":
-        st.warning(message)
-    elif message_type == "info":
-        st.info(message)
+    st.session_state["message_counts"].setdefault(message_type, 0)
+    st.session_state["message_counts"][message_type] += 1
+
+    message_functions = {"error": st.error, "warning": st.warning, "info": st.info}
+    if message_type in message_functions:
+        message_functions[message_type](message)
 
 
 def display_summary():
