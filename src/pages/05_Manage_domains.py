@@ -201,7 +201,7 @@ def domain_text_management():
 
     source_domain_options = reader_repository.list_domains_with_extracted_texts()
 
-    if len(reader_repository.list_domains_without_default()) == 0:
+    if len(reader_repository.list_domains()) == 0:
         st.info("You can add domains in the side menu.")
         return
 
@@ -219,7 +219,9 @@ def domain_text_management():
                 if st.session_state["source_domain"] not in source_domain_options
                 else source_domain_options.index(st.session_state["source_domain"])
             )
-            st.session_state["source_domain"] = source_domain_options[source_domain_index]
+            st.session_state["source_domain"] = source_domain_options[
+                source_domain_index
+            ]
             source_domain_selection = st.selectbox(
                 "Select source domain",
                 source_domain_options,
@@ -236,7 +238,9 @@ def domain_text_management():
                 )
 
         target_domain_options = [
-            domain for domain in get_existing_domains() if domain != source_domain_selection
+            domain
+            for domain in get_existing_domains()
+            if domain != source_domain_selection
         ]
 
         with col2:

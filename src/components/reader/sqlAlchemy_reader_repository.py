@@ -25,13 +25,8 @@ class SqlalchemyReaderRepository(ReaderRepository):
         self.session = connector.get_session()
         self.compressor = compressor
         self.logger = logger
-        self.default_domain_name = self.config.default_domain_name
 
     def create_domain(self, name):
-        if name.lower() == self.default_domain_name.lower():
-            raise ValueError(
-                f"Cannot create domain with default name '{self.default_domain_name}'."
-            )
         if self.domain_exists(name):
             raise ValueError(f"Domain with name '{name}' already exists.")
         try:
@@ -48,18 +43,6 @@ class SqlalchemyReaderRepository(ReaderRepository):
             return [domain[0] for domain in self.session.query(Domain.name).all()]
         except Exception as e:
             self.logger.error(f"Failed to list domains. Error: {e}")
-            raise
-
-    def list_domains_without_default(self):
-        try:
-            domains = (
-                self.session.query(Domain.name)
-                .filter(func.lower(Domain.name) != func.lower(self.default_domain_name))
-                .all()
-            )
-            return [domain[0] for domain in domains]
-        except Exception as e:
-            self.logger.error(f"Failed to list domains without default. Error: {e}")
             raise
 
     def list_domains_with_extracted_texts(self):
@@ -79,10 +62,6 @@ class SqlalchemyReaderRepository(ReaderRepository):
             raise
 
     def delete_domain(self, name):
-        if name.lower() == self.config.default_domain_name:
-            raise ValueError(
-                f"The default domain '{self.config.default_domain_name}' cannot be deleted."
-            )
         try:
             self.session.query(Domain).filter_by(name=name).delete()
             self.session.commit()
@@ -102,10 +81,6 @@ class SqlalchemyReaderRepository(ReaderRepository):
             )
 
     def update_domain(self, old_name, new_name):
-        if old_name.lower() == self.config.default_domain_name:
-            raise ValueError(
-                f"The '{self.config.default_domain_name}' domain cannot be updated."
-            )
         if self.domain_exists(new_name):
             raise ValueError(f"The domain '{new_name}' already exists.")
         try:

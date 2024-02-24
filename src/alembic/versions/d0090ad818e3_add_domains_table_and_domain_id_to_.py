@@ -21,7 +21,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade():
-    # Create domains table and insert default domain
     op.create_table(
         "domains",
         sa.Column(
@@ -31,11 +30,6 @@ def upgrade():
         mysql_charset="utf8mb4",
         mysql_collate="utf8mb4_0900_ai_ci",
     )
-    op.execute("INSERT INTO domains (name) VALUES ('default');")
-
-    conn = op.get_bind()
-    result = conn.execute(text("SELECT id FROM domains WHERE name = 'default'"))
-    default_domain_id = result.scalar()
 
     op.add_column(
         "extracted_texts",
@@ -43,16 +37,11 @@ def upgrade():
             "domain_id",
             sa.Integer,
             nullable=False,
-            server_default=str(default_domain_id),
         ),
     )
 
     op.create_foreign_key(
         "fk_domain_id", "extracted_texts", "domains", ["domain_id"], ["id"]
-    )
-
-    op.execute(
-        f"UPDATE extracted_texts SET domain_id = {default_domain_id} WHERE domain_id IS NULL"
     )
 
 

@@ -12,10 +12,6 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
-    def list_domains_without_default(self):
-        pass
-
-    @abstractmethod
     def list_domains_with_extracted_texts(self):
         pass
 

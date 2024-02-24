@@ -31,10 +31,6 @@ class Config:
         return "b72c26e2d17f"
 
     @property
-    def default_domain_name(self):
-        return os.getenv("DEFAULT_DOMAIN_NAME", "default").lower()
-
-    @property
     def max_domain_name_length(self):
         return int(os.getenv("MAX_DOMAIN_NAME_LENGTH", 255))
 

@@ -18,7 +18,7 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
             compressor=self.mock_compressor,
             logger=self.mock_logger,
         )
-        self.default_domain_name = self.reader_repository.config.default_domain_name
+        self.default_domain_name = "default"
 
     def test_create_domain_success(self):
         self.reader_repository.domain_exists = MagicMock(return_value=False)
@@ -36,18 +36,6 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
         session.query.return_value.all.return_value = [("domain1",), ("domain2",)]
         result = self.reader_repository.list_domains()
         self.assertEqual(result, ["domain1", "domain2"])
-
-    def test_list_domains_without_default(self):
-        session = self.mock_connector.get_session.return_value
-        session.query.return_value.filter.return_value.all.return_value = [
-            ("domain1",),
-            ("domain2",),
-        ]
-        domains = self.reader_repository.list_domains_without_default()
-        self.assertNotIn(
-            self.default_domain_name.lower(),
-            [domain.lower() for domain in domains],
-        )
 
     def test_delete_domain_success(self):
         self.reader_repository.delete_domain("test_domain")
@@ -84,10 +72,6 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
     def test_update_default_domain_failure(self):
         with self.assertRaises(ValueError):
             self.reader_repository.update_domain(self.default_domain_name, "new_name")
-
-    def test_delete_default_domain_failure(self):
-        with self.assertRaises(ValueError):
-            self.reader_repository.delete_domain(self.default_domain_name)
 
     def test_delete_texts_bulk_success(self):
         self.reader_repository.delete_texts(
@@ -229,13 +213,6 @@ class TestSqlalchemyReaderRepository(unittest.TestCase):
         )
         with self.assertRaises(Exception):
             self.reader_repository.list_domains()
-
-    def test_list_domains_without_default_with_exception(self):
-        self.mock_connector.get_session.return_value.query.side_effect = Exception(
-            "DB error"
-        )
-        with self.assertRaises(Exception):
-            self.reader_repository.list_domains_without_default()
 
     def test_list_domains_with_extracted_texts_success(self):
         session = self.mock_connector.get_session.return_value
