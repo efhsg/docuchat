@@ -3,6 +3,14 @@ from abc import ABC, abstractmethod
 
 class ReaderRepository(ABC):
 
+    @property
+    def max_domain_name_length(self):
+        return 255
+
+    @property
+    def domain_name_pattern(self):
+        return r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]/{}<>!?-]+$"
+
     @abstractmethod
     def create_domain(self, name):
         pass

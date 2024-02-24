@@ -10,13 +10,18 @@ logger = get_logger()
 
 
 def setup_session_state() -> None:
-    set_default_state("context_domain", None)
-    set_default_state("select_all", False)
-    set_default_state("uploading", False)
-    set_default_state("messages", [])
-    set_default_state("message_counts", {})
-    set_default_state("total_files", 0)
-    set_default_state("show_details", False)
+    DEFAULT_SESSION_STATES = [
+        ("context_domain", None),
+        ("select_all", False),
+        ("uploading", False),
+        ("messages", []),
+        ("message_counts", {}),
+        ("total_files", 0),
+        ("show_details", False),
+    ]
+
+    for state_name, default_value in DEFAULT_SESSION_STATES:
+        set_default_state(state_name, default_value)
 
 
 def add_message(message, message_type):

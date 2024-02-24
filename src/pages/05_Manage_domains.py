@@ -1,37 +1,44 @@
 import re
 import streamlit as st
-from injector import get_logger, get_reader_repository, get_config
+from injector import get_logger, get_reader_repository
 from pages.utils.extracted_data import manage_extracted_data
 from pages.utils.utils import get_index, set_default_state, setup_page
 
-config = get_config()
 reader_repository = get_reader_repository()
 logger = get_logger()
 
 
 def setup_session_state() -> None:
-    set_default_state("context_domain", None)
-    set_default_state("show_domains", None)
-    set_default_state("message", None)
-    set_default_state("message_type", None)
-    set_default_state("select_all", False)
-    set_default_state("source_domain", None)
-    set_default_state("target_domain", None)
+
+    DEFAULT_SESSION_STATES = [
+        ("context_domain", None),
+        ("show_domains", None),
+        ("message", None),
+        ("message_type", None),
+        ("select_all", False),
+        ("source_domain", None),
+        ("target_domain", None),
+    ]
+    for state_name, default_value in DEFAULT_SESSION_STATES:
+        set_default_state(state_name, default_value)
 
 
 def validate_domain_name(domain_name):
     if not domain_name.strip():
         return "Please enter a domain name.", "error"
-    elif len(domain_name) > config.max_domain_name_length:
+
+    if len(domain_name) > reader_repository.max_domain_name_length:
         return (
-            f"Domain name must be {config.max_domain_name_length} characters or fewer.",
+            f"Domain name must be {reader_repository.max_domain_name_length} characters or fewer.",
             "error",
         )
-    elif not re.match(config.domain_name_pattern, domain_name):
+
+    if not re.match(reader_repository.domain_name_pattern, domain_name):
         return (
             "Invalid domain name. Only letters, digits, spaces, and special characters (.@#$%^&*()_+?![]/{}<->) are allowed.",
             "error",
         )
+
     return None, "success"
 
 

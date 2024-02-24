@@ -9,10 +9,15 @@ logger = get_logger()
 
 
 def setup_session_state() -> None:
-    set_default_state("context_domain", None)
-    set_default_state("context_text", None)
-    set_default_state("show_text", False)
-    set_default_state("edit_text", False)
+    default_session_states = [
+        ("context_domain", None),
+        ("context_text", None),
+        ("show_text", False),
+        ("edit_text", False),
+    ]
+
+    for state_name, default_value in default_session_states:
+        set_default_state(state_name, default_value)
 
 
 def select_domain():
