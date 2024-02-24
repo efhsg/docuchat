@@ -2,7 +2,7 @@
 
 
 <p align="center">
-  <img width="200" height="200" src="https://github.com/efhsg/docuchat/blob/main/src/img/logo_small.png">
+  <img width="200" height="200" src="https://github.com/efhsg/docuchat/blob/main/src/img/logo_small_v2.1.png">
 </p>
 
 DocuChat is a cutting-edge application designed to streamline the way users interact with documents. It enables users to upload, embed, and engage in conversations within the context of multiple files simultaneously. This application is perfect for teams looking for an efficient way to collaborate on documents, share insights, and provide feedback in real time. Whether you're working on academic research, business reports, or any project that involves PDFs, DocuChat enhances your productivity by integrating document management with interactive chat functionality.
