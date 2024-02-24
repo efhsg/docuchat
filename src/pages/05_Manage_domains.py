@@ -4,7 +4,7 @@ import streamlit as st
 from config import Config
 from injector import get_logger, get_reader_repository, get_config
 from pages.utils.extracted_data import manage_extracted_data
-from pages.utils.utils import set_default_state, setup_page
+from pages.utils.utils import get_index, set_default_state, setup_page
 
 config = get_config()
 reader_repository = get_reader_repository()
@@ -12,6 +12,7 @@ logger = get_logger()
 
 
 def setup_session_state() -> None:
+    set_default_state("context_domain", None)
     set_default_state("message", None)
     set_default_state("message_type", None)
     set_default_state("last_selected_domain", None)
@@ -99,16 +100,16 @@ def get_last_selected_index(existing_domains):
     return last_selected_index
 
 
-def select_domain(existing_domains, last_selected_index):
-    with st.sidebar:
-        selected_domain = st.selectbox(
-            "Select Domain",
-            existing_domains,
-            index=last_selected_index,
-            key="select_domain",
-        )
-
-    return selected_domain
+def select_domain(domain_options, last_selected_index):
+    return st.sidebar.selectbox(
+        label="Select Domain",
+        options=domain_options,
+        key="selected_domain",
+        index=get_index(domain_options, "context_domain"),
+        on_change=lambda: st.session_state.update(
+            context_domain=st.session_state["selected_domain"]
+        ),
+    )
 
 
 def domain_management_form(selected_domain):

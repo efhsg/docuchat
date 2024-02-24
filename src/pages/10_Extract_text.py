@@ -1,7 +1,7 @@
 import streamlit as st
 from injector import get_config, get_reader_repository, get_text_extractor, get_logger
 from pages.utils.extracted_data import manage_extracted_data
-from pages.utils.utils import set_default_state, setup_page
+from pages.utils.utils import get_index, set_default_state, setup_page
 
 config = get_config()
 reader_repository = get_reader_repository()
@@ -10,6 +10,7 @@ logger = get_logger()
 
 
 def setup_session_state() -> None:
+    set_default_state("context_domain", None)
     set_default_state("select_all", False)
     set_default_state("uploading", False)
     set_default_state("messages", [])
@@ -76,15 +77,16 @@ def clear_messages():
     st.session_state["show_details"] = False
 
 
-def get_domains():
-    return reader_repository.list_domains()
-
-
 def select_domain():
+    domain_options = reader_repository.list_domains()
     selected_domain = st.sidebar.selectbox(
-        "Select Domain",
-        get_domains(),
-        index=0,
+        label="Select Domain",
+        options=domain_options,
+        key="selected_domain",
+        index=get_index(domain_options, "context_domain"),
+        on_change=lambda: st.session_state.update(
+            context_domain=st.session_state["selected_domain"]
+        ),
         disabled=st.session_state.get("uploading", False),
     )
 
