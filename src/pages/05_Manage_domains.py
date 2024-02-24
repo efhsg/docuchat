@@ -110,22 +110,14 @@ def get_existing_domains():
 
 def select_domain():
     domain_options = reader_repository.list_domains()
-    select_domain_index = get_index(domain_options, "context_domain")
-    st.session_state["select_domain"] = domain_options[select_domain_index]
-
-    selected_domain = st.sidebar.selectbox(
+    return st.sidebar.selectbox(
         label="Select Domain",
         options=domain_options,
         key="selected_domain",
-        index=select_domain_index,
+        index=get_index(domain_options, "context_domain"),
         on_change=lambda: st.session_state.update(
             context_domain=st.session_state["selected_domain"]
         ),
-    )
-    return (
-        domain_options[select_domain_index]
-        if selected_domain is None
-        else selected_domain
     )
 
 
@@ -219,28 +211,50 @@ def domain_text_management():
 
     st.title("Move Texts")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        source_domain_index = (
-            0
-            if st.session_state["source_domain"] not in source_domain_options
-            else source_domain_options.index(st.session_state["source_domain"])
-        )
-        st.session_state["source_domain"] = source_domain_options[source_domain_index]
-        source_domain_selection = st.selectbox(
-            "Select source domain",
-            source_domain_options,
-            key="source_domain_selection",
-            index=source_domain_index,
-            on_change=update_source_domain,
-        )
-        source_domain_texts = reader_repository.list_text_names_by_domain(
-            source_domain_selection
-        )
-        if len(source_domain_texts) > 0:
-            selected_source_texts = select_domain_texts(
-                source_domain_texts, source_domain_selection
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            source_domain_index = (
+                0
+                if st.session_state["source_domain"] not in source_domain_options
+                else source_domain_options.index(st.session_state["source_domain"])
             )
+            st.session_state["source_domain"] = source_domain_options[source_domain_index]
+            source_domain_selection = st.selectbox(
+                "Select source domain",
+                source_domain_options,
+                key="source_domain_selection",
+                index=source_domain_index,
+                on_change=update_source_domain,
+            )
+            source_domain_texts = reader_repository.list_text_names_by_domain(
+                source_domain_selection
+            )
+            if len(source_domain_texts) > 0:
+                selected_source_texts = select_domain_texts(
+                    source_domain_texts, source_domain_selection
+                )
+
+        target_domain_options = [
+            domain for domain in get_existing_domains() if domain != source_domain_selection
+        ]
+
+        with col2:
+            target_domain_index = (
+                0
+                if st.session_state["target_domain"] not in target_domain_options
+                else target_domain_options.index(st.session_state["target_domain"])
+            )
+
+            st.selectbox(
+                "Select target domain",
+                target_domain_options,
+                index=target_domain_index,
+                key="target_domain_selection",
+                on_change=update_target_domain,
+            )
+            display_domain_texts(target_domain_options[target_domain_index])
+
         if len(source_domain_texts) > 0:
             if st.button("Move Selected Texts"):
                 if not selected_source_texts:
@@ -252,35 +266,15 @@ def domain_text_management():
                         selected_source_texts,
                     )
 
-    target_domain_options = [
-        domain for domain in get_existing_domains() if domain != source_domain_selection
-    ]
-
-    with col2:
-        target_domain_index = (
-            0
-            if st.session_state["target_domain"] not in target_domain_options
-            else target_domain_options.index(st.session_state["target_domain"])
-        )
-
-        st.selectbox(
-            "Select target domain",
-            target_domain_options,
-            index=target_domain_index,
-            key="target_domain_selection",
-            on_change=update_target_domain,
-        )
-        display_domain_texts(target_domain_options[target_domain_index])
-
-    if "skipped_texts" in st.session_state and st.session_state["skipped_texts"]:
-        st.warning(
-            "To move the following texts, delete them first from the target domain:"
-        )
-        skipped_list = "\n".join(
-            f"- {text}" for text in st.session_state["skipped_texts"]
-        )
-        st.markdown(skipped_list)
-        del st.session_state["skipped_texts"]
+        if "skipped_texts" in st.session_state and st.session_state["skipped_texts"]:
+            st.warning(
+                "To move the following texts, delete them first from the target domain:"
+            )
+            skipped_list = "\n".join(
+                f"- {text}" for text in st.session_state["skipped_texts"]
+            )
+            st.markdown(skipped_list)
+            del st.session_state["skipped_texts"]
 
 
 def main():
