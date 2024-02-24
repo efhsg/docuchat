@@ -1,7 +1,5 @@
 import re
-from PIL import Image
 import streamlit as st
-from config import Config
 from injector import get_logger, get_reader_repository, get_config
 from pages.utils.extracted_data import manage_extracted_data
 from pages.utils.utils import get_index, set_default_state, setup_page

@@ -1,5 +1,4 @@
 import streamlit as st
-from PIL import Image
 from config import Config
 from components.database.migration import Migration
 from pages.utils.utils import setup_page
