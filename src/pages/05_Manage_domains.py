@@ -107,12 +107,13 @@ def domain_creation_form():
 def get_existing_domains():
     return reader_repository.list_domains()
 
+
 def select_domain():
     domain_options = reader_repository.list_domains()
     select_domain_index = get_index(domain_options, "context_domain")
     st.session_state["select_domain"] = domain_options[select_domain_index]
 
-    selected_domain =  st.sidebar.selectbox(
+    selected_domain = st.sidebar.selectbox(
         label="Select Domain",
         options=domain_options,
         key="selected_domain",
@@ -121,8 +122,11 @@ def select_domain():
             context_domain=st.session_state["selected_domain"]
         ),
     )
-    return domain_options[select_domain_index] if selected_domain is None else selected_domain
-
+    return (
+        domain_options[select_domain_index]
+        if selected_domain is None
+        else selected_domain
+    )
 
 
 def domain_management_form(selected_domain):
@@ -286,9 +290,7 @@ def main():
     show_messages()
     domain_creation_form()
 
-    logger.info(f"Context: {st.session_state["context_domain"]}")
     selected_domain = select_domain()
-    logger.info(selected_domain)
 
     if selected_domain:
         domain_management_form(selected_domain)
