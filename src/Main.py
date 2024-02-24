@@ -15,7 +15,7 @@ def home_page():
         st.write(
             """
             DocuChat enhances your document collaboration experience.
-            Upload, embed, and chat with multiple files seamlessly.
+            Upload, embed, and chat with multiple sources seamlessly.
             """
         )
 
@@ -27,15 +27,19 @@ def home_page():
 
     st.markdown(
         """
-        **Step 1: Upload Files and Extract Text**
-        - You can upload multiple PDF files.
-        - DocuChat automatically extracts text from these files for processing.
+        **Step 1: Create a domain**
+        - You can define as many domains as you like to organize your content
 
-        **Step 2: Select and Combine Extracted Text**
+        **Step 2: Extract text**
+        - You can upload multiple files.
+        - DocuChat automatically extracts text from these files for processing.
+        - We support: pdf, txt
+
+        **Step 3: Select and combine extracted text**
         - Extracted text is then selected and combined into a knowledge base.
         - This process involves vector embedding to facilitate efficient information retrieval.
 
-        **Step 3: Chat with Your Knowledge Base**
+        **Step 4: Chat with your knowledge base**
         - Utilize your favorite Large Language Model (LLM) to chat with the created knowledge base.
         - Ask questions or seek information directly from the content of your uploaded documents.
         """

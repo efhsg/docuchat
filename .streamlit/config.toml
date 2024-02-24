@@ -1,11 +1,19 @@
 [server]
 runOnSave = true
-maxUploadSize = 500
+maxUploadSize = 1000
+
+[client]
+showSidebarNavigation = true
+
 [browser]
 gatherUsageStats = false
+
 [theme]
-primaryColor = "#3178C6"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#262730"
+primaryColor = "#9B786F" # A muted, dusty rose brown
+backgroundColor = "#F8F9FA"  # Slightly warmer background white
+secondaryBackgroundColor = "#E9ECEF" # Slightly darker secondary background
+textColor = "#262730" 
 font = "sans serif"
+
+[logger]
+level = "warning"

@@ -24,7 +24,7 @@ class Config:
 
     @property
     def logo_small_path(self):
-        return str(self.project_root / "src/img/logo_small.png")
+        return str(self.project_root / "src/img/logo_small_v2.1.png")
 
     @property
     def latest_migration_version(self):
