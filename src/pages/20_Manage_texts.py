@@ -1,6 +1,6 @@
 import streamlit as st
 from injector import get_config, get_logger, get_reader_repository
-from pages.utils.utils import get_index
+from pages.utils.utils import get_index, set_default_state
 from pages.utils.utils import setup_page
 
 config = get_config()
@@ -8,16 +8,11 @@ reader_repository = get_reader_repository()
 logger = get_logger()
 
 
-def setup_session_state():
-    default_values = {
-        "context_domain": None,
-        "context_text": None,
-        "show_text": False,
-        "edit_text": False,
-    }
-
-    for key, value in default_values.items():
-        st.session_state.setdefault(key, value)
+def setup_session_state() -> None:
+    set_default_state("context_domain", None)
+    set_default_state("context_text", None)
+    set_default_state("show_text", False)
+    set_default_state("edit_text", False)
 
 
 def select_domain():

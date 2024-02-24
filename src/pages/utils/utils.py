@@ -1,8 +1,7 @@
 import streamlit as st
 from PIL import Image
-
+from typing import Dict, List, Union
 from injector import get_config
-
 
 config = get_config()
 
@@ -15,6 +14,13 @@ def setup_page(page_title="Docuchat"):
         layout="wide",
         initial_sidebar_state="auto",
     )
+
+
+def set_default_state(
+    key: str, default: Union[bool, List, Dict[str, int], int]
+) -> None:
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 
 def get_index(options, context):

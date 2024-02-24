@@ -4,11 +4,21 @@ import streamlit as st
 from config import Config
 from injector import get_logger, get_reader_repository, get_config
 from pages.utils.extracted_data import manage_extracted_data
-from pages.utils.utils import setup_page
+from pages.utils.utils import set_default_state, setup_page
 
 config = get_config()
 reader_repository = get_reader_repository()
 logger = get_logger()
+
+
+def setup_session_state() -> None:
+    set_default_state("message", None)
+    set_default_state("message_type", None)
+    set_default_state("last_selected_domain", None)
+    set_default_state("select_all", False)
+    set_default_state("selected_domain", None)
+    set_default_state("source_domain", None)
+    set_default_state("target_domain", None)
 
 
 def validate_domain_name(domain_name):
@@ -50,20 +60,6 @@ def update_domain(selected_domain, new_domain_name):
         )
     except Exception as e:
         return str(e), "error"
-
-
-def setup_session_state():
-    for key in [
-        "message",
-        "message_type",
-        "last_selected_domain",
-        "select_all",
-        "selected_domain",
-        "source_domain",
-        "target_domain",
-    ]:
-        if key not in st.session_state:
-            st.session_state[key] = None if key != "select_all" else False
 
 
 def show_messages():
