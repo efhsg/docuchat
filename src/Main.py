@@ -1,9 +1,9 @@
 import streamlit as st
-from config import Config
 from components.database.migration import Migration
+from injector import get_config
 from pages.utils.utils import setup_page
 
-config_instance = Config()
+config = get_config()
 
 
 def home_page():
@@ -20,7 +20,7 @@ def home_page():
         )
 
     with col2:
-        st.image(config_instance.logo_small_path, width=175)
+        st.image(config.logo_small_path, width=175)
 
     st.markdown("---")
     st.header("How DocuChat Works")
@@ -48,7 +48,7 @@ def home_page():
 
 
 def check_db():
-    db_manager = Migration(config=config_instance)
+    db_manager = Migration(config=config)
     try:
         db_manager.check_and_apply_migrations()
     except Exception as e:

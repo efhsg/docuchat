@@ -11,11 +11,10 @@ logger = get_logger()
 
 def setup_session_state() -> None:
     set_default_state("context_domain", None)
+    set_default_state("show_domains", None)
     set_default_state("message", None)
     set_default_state("message_type", None)
-    set_default_state("last_selected_domain", None)
     set_default_state("select_all", False)
-    set_default_state("selected_domain", None)
     set_default_state("source_domain", None)
     set_default_state("target_domain", None)
 
@@ -70,6 +69,27 @@ def show_messages():
         st.session_state["message"] = None
 
 
+def toggle_show_domains():
+    with st.sidebar:
+        button_label = (
+            "Hide Domains"
+            if st.session_state.get("show_domains", False)
+            else "Show Domains"
+        )
+        if st.button(label=button_label):
+            st.session_state["show_domains"] = not st.session_state["show_domains"]
+            st.rerun()
+
+        if st.session_state.get("show_domains", False):
+            existing_domains = get_existing_domains()
+            if existing_domains:
+                with st.container(border=True):
+                    for domain in existing_domains:
+                        st.write(domain)
+            else:
+                st.write("No domains available.")
+
+
 def domain_creation_form():
     with st.sidebar:
         with st.form("create_domain_form", clear_on_submit=True):
@@ -80,34 +100,29 @@ def domain_creation_form():
                 st.session_state["message"] = message
                 st.session_state["message_type"] = message_type
                 if message_type == "success":
-                    st.session_state["last_selected_domain"] = new_domain_name
+                    st.session_state["context_domain"] = new_domain_name
                 st.rerun()
 
 
 def get_existing_domains():
     return reader_repository.list_domains()
 
+def select_domain():
+    domain_options = reader_repository.list_domains()
+    select_domain_index = get_index(domain_options, "context_domain")
+    st.session_state["select_domain"] = domain_options[select_domain_index]
 
-def get_last_selected_index(existing_domains):
-    last_selected_index = 0
-    if st.session_state["last_selected_domain"] in existing_domains:
-        last_selected_index = existing_domains.index(
-            st.session_state["last_selected_domain"]
-        )
-
-    return last_selected_index
-
-
-def select_domain(domain_options, last_selected_index):
-    return st.sidebar.selectbox(
+    selected_domain =  st.sidebar.selectbox(
         label="Select Domain",
         options=domain_options,
         key="selected_domain",
-        index=get_index(domain_options, "context_domain"),
+        index=select_domain_index,
         on_change=lambda: st.session_state.update(
             context_domain=st.session_state["selected_domain"]
         ),
     )
+    return domain_options[select_domain_index] if selected_domain is None else selected_domain
+
 
 
 def domain_management_form(selected_domain):
@@ -126,7 +141,7 @@ def domain_management_form(selected_domain):
                 f"Domain '{selected_domain}' deleted successfully!"
             )
             st.session_state["message_type"] = "success"
-            st.session_state["last_selected_domain"] = None
+            st.session_state["context_domain"] = None
             st.session_state["select_all"] = False
         except Exception as e:
             st.session_state["message"] = str(e)
@@ -138,7 +153,7 @@ def domain_management_form(selected_domain):
         st.session_state["message"] = message
         st.session_state["message_type"] = message_type
         if message_type == "success":
-            st.session_state["last_selected_domain"] = new_domain_name
+            st.session_state["context_domain"] = new_domain_name
         st.rerun()
 
 
@@ -222,9 +237,16 @@ def domain_text_management():
             selected_source_texts = select_domain_texts(
                 source_domain_texts, source_domain_selection
             )
-        else:
-            if len(source_domain_options) > 0:
-                st.warning("No texts found")
+        if len(source_domain_texts) > 0:
+            if st.button("Move Selected Texts"):
+                if not selected_source_texts:
+                    st.error("Please select at least one text to move.")
+                else:
+                    move_texts(
+                        source_domain_options[source_domain_index],
+                        target_domain_options[target_domain_index],
+                        selected_source_texts,
+                    )
 
     target_domain_options = [
         domain for domain in get_existing_domains() if domain != source_domain_selection
@@ -246,16 +268,6 @@ def domain_text_management():
         )
         display_domain_texts(target_domain_options[target_domain_index])
 
-    if len(source_domain_texts) > 0:
-        if st.button("Move Selected Texts"):
-            if not selected_source_texts:
-                st.error("Please select at least one text to move.")
-            else:
-                move_texts(
-                    source_domain_options[source_domain_index],
-                    target_domain_options[target_domain_index],
-                    selected_source_texts,
-                )
     if "skipped_texts" in st.session_state and st.session_state["skipped_texts"]:
         st.warning(
             "To move the following texts, delete them first from the target domain:"
@@ -270,17 +282,17 @@ def domain_text_management():
 def main():
     setup_page()
     setup_session_state()
+    toggle_show_domains()
     show_messages()
-
     domain_creation_form()
 
-    existing_domains = get_existing_domains()
-    last_selected_index = get_last_selected_index(existing_domains)
-    selected_domain = select_domain(existing_domains, last_selected_index)
+    logger.info(f"Context: {st.session_state["context_domain"]}")
+    selected_domain = select_domain()
+    logger.info(selected_domain)
 
-    domain_management_form(selected_domain)
-
-    extracted_data(selected_domain)
+    if selected_domain:
+        domain_management_form(selected_domain)
+        extracted_data(selected_domain)
 
     domain_text_management()
 
