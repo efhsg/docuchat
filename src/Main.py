@@ -33,7 +33,7 @@ def home_page():
         **Step 2: Extract text**
         - You can upload multiple files.
         - DocuChat automatically extracts text from these files for processing.
-        - We support: pdf, txt
+        - We support: epub, pdf, txt
 
         **Step 3: Select and combine extracted text**
         - Extracted text is then selected and combined into a knowledge base.
