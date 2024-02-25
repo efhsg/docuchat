@@ -1,4 +1,8 @@
+import tempfile
+import os
+import shutil
 from pypdf import PdfReader
+from epub2txt import epub2txt
 from .interfaces.text_extractor import TextExtractor
 
 
@@ -7,7 +11,7 @@ class FileTextExtractor(TextExtractor):
         self.extractors = {
             "pdf": self.extract_text_from_pdf,
             "txt": self.extract_text_from_txt,
-            # Potentially more mappings for other file types
+            "epub": self.extract_text_from_epub,
         }
 
     def extract_text(self, uploaded_file):
@@ -25,3 +29,12 @@ class FileTextExtractor(TextExtractor):
     @staticmethod
     def extract_text_from_txt(uploaded_file):
         return uploaded_file.getvalue().decode("utf-8")
+
+    @staticmethod
+    def extract_text_from_epub(uploaded_file):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".epub") as tmp_file:
+            shutil.copyfileobj(uploaded_file, tmp_file)
+            tmp_file_path = tmp_file.name
+        extracted_text = epub2txt(tmp_file_path)
+        os.remove(tmp_file_path)
+        return extracted_text

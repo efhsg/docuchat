@@ -3,5 +3,6 @@ pymysql
 cryptography
 python-dotenv
 pypdf
+epub2txt
 pytest
 alembic

@@ -15,7 +15,7 @@ class Config:
 
     @property
     def upload_extensions(self):
-        return ("pdf", "txt")
+        return ("epub", "pdf", "txt")
 
     @property
     def data_dir(self):
