@@ -9,10 +9,10 @@ showSidebarNavigation = true
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#9B786F" # A muted, dusty rose brown
-backgroundColor = "#F8F9FA"  # Slightly warmer background white
-secondaryBackgroundColor = "#E9ECEF" # Slightly darker secondary background
-textColor = "#262730" 
+primaryColor = "#EA5455"
+backgroundColor = "#F9F5EB"
+secondaryBackgroundColor = "#E4DCCF"
+textColor = "#002B5B" 
 font = "sans serif"
 
 [logger]
