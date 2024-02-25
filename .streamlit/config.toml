@@ -9,11 +9,12 @@ showSidebarNavigation = true
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#EA5455"
-backgroundColor = "#F9F5EB"
-secondaryBackgroundColor = "#E4DCCF"
-textColor = "#002B5B" 
-font = "sans serif"
+base="light"
+primaryColor = "#D32F2F"  
+backgroundColor = "#F8F3E8" 
+secondaryBackgroundColor = "#EBE0CE" 
+textColor = "#002B5B" 
+font = "sans serif" 
 
 [logger]
 level = "warning"
