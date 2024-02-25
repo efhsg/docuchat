@@ -64,6 +64,14 @@ def display_summary():
 
     if st.session_state.get("show_details", False):
         display_messages(st.session_state["messages"])
+    else:
+        display_errors(st.session_state["messages"])
+
+
+def display_errors(messages):
+    error_messages = filter(lambda x: x["type"] == "error", messages)
+    for message in error_messages:
+        display_message(message["text"], message["type"])
 
 
 def display_messages(messages):
@@ -71,12 +79,7 @@ def display_messages(messages):
         messages, key=lambda x: {"error": 0, "warning": 1, "info": 2}[x["type"]]
     )
     for message in ordered_messages:
-        if message["type"] == "error":
-            st.error(message["text"])
-        elif message["type"] == "warning":
-            st.warning(message["text"])
-        elif message["type"] == "info":
-            st.info(message["text"])
+        display_message(message["text"], message["type"])
 
 
 def clear_messages():
