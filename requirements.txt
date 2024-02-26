@@ -4,5 +4,7 @@ cryptography
 python-dotenv
 pypdf
 epub2txt
+requests
+beautifulsoup4
 pytest
 alembic

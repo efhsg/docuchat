@@ -6,6 +6,11 @@ from pages.utils.utils import setup_page
 config = get_config()
 
 
+def main():
+    check_db()
+    home_page()
+
+
 def home_page():
     setup_page()
     col1, col2 = st.columns([1, 1])
@@ -61,5 +66,4 @@ def check_db():
 
 
 if __name__ == "__main__":
-    check_db()
-    home_page()
+    main()

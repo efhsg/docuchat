@@ -1,11 +1,25 @@
+import time
+from typing import List
 import streamlit as st
-from injector import get_config, get_logger, get_reader_repository
+from components.database.models import ExtractedText
+from injector import get_config, get_logger, get_reader_repository, get_compressor
 from pages.utils.utils import get_index, set_default_state
-from pages.utils.utils import setup_page
+from pages.utils.utils import (
+    setup_page,
+    select_domain,
+    extracted_text_to_label,
+)
 
 config = get_config()
 reader_repository = get_reader_repository()
 logger = get_logger()
+compressor = get_compressor()
+
+
+def main():
+    setup_page()
+    setup_session_state()
+    manage_texts(select_domain(reader_repository.list_domains_with_extracted_texts()))
 
 
 def setup_session_state() -> None:
@@ -20,38 +34,36 @@ def setup_session_state() -> None:
         set_default_state(state_name, default_value)
 
 
-def select_domain():
-    domain_options = reader_repository.list_domains_with_extracted_texts()
-    return st.sidebar.selectbox(
-        label="Select Domain",
-        options=domain_options,
-        key="selected_domain",
-        index=get_index(domain_options, "context_domain"),
-        on_change=lambda: st.session_state.update(
-            context_domain=st.session_state["selected_domain"]
-        ),
-    )
-
-
 def manage_texts(selected_domain):
-    st.title(selected_domain)
-    selected_text = select_text(
-        reader_repository.list_text_names_by_domain(selected_domain)
-    )
-    if selected_text:
-        handle_text_renaming(selected_domain, selected_text)
+    st.title(f"Texts in {selected_domain}")
 
-        col1, col2 = st.columns([1, 5])
+    selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
+
+    if selected_text:
+        handle_text_rename(selected_domain, selected_text)
+
+        col1, col2, col3 = st.columns([1, 5, 1])
 
         with col1:
             if st.button("Show text"):
-                st.session_state["show_text"] = not st.session_state["show_text"]
+                st.session_state["show_text"] = not st.session_state.get(
+                    "show_text", False
+                )
                 st.session_state["edit_text"] = False
 
         with col2:
             if st.button("Edit text"):
-                st.session_state["edit_text"] = not st.session_state["edit_text"]
+                st.session_state["edit_text"] = not st.session_state.get(
+                    "edit_text", False
+                )
                 st.session_state["show_text"] = False
+
+        with col3:
+            if st.button("🗑️ Delete"):
+                reader_repository.delete_texts(
+                    selected_domain, [(selected_text.name, selected_text.type)]
+                )
+                st.rerun()
 
         if st.session_state.get("show_text"):
             handle_text_content(selected_domain, selected_text, edit_mode=False)
@@ -60,38 +72,62 @@ def manage_texts(selected_domain):
             handle_text_content(selected_domain, selected_text, edit_mode=True)
 
 
-def select_text(text_options):
-    selected_text = st.selectbox(
+def select_domain(domain_options):
+    return st.sidebar.selectbox(
+        label="Select Domain",
+        options=domain_options,
+        key="selected_domain",
+        index=get_index(domain_options, "context_domain"),
+        on_change=lambda: st.session_state.update(
+            context_domain=st.session_state["selected_domain"], select_all_texts=False
+        ),
+    )
+
+
+def select_text(text_options: List[ExtractedText]) -> ExtractedText:
+    options_dict = {f"{extracted_text_to_label(text)}": text for text in text_options}
+
+    selected_label = st.selectbox(
         label="Select a text",
-        options=text_options,
+        options=list(options_dict.keys()),
         key="selected_text",
-        index=get_index(text_options, "context_text"),
+        index=get_index(list(options_dict.keys()), "context_text"),
         on_change=lambda: st.session_state.update(
             context_text=st.session_state["selected_text"]
         ),
     )
 
-    return selected_text
+    for text in text_options:
+        if extracted_text_to_label(text) == selected_label:
+            return text
+
+    raise ValueError("Selected text not found.")
 
 
-def handle_text_renaming(selected_domain, selected_text):
+def handle_text_rename(selected_domain: str, selected_text: ExtractedText):
+
     with st.form("Rename_text", clear_on_submit=False):
-        new_name = st.text_input("Rename text", value=selected_text)
-        save_text_name = st.form_submit_button(
-            label="Save",
-        )
+        new_name = st.text_input("Rename text", value=selected_text.name)
+        st.write(f"Original name: {selected_text.original_name}")
+        save_text_name = st.form_submit_button(label="Save")
 
     if save_text_name:
-        if reader_repository.update_text_name(selected_text, new_name, selected_domain):
-            st.session_state.update(context_text=new_name)
-            st.rerun()
-
-
-def handle_text_content(selected_domain, selected_text, edit_mode):
-    try:
-        text_content = reader_repository.get_text_by_name(
-            selected_text, selected_domain
+        success = reader_repository.update_text_name(
+            domain_name=selected_domain,
+            old_name=selected_text.name,
+            new_name=new_name,
+            text_type=selected_text.type,
         )
+
+        if success:
+            selected_text.name = new_name
+            st.session_state.update(context_text=extracted_text_to_label(selected_text))
+            st.experimental_rerun()
+
+
+def handle_text_content(selected_domain, selected_text: ExtractedText, edit_mode):
+    try:
+        text_content = compressor.decompress(selected_text.text)
         if text_content is not None:
             if edit_mode:
                 edited_text = st.text_area(
@@ -99,7 +135,11 @@ def handle_text_content(selected_domain, selected_text, edit_mode):
                 )
                 if st.button("Save changes"):
                     reader_repository.save_text(
-                        edited_text, selected_text, selected_domain
+                        selected_domain,
+                        selected_text.name,
+                        selected_text.type,
+                        selected_text.original_name,
+                        edited_text,
                     )
                     st.session_state["edit_text"] = False
                     st.session_state["show_text"] = True
@@ -113,12 +153,6 @@ def handle_text_content(selected_domain, selected_text, edit_mode):
             f"An error occurred while displaying or editing the text content: {e}"
         )
         st.error(f"An error occurred while displaying or editing the text content: {e}")
-
-
-def main():
-    setup_page()
-    setup_session_state()
-    manage_texts(select_domain())
 
 
 if __name__ == "__main__":
