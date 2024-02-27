@@ -3,7 +3,7 @@ from typing import List
 import streamlit as st
 from components.database.models import ExtractedText
 from injector import get_config, get_logger, get_reader_repository, get_compressor
-from pages.utils.utils import get_index, set_default_state
+from pages.utils.utils import get_index, set_default_state, show_messages
 from pages.utils.utils import (
     setup_page,
     select_domain,
@@ -24,6 +24,7 @@ def main():
 
 def setup_session_state() -> None:
     default_session_states = [
+        ("message", (None, None)),
         ("context_domain", None),
         ("context_text", None),
         ("show_text", False),
@@ -38,6 +39,8 @@ def manage_texts(selected_domain):
     st.title(f"Texts in {selected_domain}")
 
     selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
+
+    show_messages()
 
     if selected_text:
         handle_text_rename(selected_domain, selected_text)
@@ -123,17 +126,22 @@ def handle_text_rename(selected_domain: str, selected_text: ExtractedText):
         save_text_name = st.form_submit_button(label="Save")
 
     if save_text_name:
-        success = reader_repository.update_text_name(
-            domain_name=selected_domain,
-            old_name=selected_text.name,
-            new_name=new_name,
-            text_type=selected_text.type,
-        )
-
-        if success:
+        try:
+            reader_repository.update_text_name(
+                domain_name=selected_domain,
+                old_name=selected_text.name,
+                new_name=new_name,
+                text_type=selected_text.type,
+            )
+            st.session_state["message"] = (
+                f"Text name '{selected_text.name}' updated to '{new_name}' successfully!",
+                "success",
+            )
             selected_text.name = new_name
             st.session_state.update(context_text=extracted_text_to_label(selected_text))
-            st.experimental_rerun()
+        except Exception as e:
+            st.session_state["message"] = (str(e), "error")
+        st.rerun()
 
 
 def handle_text_content(selected_domain, selected_text: ExtractedText, edit_mode):
