@@ -21,6 +21,15 @@ def setup_page(page_title="Docuchat"):
     )
 
 
+def show_messages():
+    if st.session_state["message"]:
+        if st.session_state["message_type"] == "success":
+            st.success(st.session_state["message"])
+        elif st.session_state["message_type"] == "error":
+            st.error(st.session_state["message"])
+        st.session_state["message"] = None
+
+
 def select_domain(domain_options):
     return st.sidebar.selectbox(
         label="Select Domain",

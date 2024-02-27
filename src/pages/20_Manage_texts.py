@@ -1,4 +1,4 @@
-import time
+import base64
 from typing import List
 import streamlit as st
 from components.database.models import ExtractedText
@@ -42,23 +42,34 @@ def manage_texts(selected_domain):
     if selected_text:
         handle_text_rename(selected_domain, selected_text)
 
-        col1, col2, col3 = st.columns([1, 5, 1])
+        col1, col2, col3, col4 = st.columns([1, 1, 6, 1])
 
         with col1:
-            if st.button("Show text"):
+            if st.button("Show"):
                 st.session_state["show_text"] = not st.session_state.get(
                     "show_text", False
                 )
                 st.session_state["edit_text"] = False
 
         with col2:
-            if st.button("Edit text"):
+            if st.button("Edit"):
                 st.session_state["edit_text"] = not st.session_state.get(
                     "edit_text", False
                 )
                 st.session_state["show_text"] = False
 
         with col3:
+            text_content = compressor.decompress(selected_text.text)
+            if text_content:
+                filename = f"{selected_text.name}.txt"  # Filename using the text's name
+                st.download_button(
+                    label="Download",
+                    data=text_content,
+                    file_name=filename,
+                    mime="text/plain",
+                )
+
+        with col4:
             if st.button("🗑️ Delete"):
                 reader_repository.delete_texts(
                     selected_domain, [(selected_text.name, selected_text.type)]

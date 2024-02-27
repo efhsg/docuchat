@@ -9,6 +9,7 @@ from pages.utils.utils import (
     extracted_text_to_label,
     select_domain,
     filename_extension_to_label,
+    show_messages,
 )
 
 reader_repository = get_reader_repository()
@@ -19,7 +20,8 @@ def main():
     setup_page()
     setup_session_state()
     show_domains()
-    show_messages()
+    with st.sidebar:
+        show_messages()
     domain_creation_form()
 
     selected_domain = select_domain(reader_repository.list_domains())
@@ -46,78 +48,34 @@ def setup_session_state() -> None:
         set_default_state(state_name, default_value)
 
 
-def validate_domain_name(domain_name):
-    if not domain_name.strip():
-        return "Please enter a domain name.", "error"
-
-    if len(domain_name) > Domain.MAX_DOMAIN_NAME_LENGTH:
-        return (
-            f"Domain name must be {Domain.MAX_DOMAIN_NAME_LENGTH} characters or fewer.",
-            "error",
-        )
-
-    if not re.match(Domain.DOMAIN_NAME_PATTERN, domain_name):
-        return (
-            "Invalid domain name. Only letters, digits, spaces, and special characters (.@#$%^&*()_+?![]/{}<->) are allowed.",
-            "error",
-        )
-
-    return None, "success"
-
-
-def create_domain(domain_name):
-    message, message_type = validate_domain_name(domain_name)
-    if message_type == "error":
-        return message, message_type
-    try:
-        reader_repository.create_domain(domain_name)
-        return f"Domain '{domain_name}' created successfully!", "success"
-    except Exception as e:
-        return str(e), "error"
-
-
-def update_domain(selected_domain, new_domain_name):
-    message, message_type = validate_domain_name(new_domain_name)
-    if message_type == "error":
-        return message, message_type
-    try:
-        reader_repository.update_domain(selected_domain, new_domain_name)
-        return (
-            f"Domain '{selected_domain}' updated to '{new_domain_name}' successfully!",
-            "success",
-        )
-    except Exception as e:
-        return str(e), "error"
-
-
-def show_messages():
-    if st.session_state["message"]:
-        if st.session_state["message_type"] == "success":
-            st.sidebar.success(st.session_state["message"])
-        elif st.session_state["message_type"] == "error":
-            st.sidebar.error(st.session_state["message"])
-        st.session_state["message"] = None
+# def create_domain(domain_name):
+#     try:
+#         reader_repository.create_domain(domain_name)
+#         return f"Domain '{domain_name}' created successfully!", "success"
+#     except Exception as e:
+#         return str(e), "error"
 
 
 def show_domains():
     with st.sidebar:
-        button_label = (
-            "Hide Domains"
-            if st.session_state.get("show_domains", False)
-            else "Show Domains"
-        )
-        if st.button(label=button_label):
-            st.session_state["show_domains"] = not st.session_state["show_domains"]
-            st.rerun()
+        with st.container(border=True):
+            button_label = (
+                "Hide Domains"
+                if st.session_state.get("show_domains", False)
+                else "Show Domains"
+            )
+            if st.button(label=button_label):
+                st.session_state["show_domains"] = not st.session_state["show_domains"]
+                st.rerun()
 
-        if st.session_state.get("show_domains", False):
-            existing_domains = get_existing_domains()
-            if existing_domains:
-                with st.container(border=True):
-                    for domain in existing_domains:
-                        st.write(domain)
-            else:
-                st.write("No domains available.")
+            if st.session_state.get("show_domains", False):
+                existing_domains = get_existing_domains()
+                if existing_domains:
+                    with st.container(border=True):
+                        for domain in existing_domains:
+                            st.write(domain)
+                else:
+                    st.write("No domains available.")
 
 
 def domain_creation_form():
@@ -126,11 +84,16 @@ def domain_creation_form():
             new_domain_name = st.text_input("Domain Name", key="create_domain_input")
             create_domain_button = st.form_submit_button("Create Domain")
             if create_domain_button:
-                message, message_type = create_domain(new_domain_name)
-                st.session_state["message"] = message
-                st.session_state["message_type"] = message_type
-                if message_type == "success":
+                try:
+                    reader_repository.create_domain(new_domain_name)
+                    st.session_state["message"] = (
+                        f"Domain '{new_domain_name}' created successfully!"
+                    )
+                    st.session_state["message_type"] = "success"
                     st.session_state["context_domain"] = new_domain_name
+                except Exception as e:
+                    st.session_state["message"] = str(e)
+                    st.session_state["message_type"] = "error"
                 st.rerun()
 
 
@@ -162,11 +125,14 @@ def domain_management_form(selected_domain):
         st.rerun()
 
     if update_domain_button and selected_domain and new_domain_name:
-        message, message_type = update_domain(selected_domain, new_domain_name)
-        st.session_state["message"] = message
-        st.session_state["message_type"] = message_type
-        if message_type == "success":
+        try:
+            reader_repository.update_domain(selected_domain, new_domain_name)
+            st.session_state["message"] = f"Domain '{selected_domain}' updated to '{new_domain_name}' successfully!"
+            st.session_state["message_type"] = "success"
             st.session_state["context_domain"] = new_domain_name
+        except Exception as e:
+            st.session_state["message"] = str(e)
+            st.session_state["message_type"] = "error"
         st.rerun()
 
 

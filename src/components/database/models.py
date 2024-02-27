@@ -1,28 +1,36 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, UniqueConstraint, ForeignKey
 from sqlalchemy.dialects.mysql import LONGBLOB
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import deferred
+from sqlalchemy.orm import declarative_base, validates, relationship, deferred
 import re
 
 Base = declarative_base()
 
 
-class Domain(Base):
-    MAX_DOMAIN_NAME_LENGTH = 255
-    DOMAIN_NAME_PATTERN = r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]/{}<>!?-]+$"
+class Validatable:
+    MAX_NAME_LENGTH = 10
+    NAME_PATTERN = r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]/{}<>!?-]+$"
 
+    @validates("name")
+    def validate_name(self, key, name):
+        if len(name) > self.MAX_NAME_LENGTH:
+            raise ValueError(
+                f"Name exceeds maximum length of {self.MAX_NAME_LENGTH} characters: {name}"
+            )
+        if not re.match(self.NAME_PATTERN, name):
+            raise ValueError(
+                "Invalid name. Allowed characters are letters, digits, spaces, and .@#$%^&*()_+[]/{}/<>!?-: "
+                + name
+            )
+        return name
+
+
+class Domain(Base, Validatable):
     __tablename__ = "domains"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(MAX_DOMAIN_NAME_LENGTH), unique=True, nullable=False)
-
-    def __init__(self, name: str):
-        if not re.match(self.DOMAIN_NAME_PATTERN, name):
-            raise ValueError("Invalid domain name")
-        self.name = name
+    name = Column(String(255), unique=True, nullable=False)
 
 
-class ExtractedText(Base):
+class ExtractedText(Base, Validatable):
     __tablename__ = "extracted_texts"
     id = Column(Integer, primary_key=True, autoincrement=True)
     domain_id = Column(Integer, ForeignKey("domains.id"), nullable=False)
