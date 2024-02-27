@@ -48,14 +48,6 @@ def setup_session_state() -> None:
         set_default_state(state_name, default_value)
 
 
-# def create_domain(domain_name):
-#     try:
-#         reader_repository.create_domain(domain_name)
-#         return f"Domain '{domain_name}' created successfully!", "success"
-#     except Exception as e:
-#         return str(e), "error"
-
-
 def show_domains():
     with st.sidebar:
         with st.container(border=True):
