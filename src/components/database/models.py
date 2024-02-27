@@ -7,7 +7,7 @@ Base = declarative_base()
 
 
 class Validatable:
-    MAX_NAME_LENGTH = 10
+    MAX_NAME_LENGTH = 255
     NAME_PATTERN = r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]/{}<>!?-]+$"
 
     @validates("name")
