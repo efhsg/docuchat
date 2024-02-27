@@ -34,12 +34,10 @@ def main():
 
 
 def setup_session_state() -> None:
-
     DEFAULT_SESSION_STATES = [
         ("context_domain", None),
         ("show_domains", None),
-        ("message", None),
-        ("message_type", None),
+        ("message", (None, None)),
         ("select_all_texts", False),
         ("source_domain", None),
         ("target_domain", None),
@@ -57,7 +55,9 @@ def show_domains():
                 else "Show Domains"
             )
             if st.button(label=button_label):
-                st.session_state["show_domains"] = not st.session_state["show_domains"]
+                st.session_state["show_domains"] = not st.session_state.get(
+                    "show_domains", False
+                )
                 st.rerun()
 
             if st.session_state.get("show_domains", False):
@@ -79,13 +79,12 @@ def domain_creation_form():
                 try:
                     reader_repository.create_domain(new_domain_name)
                     st.session_state["message"] = (
-                        f"Domain '{new_domain_name}' created successfully!"
+                        f"Domain '{new_domain_name}' created successfully!",
+                        "success",
                     )
-                    st.session_state["message_type"] = "success"
                     st.session_state["context_domain"] = new_domain_name
                 except Exception as e:
-                    st.session_state["message"] = str(e)
-                    st.session_state["message_type"] = "error"
+                    st.session_state["message"] = (str(e), "error")
                 st.rerun()
 
 
@@ -106,25 +105,25 @@ def domain_management_form(selected_domain):
         try:
             reader_repository.delete_domain(selected_domain)
             st.session_state["message"] = (
-                f"Domain '{selected_domain}' deleted successfully!"
+                f"Domain '{selected_domain}' deleted successfully!",
+                "success",
             )
-            st.session_state["message_type"] = "success"
             st.session_state["context_domain"] = None
             st.session_state["select_all_texts"] = False
         except Exception as e:
-            st.session_state["message"] = str(e)
-            st.session_state["message_type"] = "error"
+            st.session_state["message"] = (str(e), "error")
         st.rerun()
 
     if update_domain_button and selected_domain and new_domain_name:
         try:
             reader_repository.update_domain(selected_domain, new_domain_name)
-            st.session_state["message"] = f"Domain '{selected_domain}' updated to '{new_domain_name}' successfully!"
-            st.session_state["message_type"] = "success"
+            st.session_state["message"] = (
+                f"Domain '{selected_domain}' updated to '{new_domain_name}' successfully!",
+                "success",
+            )
             st.session_state["context_domain"] = new_domain_name
         except Exception as e:
-            st.session_state["message"] = str(e)
-            st.session_state["message_type"] = "error"
+            st.session_state["message"] = (str(e), "error")
         st.rerun()
 
 
@@ -178,7 +177,6 @@ def update_target_domain():
 
 
 def move_texts_between_domains():
-
     st.title("Move texts between domains")
 
     source_domain_options = reader_repository.list_domains_with_extracted_texts()
@@ -256,7 +254,7 @@ def move_texts_between_domains():
                 "To move the following texts, delete them first from the target domain:"
             )
             skipped_list = "\n".join(
-                f"- {filename_extension_to_label(text,extension)}"
+                f"- {filename_extension_to_label(text, extension)}"
                 for text, extension in st.session_state["skipped_texts"]
             )
             st.markdown(skipped_list)

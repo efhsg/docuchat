@@ -22,12 +22,13 @@ def setup_page(page_title="Docuchat"):
 
 
 def show_messages():
-    if st.session_state["message"]:
-        if st.session_state["message_type"] == "success":
-            st.success(st.session_state["message"])
-        elif st.session_state["message_type"] == "error":
-            st.error(st.session_state["message"])
-        st.session_state["message"] = None
+    message, message_type = st.session_state["message"]
+    if message:
+        if message_type == "success":
+            st.success(message)
+        elif message_type == "error":
+            st.error(message)
+        st.session_state["message"] = (None, None)
 
 
 def select_domain(domain_options):
