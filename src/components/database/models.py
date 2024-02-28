@@ -16,7 +16,7 @@ Base = declarative_base()
 
 class Validatable:
     MAX_NAME_LENGTH = 255
-    NAME_PATTERN = r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]\:\\/{}<>!?\-`]+$"
+    NAME_PATTERN = r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]\:\\/{}<>!?\-`']+$"
 
     @validates("name")
     def validate_name(self, key, name):
@@ -26,7 +26,7 @@ class Validatable:
             )
         if not re.match(self.NAME_PATTERN, name):
             raise ValueError(
-                "Invalid name. Allowed characters are letters, digits, spaces, and .@#$%^&*()_+[]/\\\\{}<>!?-:` "
+                "Invalid name. Allowed characters are letters, digits, spaces, and .@#$%^&*()_+[]/\\\\{}<>!?-:`'"
                 + name
             )
         return name
