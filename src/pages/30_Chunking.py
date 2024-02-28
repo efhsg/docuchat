@@ -170,7 +170,10 @@ def manage_chunks_sessions(selected_text):
 
                     if end_index < len(chunks):
                         with col2:
-                            next_button = st.button("Next", key=f"next_{session.id}")
+                            next_button = st.button(
+                                "&nbsp;&nbsp;&nbsp;&nbsp;Next&nbsp;&nbsp;&nbsp;&nbsp;",
+                                key=f"next_{session.id}",
+                            )
                             if next_button:
                                 st.session_state[f"page_{session.id}"] = page_number + 1
                                 st.experimental_rerun()
