@@ -128,30 +128,54 @@ def manage_chunks_sessions(selected_text):
         st.write("No chunk sessions found for this text.")
         return
 
-    with st.container(border=True):
-        st.write("Runs:")
-        for session in chunk_sessions:
-            with st.container(border=True):
-                col1, col2 = st.columns([10, 1])
-                with col1:
-                    st.write(f"{session.method}, {session.parameters}")
-                with col2:
-                    delete_button = st.button(
-                        label="🗑️ Delete", key=f"delete_{session.id}"
-                    )
+    for session in chunk_sessions:
+        with st.container(border=True):
+            col1, col2 = st.columns([10, 1])
+            with col1:
+                st.write(f"{session.method}, {session.parameters}")
+            with col2:
+                delete_button = st.button(label="🗑️ Delete", key=f"delete_{session.id}")
 
-                if delete_button:
-                    chunker_repository.delete_chunks_by_process(session.id)
-                    chunker_repository.delete_chunk_process(session.id)
-                    st.rerun()
-                with st.expander(f"Chunks:"):
-                    chunks = chunker_repository.list_chunks_by_process(session.id)
-                    if chunks:
-                        for chunk in chunks:
-                            with st.container(border=True):
-                                st.write(f"{compressor.decompress(chunk.chunk)}")
-                    else:
-                        st.write("No chunks found for this session.")
+            if delete_button:
+                chunker_repository.delete_chunks_by_process(session.id)
+                chunker_repository.delete_chunk_process(session.id)
+                st.experimental_rerun()
+
+            with st.expander(f"Chunks:"):
+                chunks = chunker_repository.list_chunks_by_process(session.id)
+                if chunks:
+                    page_number = st.session_state.get(f"page_{session.id}", 0)
+                    page_size = 5
+                    total_pages = (len(chunks) - 1) // page_size + 1
+                    start_index = page_number * page_size
+                    end_index = start_index + page_size
+                    displayed_chunks = chunks[start_index:end_index]
+
+                    for chunk in displayed_chunks:
+                        st.write(f"{chunk.index + 1}")
+                        with st.container(border=True):
+                            st.text(compressor.decompress(chunk.chunk))
+
+                    st.write(f"Page {page_number + 1} of {total_pages}")
+
+                    col1, col2 = st.columns([1, 10])
+                    with col1:
+                        if page_number > 0:
+                            prev_button = st.button(
+                                "Previous", key=f"prev_{session.id}"
+                            )
+                            if prev_button:
+                                st.session_state[f"page_{session.id}"] = page_number - 1
+                                st.experimental_rerun()
+
+                    if end_index < len(chunks):
+                        with col2:
+                            next_button = st.button("Next", key=f"next_{session.id}")
+                            if next_button:
+                                st.session_state[f"page_{session.id}"] = page_number + 1
+                                st.experimental_rerun()
+                else:
+                    st.write("No chunks found for this session.")
 
 
 if __name__ == "__main__":
