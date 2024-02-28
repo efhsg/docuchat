@@ -1,3 +1,5 @@
+from components.chunker.interfaces.chunker_repository import ChunkerRepository
+from components.chunker.sqlAlchemy_chunker_repository import SqlAlchemyChunkerRepository
 from components.database.mysql_connector import MySQLConnector
 from components.reader.interfaces.text_compressor import TextCompressor
 from components.reader.sqlAlchemy_reader_repository import SqlalchemyReaderRepository
@@ -36,5 +38,13 @@ def get_text_extractor() -> TextExtractor:
 
 def get_web_extractor() -> TextExtractor:
     return WebTextExtractor(
+        logger=NativeLogger.get_logger("docuchat"),
+    )
+
+
+def get_chunker_repository() -> ChunkerRepository:
+    return SqlAlchemyChunkerRepository(
+        connector=MySQLConnector(),
+        compressor=ZlibTextCompressor(),
         logger=NativeLogger.get_logger("docuchat"),
     )

@@ -1,4 +1,3 @@
-from typing import List, Tuple
 from sqlalchemy import func
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
@@ -8,7 +7,6 @@ from components.reader.interfaces.text_compressor import TextCompressor
 from components.database.interfaces.connector import Connector
 from .interfaces.reader_repository import ReaderRepository
 
-from config import Config
 from components.database.models import ExtractedText, Domain
 
 
@@ -21,7 +19,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
         compressor: TextCompressor = None,
         logger: StandardLogger = None,
     ):
-        self.config = config or Config()
+        self.config = config
 
         self.session = connector.get_session()
         self.compressor = compressor

@@ -3,7 +3,7 @@ from typing import List
 import streamlit as st
 from components.database.models import ExtractedText
 from injector import get_config, get_logger, get_reader_repository, get_compressor
-from pages.utils.utils import get_index, set_default_state, show_messages
+from pages.utils.utils import get_index, select_text, set_default_state, show_messages
 from pages.utils.utils import (
     setup_page,
     select_domain,
@@ -36,6 +36,11 @@ def setup_session_state() -> None:
 
 
 def manage_texts(selected_domain):
+
+    if selected_domain is None:
+        st.info("Nothing to manage.")
+        return
+
     st.title(f"Texts in {selected_domain}")
 
     selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
@@ -96,26 +101,6 @@ def select_domain(domain_options):
             context_domain=st.session_state["selected_domain"], select_all_texts=False
         ),
     )
-
-
-def select_text(text_options: List[ExtractedText]) -> ExtractedText:
-    options_dict = {f"{extracted_text_to_label(text)}": text for text in text_options}
-
-    selected_label = st.selectbox(
-        label="Select a text",
-        options=list(options_dict.keys()),
-        key="selected_text",
-        index=get_index(list(options_dict.keys()), "context_text"),
-        on_change=lambda: st.session_state.update(
-            context_text=st.session_state["selected_text"]
-        ),
-    )
-
-    for text in text_options:
-        if extracted_text_to_label(text) == selected_label:
-            return text
-
-    raise ValueError("Selected text not found.")
 
 
 def handle_text_rename(selected_domain: str, selected_text: ExtractedText):

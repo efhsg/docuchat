@@ -43,6 +43,26 @@ def select_domain(domain_options):
     )
 
 
+def select_text(text_options: List[ExtractedText]) -> ExtractedText:
+    options_dict = {f"{extracted_text_to_label(text)}": text for text in text_options}
+
+    selected_label = st.selectbox(
+        label="Select a text",
+        options=list(options_dict.keys()),
+        key="selected_text",
+        index=get_index(list(options_dict.keys()), "context_text"),
+        on_change=lambda: st.session_state.update(
+            context_text=st.session_state["selected_text"]
+        ),
+    )
+
+    for text in text_options:
+        if extracted_text_to_label(text) == selected_label:
+            return text
+
+    raise ValueError("Selected text not found.")
+
+
 def set_default_state(
     key: str, default: Union[bool, List, Dict[str, int], int]
 ) -> None:
