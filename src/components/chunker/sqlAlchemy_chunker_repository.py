@@ -55,6 +55,7 @@ class SqlAlchemyChunkerRepository(ChunkerRepository):
             return (
                 self.session.query(ChunkProcess)
                 .filter(ChunkProcess.extracted_text_id == extracted_text_id)
+                .order_by(ChunkProcess.id.desc())
                 .all()
             )
         except SQLAlchemyError as e:

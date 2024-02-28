@@ -34,6 +34,7 @@ def main():
     st.title(f"Chunking text in {selected_domain}")
     selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
     manage_chunks(selected_text)
+    manage_chunks_sessions(selected_text)
 
 
 def setup_session_state():
@@ -64,31 +65,36 @@ def manage_chunks(selected_text):
             context_chunk_method=st.session_state["selected_chunk_method"]
         ),
     )
-    chunker_class: Type[Chunker] = chunker_options[method]
+    chunker_details = chunker_options[method]
+    chunker_class: Type[Chunker] = chunker_details["class"]
 
     with st.form(key="chunk_process_form"):
         params = {}
-        for param in chunker_class.get_init_params():
-            if param == "chunk_size":
-                params["chunk_size"] = st.number_input(
-                    "Chunk size",
-                    min_value=1,
-                    value=st.session_state["context_chunk_size"],
+        for param, details in chunker_details["params"].items():
+            if details["type"] == "number":
+                params[param] = st.number_input(
+                    label=details["label"],
+                    min_value=details.get("min_value", 0),
+                    value=st.session_state.get(f"context_{param}", details["default"]),
                 )
-            elif param == "overlap":
-                params["overlap"] = st.number_input(
-                    label="Overlap size",
-                    min_value=0,
-                    value=st.session_state["context_chunk_overlap"],
+            elif details["type"] == "select":
+                params[param] = st.selectbox(
+                    label=details["label"],
+                    options=details["options"],
+                    index=details["options"].index(
+                        st.session_state.get(f"context_{param}", details["default"])
+                    ),
+                )
+            elif details["type"] == "checkbox":
+                params[param] = st.checkbox(
+                    label=details["label"],
+                    value=st.session_state.get(f"context_{param}", details["default"]),
                 )
         submit_button = st.form_submit_button(label="Chunk")
 
     if submit_button:
         for param in chunker_class.get_init_params():
-            if param == "chunk_size":
-                st.session_state["context_chunk_size"] = params["chunk_size"]
-            elif param == "overlap":
-                st.session_state["context_chunk_overlap"] = params["overlap"]
+            st.session_state[f"context_{param}"] = params[f"{param}"]
         with st.spinner("Chunking..."):
             try:
                 chunk_process_id = chunker_repository.create_chunk_process(
@@ -108,9 +114,44 @@ def manage_chunks(selected_text):
 
                 chunker_repository.save_chunks(chunk_process_id, chunk_data_for_db)
 
-                st.success("Chunk process created and chunks saved successfully.")
+                st.rerun()
             except Exception as e:
                 st.error(f"Failed to create chunk process or save chunks: {e}")
+
+
+def manage_chunks_sessions(selected_text):
+    if selected_text is None:
+        return
+
+    chunk_sessions = chunker_repository.list_chunk_processes_by_text(selected_text.id)
+    if not chunk_sessions:
+        st.write("No chunk sessions found for this text.")
+        return
+
+    with st.container(border=True):
+        st.write("Runs:")
+        for session in chunk_sessions:
+            with st.container(border=True):
+                col1, col2 = st.columns([10, 1])
+                with col1:
+                    st.write(f"{session.method}, {session.parameters}")
+                with col2:
+                    delete_button = st.button(
+                        label="🗑️ Delete", key=f"delete_{session.id}"
+                    )
+
+                if delete_button:
+                    chunker_repository.delete_chunks_by_process(session.id)
+                    chunker_repository.delete_chunk_process(session.id)
+                    st.rerun()
+                with st.expander(f"Chunks:"):
+                    chunks = chunker_repository.list_chunks_by_process(session.id)
+                    if chunks:
+                        for chunk in chunks:
+                            with st.container(border=True):
+                                st.write(f"{compressor.decompress(chunk.chunk)}")
+                    else:
+                        st.write("No chunks found for this session.")
 
 
 if __name__ == "__main__":
