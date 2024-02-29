@@ -14,6 +14,7 @@ from injector import (
     get_compressor,
 )
 from pages.utils.utils import (
+    get_index,
     select_text,
     set_default_state,
     select_domain,
@@ -59,20 +60,55 @@ def create_chunk_processes(selected_text):
         return
 
     chunker_options = chunker_config.chunker_options
+    method_options = list(chunker_options.keys())
     method = st.selectbox(
         label="Select chunking method",
-        options=list(chunker_options.keys()),
-        key="selected_chunk_method",
+        options=method_options,
+        key="chunk_method",
+        index=get_index(method_options, "context_chunk_method"),
+        on_change=lambda: st.session_state.update(
+            context_chunk_method=st.session_state["chunk_method"]
+        ),
     )
+
     chunker_details = chunker_options[method]
     chunker_class: Chunker = chunker_details["class"]
 
-    params = {}
+    params = {
+        param: st.session_state.get(f"context_{param}", details["default"])
+        for param, details in chunker_details["params"].items()
+    }
+    submit_button = generate_form(chunker_details, params)
+
+    if submit_button:
+        for param in params:
+            st.session_state[f"context_{param}"] = params[param]
+
+        try:
+            with st.spinner("Chunking..."):
+                chunker_instance = chunker_class(**params)
+
+                params["name"] = generate_default_name()
+                chunk_process_id = chunker_repository.create_chunk_process(
+                    extracted_text_id=selected_text.id,
+                    method=method,
+                    parameters=params,
+                )
+
+                text_content = compressor.decompress(selected_text.text)
+                chunks = chunker_instance.chunk(text_content)
+
+                chunk_data_for_db = [
+                    (index, chunk) for index, chunk in enumerate(chunks)
+                ]
+                chunker_repository.save_chunks(chunk_process_id, chunk_data_for_db)
+                st.rerun()
+        except Exception as e:
+            st.error(f"Failed to create chunk process or save chunks: {e}")
+
+
+def generate_form(chunker_details, params):
     with st.form(key="chunk_process_form"):
-        params = {
-            param: st.session_state.get(f"context_{param}", details["default"])
-            for param, details in chunker_details["params"].items()
-        }
         for param, details in chunker_details["params"].items():
             input_type = details["type"]
             label = details["label"]
@@ -102,32 +138,7 @@ def create_chunk_processes(selected_text):
                 )
 
         submit_button = st.form_submit_button(label="Chunk")
-
-    if submit_button:
-        for param in params:
-            st.session_state[f"context_{param}"] = params[param]
-
-        try:
-            with st.spinner("Chunking..."):
-                chunker_instance = chunker_class(**params)
-
-                params["name"] = generate_default_name()
-                chunk_process_id = chunker_repository.create_chunk_process(
-                    extracted_text_id=selected_text.id,
-                    method=method,
-                    parameters=params,
-                )
-
-                text_content = compressor.decompress(selected_text.text)
-                chunks = chunker_instance.chunk(text_content)
-
-                chunk_data_for_db = [
-                    (index, chunk) for index, chunk in enumerate(chunks)
-                ]
-                chunker_repository.save_chunks(chunk_process_id, chunk_data_for_db)
-                st.rerun()
-        except Exception as e:
-            st.error(f"Failed to create chunk process or save chunks: {e}")
+    return submit_button
 
 
 def generate_default_name() -> str:
