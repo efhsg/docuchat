@@ -1,12 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 
 class Chunker(ABC):
-    @classmethod
-    @abstractmethod
-    def get_init_params(cls) -> List[str]:
-        pass
 
     @abstractmethod
     def chunk(self, text: str) -> List[str]:

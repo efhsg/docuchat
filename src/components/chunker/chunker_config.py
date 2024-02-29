@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from .fixed_length_overlap_chunker import FixedLengthOverLapChunker
 from .fixed_length_chunker import FixedLengthChunker
 

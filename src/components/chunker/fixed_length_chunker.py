@@ -3,13 +3,8 @@ from .interfaces.chunker import Chunker
 
 
 class FixedLengthChunker(Chunker):
-    def __init__(self, name: str, chunk_size: int):
-        self.name = name
+    def __init__(self, chunk_size: int):
         self.chunk_size = chunk_size
-
-    @classmethod
-    def get_init_params(cls) -> List[str]:
-        return ["name", "chunk_size"]
 
     def chunk(self, text: str) -> List[str]:
         return [
@@ -20,11 +15,6 @@ class FixedLengthChunker(Chunker):
     def get_chunker_options(cls) -> Dict[str, Any]:
         return {
             "params": {
-                "name": {
-                    "label": "Name",
-                    "type": "string",
-                    "default": "",
-                },
                 "chunk_size": {
                     "label": "Chunk size",
                     "type": "number",
@@ -32,4 +22,5 @@ class FixedLengthChunker(Chunker):
                     "default": 1000,
                 },
             },
+            "order": ["chunk_size"],
         }

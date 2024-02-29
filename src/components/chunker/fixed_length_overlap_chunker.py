@@ -3,14 +3,9 @@ from .interfaces.chunker import Chunker
 
 
 class FixedLengthOverLapChunker(Chunker):
-    def __init__(self, name: str, chunk_size: int, overlap: int):
-        self.name = name
+    def __init__(self, chunk_size: int, overlap: int):
         self.chunk_size = chunk_size
         self.overlap = overlap
-
-    @classmethod
-    def get_init_params(cls) -> List[str]:
-        return ["name", "chunk_size", "overlap"]
 
     def chunk(self, text: str) -> List[str]:
         chunks = []
@@ -24,11 +19,6 @@ class FixedLengthOverLapChunker(Chunker):
     def get_chunker_options(cls) -> Dict[str, Any]:
         return {
             "params": {
-                "name": {
-                    "label": "Name",
-                    "type": "string",
-                    "default": "",
-                },
                 "chunk_size": {
                     "label": "Chunk size",
                     "type": "number",
@@ -42,4 +32,5 @@ class FixedLengthOverLapChunker(Chunker):
                     "default": 100,
                 },
             },
+            "order": ["chunk_size", "overlap"],
         }
