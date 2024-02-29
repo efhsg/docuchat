@@ -150,50 +150,64 @@ def manage_chunk_processes(selected_text):
         with st.container(border=True):
             col1, col2 = st.columns([10, 1])
             with col1:
-                method_display = f"{session.method} ({session.parameters['name']})"
-                chunker_options = chunker_config.chunker_options[session.method]
-                params_order = chunker_options.get("order", [])
-                params_display = ", ".join(
-                    [
-                        f"{key}: {session.parameters[key]}"
-                        for key in params_order
-                        if key in session.parameters
-                    ]
-                )
-                st.markdown(f"**{method_display}**, {params_display}")
+                show_process_header(session)
             with col2:
                 delete_button = st.button(label="🗑️ Delete", key=f"delete_{session.id}")
 
             if delete_button:
-                chunker_repository.delete_chunks_by_process(session.id)
-                chunker_repository.delete_chunk_process(session.id)
-                st.experimental_rerun()
+                delete_process(session)
 
-            with st.expander(f"Chunks:"):
-                chunks = chunker_repository.list_chunks_by_process(session.id)
-                if chunks:
-                    page_number = st.session_state.get(f"page_{session.id}", 0)
-                    page_size = 5
-                    total_pages = (len(chunks) - 1) // page_size + 1
-                    start_index = page_number * page_size
-                    end_index = start_index + page_size
-                    displayed_chunks = chunks[start_index:end_index]
+            show_chunks(session)
 
-                    chunks_page_nav(session, page_number, total_pages, "top")
-                    for chunk in displayed_chunks:
-                        with st.container(border=True):
-                            text_content = compressor.decompress(chunk.chunk)
-                            st.text_area(
-                                label=f"Chunk: {chunk.index + 1}",
-                                value=text_content,
-                                key=f"chunk_{session.id}_{chunk.index}",
-                                height=200,
-                                disabled=True,
-                            )
-                    chunks_page_nav(session, page_number, total_pages, "bottom")
+def delete_process(session):
+    try:
+        chunker_repository.delete_chunks_by_process(session.id)
+        chunker_repository.delete_chunk_process(session.id)
+        st.rerun()
+    except Exception as e:
+        st.error(f"Failed to create chunk process or save chunks: {e}")
 
-                else:
-                    st.write("No chunks found for this session.")
+
+def show_process_header(session):
+    method_display = f"{session.method} ({session.parameters['name']})"
+    chunker_options = chunker_config.chunker_options[session.method]
+    params_order = chunker_options.get("order", [])
+    params_display = ", ".join(
+        [
+            f"{key}: {session.parameters[key]}"
+            for key in params_order
+            if key in session.parameters
+        ]
+    )
+    st.markdown(f"**{method_display}**, {params_display}")
+
+
+def show_chunks(session):
+    with st.expander(f"Chunks:"):
+        chunks = chunker_repository.list_chunks_by_process(session.id)
+        if chunks:
+            page_number = st.session_state.get(f"page_{session.id}", 0)
+            page_size = 5
+            total_pages = (len(chunks) - 1) // page_size + 1
+            start_index = page_number * page_size
+            end_index = start_index + page_size
+            displayed_chunks = chunks[start_index:end_index]
+
+            chunks_page_nav(session, page_number, total_pages, "top")
+            for chunk in displayed_chunks:
+                with st.container(border=True):
+                    text_content = compressor.decompress(chunk.chunk)
+                    st.text_area(
+                        label=f"Chunk: {chunk.index + 1}",
+                        value=text_content,
+                        key=f"chunk_{session.id}_{chunk.index}",
+                        height=200,
+                        disabled=True,
+                    )
+            chunks_page_nav(session, page_number, total_pages, "bottom")
+
+        else:
+            st.write("No chunks found for this session.")
 
 
 def chunks_page_nav(session, page_number, total_pages, position):
