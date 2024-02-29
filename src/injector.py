@@ -1,3 +1,4 @@
+from components.chunker.chunker_config import ChunkerConfig
 from components.chunker.interfaces.chunker_repository import ChunkerRepository
 from components.chunker.sqlAlchemy_chunker_repository import SqlAlchemyChunkerRepository
 from components.database.mysql_connector import MySQLConnector
@@ -40,6 +41,10 @@ def get_web_extractor() -> TextExtractor:
     return WebTextExtractor(
         logger=NativeLogger.get_logger("docuchat"),
     )
+
+
+def get_chunker_config():
+    return ChunkerConfig()
 
 
 def get_chunker_repository() -> ChunkerRepository:

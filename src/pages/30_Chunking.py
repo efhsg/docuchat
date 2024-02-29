@@ -3,6 +3,7 @@ import streamlit as st
 from components.chunker.chunker_config import ChunkerConfig
 from components.chunker.interfaces.chunker import Chunker
 from injector import (
+    get_chunker_config,
     get_chunker_repository,
     get_config,
     get_logger,
@@ -22,7 +23,7 @@ logger = get_logger()
 compressor = get_compressor()
 reader_repository = get_reader_repository()
 chunker_repository = get_chunker_repository()
-chunker_config = ChunkerConfig()
+chunker_config = get_chunker_config()
 
 
 def main():
