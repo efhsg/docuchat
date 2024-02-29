@@ -22,5 +22,16 @@ class FixedLengthChunker(Chunker):
                     "default": 1000,
                 },
             },
+            "validations": [
+                {
+                    "rule": (
+                        "chunk_size",
+                        "le",
+                        "MAX_CHUNK_SIZE",
+                    ),
+                    "message": f"Chunk size must not exceed {Chunker.MAX_CHUNK_SIZE}.",
+                },
+            ],
+            "constants": {"MAX_CHUNK_SIZE": Chunker.MAX_CHUNK_SIZE},
             "order": ["chunk_size"],
         }

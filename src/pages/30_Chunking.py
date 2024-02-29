@@ -70,12 +70,17 @@ def create_chunk_processes(selected_text):
     form_values = init_form_values(chunker_details["params"].items())
     submit_button = generate_form(chunker_details, form_values, "chunk_process")
     if submit_button:
-        if not validate_form_values(
-            form_values, chunker_details.get("validations", [])
-        ):
-            return
-        save_form_values_to_context(form_values)
-        process_text_to_chunks(selected_text, method, chunker_class, form_values)
+        try:
+            if not validate_form_values(
+                form_values,
+                chunker_details.get("validations", []),
+                chunker_details.get("constants", {}),
+            ):
+                return
+            save_form_values_to_context(form_values)
+            process_text_to_chunks(selected_text, method, chunker_class, form_values)
+        except Exception as e:
+            st.error(f"Failed to validate: {e}")
 
 
 def save_form_values_to_context(values):

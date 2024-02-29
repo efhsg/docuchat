@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 class Chunker(ABC):
 
-    MAX_CHUNK_SIZE = 100000
+    MAX_CHUNK_SIZE = 1000000
 
     @abstractmethod
     def chunk(self, text: str) -> List[str]:

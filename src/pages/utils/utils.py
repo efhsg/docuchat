@@ -6,9 +6,19 @@ from urllib.parse import quote
 from typing import Dict, List, Union
 from components.database.models import ExtractedText
 from injector import get_config, get_logger
+from operator import lt, le, gt, ge, eq, ne
 
 config = get_config()
 logger = get_logger()
+
+COMPARISON_OPERATORS = {
+    "lt": lt,
+    "le": le,
+    "gt": gt,
+    "ge": ge,
+    "eq": eq,
+    "ne": ne,
+}
 
 
 def setup_page(page_title="Docuchat"):
@@ -88,15 +98,18 @@ def generate_form(
 
 
 def validate_form_values(
-    form_values: Dict[str, Any], validations: List[Dict[str, Any]]
+    form_values: Dict[str, Any],
+    validations: List[Dict[str, Any]],
+    constants: Dict[str, Any],
 ) -> bool:
     for validation in validations:
         rule = validation["rule"]
         field1, operator, field2 = rule
 
         value1 = form_values.get(field1)
-        value2 = form_values.get(field2) if field2 in form_values else field2
+        value2 = constants.get(field2, form_values.get(field2, field2))
 
+        logger.info(value1, operator, value2)
         if not evaluate_rule(value1, operator, value2):
             st.error(validation["message"])
             return False
@@ -104,11 +117,11 @@ def validate_form_values(
 
 
 def evaluate_rule(value1: Any, operator: str, value2: Any) -> bool:
-    if operator == "<=":
-        return value1 <= value2
-    elif operator == "<":
-        return value1 < value2
-    return True
+    try:
+        comparison_func = COMPARISON_OPERATORS[operator]
+    except KeyError:
+        raise ValueError(f"Unrecognized comparison operator: {operator}")
+    return comparison_func(value1, value2)
 
 
 def select_text(text_options: List[ExtractedText]) -> ExtractedText:
