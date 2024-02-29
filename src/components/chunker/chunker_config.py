@@ -10,6 +10,11 @@ class ChunkerConfig:
             "Fixed-Length": {
                 "class": FixedLengthChunker,
                 "params": {
+                    "name": {
+                        "label": "Name",
+                        "type": "string",
+                        "default": "",
+                    },
                     "chunk_size": {
                         "label": "Chunk size",
                         "type": "number",
@@ -21,6 +26,11 @@ class ChunkerConfig:
             "Fixed-Length Overlap": {
                 "class": FixedLengthOverLapChunker,
                 "params": {
+                    "name": {
+                        "label": "Name",
+                        "type": "string",
+                        "default": "",
+                    },
                     "chunk_size": {
                         "label": "Chunk size",
                         "type": "number",

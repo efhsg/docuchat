@@ -3,7 +3,7 @@ from .interfaces.chunker import Chunker
 
 
 class FixedLengthOverLapChunker(Chunker):
-    def __init__(self, chunk_size: int, overlap: int):
+    def __init__(self, name: str, chunk_size: int, overlap: int):
         self.chunk_size = chunk_size
         self.overlap = overlap
 

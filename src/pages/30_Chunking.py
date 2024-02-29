@@ -71,7 +71,12 @@ def create_chunks_sessions(selected_text):
     with st.form(key="chunk_process_form"):
         params = {}
         for param, details in chunker_details["params"].items():
-            if details["type"] == "number":
+            if details["type"] == "string":
+                params[param] = st.text_input(
+                    label=details["label"],
+                    value=st.session_state.get(f"context_{param}", details["default"]),
+                )
+            elif details["type"] == "number":
                 params[param] = st.number_input(
                     label=details["label"],
                     min_value=details.get("min_value", 0),
@@ -132,7 +137,11 @@ def manage_chunks_sessions(selected_text):
         with st.container(border=True):
             col1, col2 = st.columns([10, 1])
             with col1:
-                st.write(f"{session.method}, {session.parameters}")
+                method_display = session.method.replace("_", " ").title()
+                params_display = ", ".join(
+                    [f"{key}: {value}" for key, value in session.parameters.items()]
+                )
+                st.markdown(f"**{method_display}**, {params_display}")
             with col2:
                 delete_button = st.button(label="🗑️ Delete", key=f"delete_{session.id}")
 
@@ -153,12 +162,15 @@ def manage_chunks_sessions(selected_text):
 
                     chunks_page_nav(session, page_number, total_pages, "top")
                     for chunk in displayed_chunks:
-                        col1, col2 = st.columns([25, 1])
-                        with col1:
-                            with st.container(border=True):
-                                st.text(compressor.decompress(chunk.chunk))
-                        with col2:
-                            st.write(f"{chunk.index + 1}")
+                        with st.container(border=True):
+                            text_content = compressor.decompress(chunk.chunk)
+                            st.text_area(
+                                label=f"Chunk: {chunk.index + 1}",
+                                value=text_content,
+                                key=f"chunk_{session.id}_{chunk.index}",
+                                height=200,
+                                disabled=True,
+                            )
                     chunks_page_nav(session, page_number, total_pages, "bottom")
 
                 else:
