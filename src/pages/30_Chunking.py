@@ -151,41 +151,48 @@ def manage_chunks_sessions(selected_text):
                     end_index = start_index + page_size
                     displayed_chunks = chunks[start_index:end_index]
 
-                    chunks_page_nav(
-                        session, chunks, page_number, end_index, total_pages, "top"
-                    )
+                    chunks_page_nav(session, page_number, total_pages, "top")
                     for chunk in displayed_chunks:
-                        st.write(f"{chunk.index + 1}")
-                        with st.container(border=True):
-                            st.text(compressor.decompress(chunk.chunk))
-                    chunks_page_nav(
-                        session, chunks, page_number, end_index, total_pages, "bottom"
-                    )
+                        col1, col2 = st.columns([25, 1])
+                        with col1:
+                            with st.container(border=True):
+                                st.text(compressor.decompress(chunk.chunk))
+                        with col2:
+                            st.write(f"{chunk.index + 1}")
+                    chunks_page_nav(session, page_number, total_pages, "bottom")
 
                 else:
                     st.write("No chunks found for this session.")
 
 
-def chunks_page_nav(session, chunks, page_number, end_index, total_pages, position):
-    col1, col2, col3 = st.columns([1, 9, 1])
+def chunks_page_nav(session, page_number, total_pages, position):
+    col1, col2, col3 = st.columns([1, 8, 1])
     with col1:
         prev_button = st.button(
-            "Previous", key=f"prev_{session.id}_{position}", disabled=page_number == 0
+            "Previous", key=f"prev_{session.id}_{position}", disabled=page_number <= 0
         )
         if prev_button:
             st.session_state[f"page_{session.id}"] = page_number - 1
             st.rerun()
     with col2:
         next_button = st.button(
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Next&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+            "&nbsp;&nbsp;&nbsp;&nbsp;Next&nbsp;&nbsp;&nbsp;&nbsp;",
             key=f"next_{session.id}_{position}",
-            disabled=(page_number + 1 == total_pages),
+            disabled=(page_number + 1 >= total_pages),
         )
         if next_button:
             st.session_state[f"page_{session.id}"] = page_number + 1
             st.rerun()
     with col3:
-        st.write(f"Page {page_number + 1} of {total_pages}")
+        page_select = st.selectbox(
+            label="Select page",
+            options=range(1, total_pages + 1),
+            index=page_number,
+            key=f"select_{session.id}_{position}",
+        )
+        if page_select != page_number + 1:
+            st.session_state[f"page_{session.id}"] = page_select - 1
+            st.rerun()
 
 
 if __name__ == "__main__":
