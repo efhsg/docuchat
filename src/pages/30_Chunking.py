@@ -151,34 +151,41 @@ def manage_chunks_sessions(selected_text):
                     end_index = start_index + page_size
                     displayed_chunks = chunks[start_index:end_index]
 
+                    chunks_page_nav(
+                        session, chunks, page_number, end_index, total_pages, "top"
+                    )
                     for chunk in displayed_chunks:
                         st.write(f"{chunk.index + 1}")
                         with st.container(border=True):
                             st.text(compressor.decompress(chunk.chunk))
+                    chunks_page_nav(
+                        session, chunks, page_number, end_index, total_pages, "bottom"
+                    )
 
-                    st.write(f"Page {page_number + 1} of {total_pages}")
-
-                    col1, col2 = st.columns([1, 10])
-                    with col1:
-                        if page_number > 0:
-                            prev_button = st.button(
-                                "Previous", key=f"prev_{session.id}"
-                            )
-                            if prev_button:
-                                st.session_state[f"page_{session.id}"] = page_number - 1
-                                st.experimental_rerun()
-
-                    if end_index < len(chunks):
-                        with col2:
-                            next_button = st.button(
-                                "&nbsp;&nbsp;&nbsp;&nbsp;Next&nbsp;&nbsp;&nbsp;&nbsp;",
-                                key=f"next_{session.id}",
-                            )
-                            if next_button:
-                                st.session_state[f"page_{session.id}"] = page_number + 1
-                                st.experimental_rerun()
                 else:
                     st.write("No chunks found for this session.")
+
+
+def chunks_page_nav(session, chunks, page_number, end_index, total_pages, position):
+    col1, col2, col3 = st.columns([1, 9, 1])
+    with col1:
+        prev_button = st.button(
+            "Previous", key=f"prev_{session.id}_{position}", disabled=page_number == 0
+        )
+        if prev_button:
+            st.session_state[f"page_{session.id}"] = page_number - 1
+            st.rerun()
+    with col2:
+        next_button = st.button(
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Next&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+            key=f"next_{session.id}_{position}",
+            disabled=(page_number + 1 == total_pages),
+        )
+        if next_button:
+            st.session_state[f"page_{session.id}"] = page_number + 1
+            st.rerun()
+    with col3:
+        st.write(f"Page {page_number + 1} of {total_pages}")
 
 
 if __name__ == "__main__":
