@@ -43,3 +43,7 @@ class ChunkerRepository(ABC):
     @abstractmethod
     def delete_chunks_by_process(self, chunk_process_id: int) -> None:
         pass
+
+    @abstractmethod
+    def update_chunk_process(self, chunk_process: ChunkProcess) -> None:
+        pass

@@ -83,11 +83,6 @@ def create_chunk_processes(selected_text):
             st.error(f"Failed to validate: {e}")
 
 
-def save_form_values_to_context(values):
-    for value in values:
-        st.session_state[f"context_{value}"] = values[value]
-
-
 def init_form_values(fields):
     form_values = {
         param: st.session_state.get(f"context_{param}", details["default"])
@@ -95,6 +90,11 @@ def init_form_values(fields):
     }
 
     return form_values
+
+
+def save_form_values_to_context(values):
+    for value in values:
+        st.session_state[f"context_{value}"] = values[value]
 
 
 def process_text_to_chunks(selected_text, method, chunker_class, values):
@@ -148,16 +148,49 @@ def manage_chunk_processes(selected_text):
 
     for session in chunk_sessions:
         with st.container(border=True):
-            col1, col2 = st.columns([10, 1])
+            col1, col2, col3 = st.columns([8, 1, 1])
             with col1:
                 show_process_header(session)
             with col2:
+                st.button(
+                    label="Rename",
+                    key=f"rename_{session.id}",
+                    on_click=lambda session_id=session.id: st.session_state.update(
+                        {f"renaming_{session_id}": True}
+                    ),
+                )
+            with col3:
                 delete_button = st.button(label="🗑️ Delete", key=f"delete_{session.id}")
-
             if delete_button:
                 delete_process(session)
 
+            if st.session_state.get(f"renaming_{session.id}", False):
+                rename_session(session)
+                
             show_chunks(session)
+
+
+def rename_session(session):
+    new_name = st.text_input(
+        "New name:",
+        key=f"new_name_{session.id}",
+        value=session.parameters["name"],
+    )
+    col1, col2 = st.columns([1, 9])
+    with col1:
+        if st.button("Save", key=f"save_{session.id}"):
+            try:
+                session.parameters["name"] = new_name
+                chunker_repository.update_chunk_process(session)
+                st.session_state[f"renaming_{session.id}"] = False
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to rename chunk process: {e}")
+    with col2:
+        if st.button("Cancel", key=f"cancel_{session.id}"):
+            st.session_state[f"renaming_{session.id}"] = False
+            st.rerun()
+
 
 def delete_process(session):
     try:

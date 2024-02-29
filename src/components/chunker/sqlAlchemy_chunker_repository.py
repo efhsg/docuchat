@@ -108,3 +108,12 @@ class SqlAlchemyChunkerRepository(ChunkerRepository):
             self.session.rollback()
             self.logger.error(f"Failed to delete chunks by process: {e}")
             raise
+
+    def update_chunk_process(self, chunk_process: ChunkProcess) -> None:
+        try:
+            self.session.merge(chunk_process)
+            self.session.commit()
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            self.logger.error(f"Failed to update chunk process: {e}")
+            raise
