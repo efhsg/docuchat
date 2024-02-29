@@ -33,7 +33,7 @@ def main():
     )
     st.title(f"Chunking text in {selected_domain}")
     selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
-    manage_chunks(selected_text)
+    create_chunks_sessions(selected_text)
     manage_chunks_sessions(selected_text)
 
 
@@ -50,7 +50,7 @@ def setup_session_state():
         set_default_state(state_name, default_value)
 
 
-def manage_chunks(selected_text):
+def create_chunks_sessions(selected_text):
     if selected_text is None:
         st.info("Please select a text.")
         return
