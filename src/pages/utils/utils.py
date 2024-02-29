@@ -87,6 +87,30 @@ def generate_form(
     return submit_button
 
 
+def validate_form_values(
+    form_values: Dict[str, Any], validations: List[Dict[str, Any]]
+) -> bool:
+    for validation in validations:
+        rule = validation["rule"]
+        field1, operator, field2 = rule
+
+        value1 = form_values.get(field1)
+        value2 = form_values.get(field2) if field2 in form_values else field2
+
+        if not evaluate_rule(value1, operator, value2):
+            st.error(validation["message"])
+            return False
+    return True
+
+
+def evaluate_rule(value1: Any, operator: str, value2: Any) -> bool:
+    if operator == "<=":
+        return value1 <= value2
+    elif operator == "<":
+        return value1 < value2
+    return True
+
+
 def select_text(text_options: List[ExtractedText]) -> ExtractedText:
     options_dict = {f"{extracted_text_to_label(text)}": text for text in text_options}
 

@@ -32,5 +32,19 @@ class FixedLengthOverLapChunker(Chunker):
                     "default": 100,
                 },
             },
+            "validations": [
+                {
+                    "rule": ("overlap", "<=", "chunk_size"),
+                    "message": "Overlap must be less than or equal to Chunk size.",
+                },
+                # {
+                #     "rule": (
+                #         "chunk_size",
+                #         "<=",
+                #         "MAX_CHUNK_SIZE",
+                #     ),
+                #     "message": "Chunk size must not exceed maximum allowed size.",
+                # },
+            ],
             "order": ["chunk_size", "overlap"],
         }

@@ -20,6 +20,7 @@ from pages.utils.utils import (
     set_default_state,
     select_domain,
     setup_page,
+    validate_form_values,
 )
 
 config = get_config()
@@ -69,6 +70,10 @@ def create_chunk_processes(selected_text):
     form_values = init_form_values(chunker_details["params"].items())
     submit_button = generate_form(chunker_details, form_values, "chunk_process")
     if submit_button:
+        if not validate_form_values(
+            form_values, chunker_details.get("validations", [])
+        ):
+            return
         save_form_values_to_context(form_values)
         process_text_to_chunks(selected_text, method, chunker_class, form_values)
 
