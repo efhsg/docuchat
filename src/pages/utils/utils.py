@@ -43,6 +43,50 @@ def select_domain(domain_options):
     )
 
 
+from typing import Dict, Any, Union
+import streamlit as st
+
+
+from typing import Dict, Union, Callable, Any
+import streamlit as st
+
+
+def generate_form(
+    form_config: Dict[str, Any],
+    form_values: Dict[str, Union[str, int, bool]],
+    name: str,
+) -> bool:
+    with st.form(key=f"{name}"):
+        widget_mapping: Dict[str, Callable[..., Any]] = {
+            "string": st.text_input,
+            "number": st.number_input,
+            "select": st.selectbox,
+            "checkbox": st.checkbox,
+        }
+
+        for param, details in form_config["params"].items():
+            widget_func = widget_mapping.get(details["type"])
+            if widget_func:
+                widget_args = {"label": details["label"], "key": f"{name}_{param}"}
+                if details["type"] == "number":
+                    widget_args["min_value"] = details.get("min_value", 0)
+                    widget_args["value"] = form_values[param]
+                elif details["type"] == "select":
+                    widget_args["options"] = details["options"]
+                    widget_args["index"] = (
+                        details["options"].index(form_values[param])
+                        if form_values[param] in details["options"]
+                        else 0
+                    )
+                elif details["type"] in ["string", "checkbox"]:
+                    widget_args["value"] = form_values[param]
+
+                form_values[param] = widget_func(**widget_args)
+
+        submit_button = st.form_submit_button(label="Chunk")
+    return submit_button
+
+
 def select_text(text_options: List[ExtractedText]) -> ExtractedText:
     options_dict = {f"{extracted_text_to_label(text)}": text for text in text_options}
 

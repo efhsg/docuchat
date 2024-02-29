@@ -14,6 +14,7 @@ from injector import (
     get_compressor,
 )
 from pages.utils.utils import (
+    generate_form,
     get_index,
     select_text,
     set_default_state,
@@ -60,7 +61,55 @@ def create_chunk_processes(selected_text):
         return
 
     chunker_options = chunker_config.chunker_options
-    method_options = list(chunker_options.keys())
+    method = select_method(list(chunker_options.keys()))
+
+    chunker_details = chunker_options[method]
+    chunker_class: Chunker = chunker_details["class"]
+
+    form_values = init_form_values(chunker_details["params"].items())
+    submit_button = generate_form(chunker_details, form_values, "chunk_process")
+    if submit_button:
+        save_form_values_to_context(form_values)
+        process_text_to_chunks(selected_text, method, chunker_class, form_values)
+
+
+def save_form_values_to_context(values):
+    for value in values:
+        st.session_state[f"context_{value}"] = values[value]
+
+
+def init_form_values(fields):
+    form_values = {
+        param: st.session_state.get(f"context_{param}", details["default"])
+        for param, details in fields
+    }
+
+    return form_values
+
+
+def process_text_to_chunks(selected_text, method, chunker_class, values):
+    try:
+        with st.spinner("Chunking..."):
+            chunker_instance = chunker_class(**values)
+
+            values["name"] = generate_default_name()
+            chunk_process_id = chunker_repository.create_chunk_process(
+                extracted_text_id=selected_text.id,
+                method=method,
+                parameters=values,
+            )
+
+            text_content = compressor.decompress(selected_text.text)
+            chunks = chunker_instance.chunk(text_content)
+
+            chunk_data_for_db = [(index, chunk) for index, chunk in enumerate(chunks)]
+            chunker_repository.save_chunks(chunk_process_id, chunk_data_for_db)
+            st.rerun()
+    except Exception as e:
+        st.error(f"Failed to create chunk process or save chunks: {e}")
+
+
+def select_method(method_options):
     method = st.selectbox(
         label="Select chunking method",
         options=method_options,
@@ -71,74 +120,7 @@ def create_chunk_processes(selected_text):
         ),
     )
 
-    chunker_details = chunker_options[method]
-    chunker_class: Chunker = chunker_details["class"]
-
-    params = {
-        param: st.session_state.get(f"context_{param}", details["default"])
-        for param, details in chunker_details["params"].items()
-    }
-    submit_button = generate_form(chunker_details, params)
-
-    if submit_button:
-        for param in params:
-            st.session_state[f"context_{param}"] = params[param]
-
-        try:
-            with st.spinner("Chunking..."):
-                chunker_instance = chunker_class(**params)
-
-                params["name"] = generate_default_name()
-                chunk_process_id = chunker_repository.create_chunk_process(
-                    extracted_text_id=selected_text.id,
-                    method=method,
-                    parameters=params,
-                )
-
-                text_content = compressor.decompress(selected_text.text)
-                chunks = chunker_instance.chunk(text_content)
-
-                chunk_data_for_db = [
-                    (index, chunk) for index, chunk in enumerate(chunks)
-                ]
-                chunker_repository.save_chunks(chunk_process_id, chunk_data_for_db)
-                st.rerun()
-        except Exception as e:
-            st.error(f"Failed to create chunk process or save chunks: {e}")
-
-
-def generate_form(chunker_details, params):
-    with st.form(key="chunk_process_form"):
-        for param, details in chunker_details["params"].items():
-            input_type = details["type"]
-            label = details["label"]
-            default = params[param]
-
-            if input_type == "string":
-                params[param] = st.text_input(
-                    label=label,
-                    value=default,
-                )
-            elif input_type == "number":
-                params[param] = st.number_input(
-                    label=label,
-                    min_value=details.get("min_value", 0),
-                    value=default,
-                )
-            elif input_type == "select":
-                params[param] = st.selectbox(
-                    label=label,
-                    options=details["options"],
-                    index=details["options"].index(default),
-                )
-            elif input_type == "checkbox":
-                params[param] = st.checkbox(
-                    label=label,
-                    value=default,
-                )
-
-        submit_button = st.form_submit_button(label="Chunk")
-    return submit_button
+    return method
 
 
 def generate_default_name() -> str:
