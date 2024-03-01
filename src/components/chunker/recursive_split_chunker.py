@@ -4,6 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 class RecursiveSplitChunker(Chunker):
+
     def __init__(self, chunk_size: int, overlap: int, separators: List[str] = None):
         if separators is None:
             separators = [
@@ -44,8 +45,22 @@ class RecursiveSplitChunker(Chunker):
                 },
                 "separators": {
                     "label": "Separators",
-                    "type": "list",
+                    "type": "multi_select",
                     "default": ["\n\n", "\n", " ", ""],
+                    "options": [
+                        "\n\n",
+                        "\n",
+                        "\r",
+                        " ",
+                        "",
+                        ".",
+                        "!",
+                        "?",
+                        ",",
+                        ";",
+                        ":",
+                        "|",
+                    ],
                 },
             },
             "validations": [

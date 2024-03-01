@@ -161,12 +161,12 @@ def manage_chunk_processes(selected_text):
                 )
             with col3:
                 delete_button = st.button(label="🗑️ Delete", key=f"delete_{session.id}")
+
             if delete_button:
                 delete_process(session)
-
             if st.session_state.get(f"renaming_{session.id}", False):
                 rename_session(session)
-                
+
             show_chunks(session)
 
 

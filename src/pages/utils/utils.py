@@ -63,37 +63,65 @@ def generate_form(
             "number": st.number_input,
             "select": st.selectbox,
             "checkbox": st.checkbox,
-            "list": lambda label, value, key: st.text_area(label, value, key=key),
+            "multi_select": st.multiselect,
         }
+
+        special_char_mapping = {
+            "Double New Line (\\n\\n)": "\n\n",
+            "New Line (\\n)": "\n",
+            "Carriage Return (\\r)": "\r",
+            'Space (" ")': " ",
+            'Empty String ("")': "",
+        }
+
+        reverse_special_char_mapping = {v: k for k, v in special_char_mapping.items()}
+
         for param, details in form_config["params"].items():
             widget_func = widget_mapping.get(details["type"])
             if widget_func:
                 widget_args = {"label": details["label"], "key": f"{name}_{param}"}
                 if details["type"] == "number":
-                    widget_args["min_value"] = details.get("min_value", 0)
-                    widget_args["value"] = form_values.get(
-                        param, details.get("default", 0)
+                    widget_args.update(
+                        {
+                            "min_value": details.get("min_value", 0),
+                            "value": form_values.get(param, details.get("default", 0)),
+                        }
                     )
-                elif details["type"] == "select":
-                    widget_args["options"] = details["options"]
-                    widget_args["index"] = (
-                        details["options"].index(form_values[param])
-                        if form_values[param] in details["options"]
-                        else 0
+                elif details["type"] in ["select", "multi_select"]:
+                    options = [
+                        reverse_special_char_mapping.get(option, option)
+                        for option in details["options"]
+                    ]
+                    default_values = [
+                        reverse_special_char_mapping.get(value, value)
+                        for value in form_values.get(param, details.get("default"))
+                    ]
+                    widget_args.update(
+                        {
+                            "options": options,
+                            "default": default_values,
+                        }
                     )
+                    if details["type"] == "select":
+                        widget_args["index"] = (
+                            options.index(default_values[0]) if default_values else 0
+                        )
                 elif details["type"] == "checkbox":
                     widget_args["value"] = form_values.get(
                         param, details.get("default", False)
                     )
-                elif details["type"] == "list":
-                    default_value = ", ".join(details.get("default", []))
-                    widget_args["value"] = form_values.get(param, default_value)
                 else:
                     widget_args["value"] = form_values.get(
                         param, details.get("default", "")
                     )
                 form_values[param] = widget_func(**widget_args)
         submit_button = st.form_submit_button(label="Submit")
+        if submit_button:
+            if "separators" in form_values:
+                form_values["separators"] = [
+                    special_char_mapping.get(value, value)
+                    for value in form_values["separators"]
+                ]
     return submit_button
 
 
