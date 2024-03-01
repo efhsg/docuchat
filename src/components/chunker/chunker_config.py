@@ -1,6 +1,9 @@
 from typing import Dict, Any, List
 from .fixed_length_overlap_chunker import FixedLengthOverLapChunker
 from .fixed_length_chunker import FixedLengthChunker
+from .recursive_split_chunker import (
+    RecursiveSplitChunker,
+)
 
 
 class ChunkerConfig:
@@ -14,5 +17,9 @@ class ChunkerConfig:
             "Fixed-Length Overlap": {
                 "class": FixedLengthOverLapChunker,
                 **FixedLengthOverLapChunker.get_chunker_options(),
+            },
+            "Recursive Split": {
+                "class": RecursiveSplitChunker,
+                **RecursiveSplitChunker.get_chunker_options(),
             },
         }

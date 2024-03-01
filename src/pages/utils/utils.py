@@ -2,8 +2,7 @@ import streamlit as st
 from PIL import Image
 from datetime import datetime
 from datetime import datetime
-from urllib.parse import quote
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any
 from components.database.models import ExtractedText
 from injector import get_config, get_logger
 from operator import lt, le, gt, ge, eq, ne
@@ -53,34 +52,28 @@ def select_domain(domain_options):
     )
 
 
-from typing import Dict, Any, Union
-import streamlit as st
-
-
-from typing import Dict, Union, Callable, Any
-import streamlit as st
-
-
 def generate_form(
     form_config: Dict[str, Any],
-    form_values: Dict[str, Union[str, int, bool]],
+    form_values: Dict[str, Union[str, int, bool, list]],
     name: str,
 ) -> bool:
     with st.form(key=f"{name}"):
-        widget_mapping: Dict[str, Callable[..., Any]] = {
+        widget_mapping = {
             "string": st.text_input,
             "number": st.number_input,
             "select": st.selectbox,
             "checkbox": st.checkbox,
+            "list": lambda label, value, key: st.text_area(label, value, key=key),
         }
-
         for param, details in form_config["params"].items():
             widget_func = widget_mapping.get(details["type"])
             if widget_func:
                 widget_args = {"label": details["label"], "key": f"{name}_{param}"}
                 if details["type"] == "number":
                     widget_args["min_value"] = details.get("min_value", 0)
-                    widget_args["value"] = form_values[param]
+                    widget_args["value"] = form_values.get(
+                        param, details.get("default", 0)
+                    )
                 elif details["type"] == "select":
                     widget_args["options"] = details["options"]
                     widget_args["index"] = (
@@ -88,12 +81,19 @@ def generate_form(
                         if form_values[param] in details["options"]
                         else 0
                     )
-                elif details["type"] in ["string", "checkbox"]:
-                    widget_args["value"] = form_values[param]
-
+                elif details["type"] == "checkbox":
+                    widget_args["value"] = form_values.get(
+                        param, details.get("default", False)
+                    )
+                elif details["type"] == "list":
+                    default_value = ", ".join(details.get("default", []))
+                    widget_args["value"] = form_values.get(param, default_value)
+                else:
+                    widget_args["value"] = form_values.get(
+                        param, details.get("default", "")
+                    )
                 form_values[param] = widget_func(**widget_args)
-
-        submit_button = st.form_submit_button(label="Chunk")
+        submit_button = st.form_submit_button(label="Submit")
     return submit_button
 
 
@@ -109,7 +109,6 @@ def validate_form_values(
         value1 = form_values.get(field1)
         value2 = constants.get(field2, form_values.get(field2, field2))
 
-        logger.info(value1, operator, value2)
         if not evaluate_rule(value1, operator, value2):
             st.error(validation["message"])
             return False
