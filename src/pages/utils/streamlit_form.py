@@ -13,22 +13,8 @@ class StreamlitForm:
         self, form_values: Dict[str, Any], name: str, submit_button_label: str
     ) -> bool:
         with st.form(key=name):
-            widget_mapping = {
-                "string": st.text_input,
-                "number": st.number_input,
-                "select": st.selectbox,
-                "checkbox": st.checkbox,
-                "multi_select": st.multiselect,
-            }
-
-            special_char_mapping = {
-                "Double New Line (\\n\\n)": "\n\n",
-                "New Line (\\n)": "\n",
-                "Carriage Return (\\r)": "\r",
-                'Space (" ")': " ",
-                'Empty String ("")': "",
-            }
-
+            widget_mapping = self._get_widget_mapping()
+            special_char_mapping = self._get_special_char_mapping()
             reverse_special_char_mapping = {
                 v: k for k, v in special_char_mapping.items()
             }
@@ -92,13 +78,35 @@ class StreamlitForm:
             field1, operator, field2 = rule
             value1 = form_values.get(field1)
             value2 = constants.get(field2, form_values.get(field2, field2))
-            if not self.evaluate_rule(value1, operator, value2):
+            if not self._evaluate_rule(value1, operator, value2):
                 st.error(validation["message"])
                 return False
         return True
 
+    def _get_special_char_mapping(self):
+        special_char_mapping = {
+            "Double New Line (\\n\\n)": "\n\n",
+            "New Line (\\n)": "\n",
+            "Carriage Return (\\r)": "\r",
+            'Space (" ")': " ",
+            'Empty String ("")': "",
+        }
+
+        return special_char_mapping
+
+    def _get_widget_mapping(self):
+        widget_mapping = {
+            "string": st.text_input,
+            "number": st.number_input,
+            "select": st.selectbox,
+            "checkbox": st.checkbox,
+            "multi_select": st.multiselect,
+        }
+
+        return widget_mapping
+
     @staticmethod
-    def evaluate_rule(value1: Any, operator: str, value2: Any) -> bool:
+    def _evaluate_rule(value1: Any, operator: str, value2: Any) -> bool:
         comparison_func = StreamlitForm.COMPARISON_OPERATORS.get(operator)
         if not comparison_func:
             raise ValueError(f"Unrecognized comparison operator: {operator}")
