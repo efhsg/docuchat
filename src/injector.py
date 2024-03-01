@@ -11,6 +11,8 @@ from components.reader.interfaces.text_extractor import TextExtractor
 from components.reader.file_text_extractor import FileTextExtractor
 from components.logger.native_logger import NativeLogger
 from config import Config
+from pages.utils.interfaces.form import Form
+from pages.utils.streamlit_form import StreamlitForm
 
 
 def get_config() -> Config:
@@ -31,6 +33,10 @@ def get_reader_repository() -> ReaderRepository:
         compressor=ZlibTextCompressor(),
         logger=NativeLogger.get_logger("docuchat"),
     )
+
+
+def get_form() -> Form:
+    return StreamlitForm()
 
 
 def get_text_extractor() -> TextExtractor:

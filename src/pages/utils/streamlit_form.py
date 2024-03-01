@@ -2,8 +2,10 @@ import streamlit as st
 from typing import Dict, List, Union, Any
 from operator import lt, le, gt, ge, eq, ne
 
+from .interfaces.form import Form
 
-class Form:
+
+class StreamlitForm(Form):
     COMPARISON_OPERATORS = {
         "lt": lt,
         "le": le,
@@ -15,9 +17,10 @@ class Form:
 
     def generate_form(
         self,
-        form_config: Dict[str, Any],
-        form_values: Dict[str, Union[str, int, bool, list]],
-        name: str,
+        form_config,
+        form_values,
+        name,
+        submit_button,
     ) -> bool:
         with st.form(key=f"{name}"):
             widget_mapping = {
@@ -98,7 +101,7 @@ class Form:
                             param, details.get("default", "")
                         )
                     form_values[param] = widget_func(**widget_args)
-            submit_button = st.form_submit_button(label="Submit")
+            submit_button = st.form_submit_button(label=submit_button)
             if submit_button:
                 if "separators" in form_values:
                     form_values["separators"] = [
@@ -128,7 +131,7 @@ class Form:
     @staticmethod
     def evaluate_rule(value1: Any, operator: str, value2: Any) -> bool:
         try:
-            comparison_func = Form.COMPARISON_OPERATORS[operator]
+            comparison_func = StreamlitForm.COMPARISON_OPERATORS[operator]
         except KeyError:
             raise ValueError(f"Unrecognized comparison operator: {operator}")
         return comparison_func(value1, value2)

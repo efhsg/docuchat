@@ -4,11 +4,13 @@ from components.chunker.interfaces.chunker import Chunker
 from components.chunker.interfaces.chunker_repository import ChunkerRepository
 from components.reader.interfaces.reader_repository import ReaderRepository
 from components.reader.interfaces.text_compressor import TextCompressor
+from pages.utils.interfaces.form import Form
 from logging import Logger
 from injector import (
     get_chunker_config,
     get_chunker_repository,
     get_config,
+    get_form,
     get_logger,
     get_reader_repository,
     get_compressor,
@@ -20,11 +22,10 @@ from pages.utils.utils import (
     select_domain,
     setup_page,
 )
-from pages.utils.form import Form
 
 config = get_config()
 chunker_config = get_chunker_config()
-form: Form = Form()
+form: Form = get_form()
 logger: Logger = get_logger()
 compressor: TextCompressor = get_compressor()
 reader_repository: ReaderRepository = get_reader_repository()
@@ -37,7 +38,7 @@ def main():
     selected_domain = select_domain(
         reader_repository.list_domains_with_extracted_texts()
     )
-    st.title(f"Chunking text in {selected_domain}")
+    st.title(f"{selected_domain}")
     selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
     create_chunk_processes(selected_text)
     manage_chunk_processes(selected_text)
@@ -68,8 +69,10 @@ def create_chunk_processes(selected_text):
     chunker_class: Chunker = chunker_details["class"]
 
     form_values = init_form_values(chunker_details["params"].items())
-    submit_button = form.generate_form(chunker_details, form_values, "chunk_process")
-    if submit_button:
+    submitted = form.generate_form(
+        chunker_details, form_values, "chunk_process", "Start chunking"
+    )
+    if submitted:
         try:
             if not form.validate_form_values(
                 form_values,

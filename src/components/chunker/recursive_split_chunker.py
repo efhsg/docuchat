@@ -8,8 +8,8 @@ class RecursiveSplitChunker(Chunker):
     def __init__(self, chunk_size: int, overlap: int, separators: List[str] = None):
         if separators is None:
             separators = [
-                "\n\n",
                 "\n",
+                "\n\n",
                 " ",
                 "",
             ]
@@ -46,10 +46,10 @@ class RecursiveSplitChunker(Chunker):
                 "separators": {
                     "label": "Separators",
                     "type": "multi_select",
-                    "default": ["\n\n", "\n", " ", ""],
+                    "default": ["\n", "\n\n", " ", ""],
                     "options": [
-                        "\n\n",
                         "\n",
+                        "\n\n",
                         "\r",
                         " ",
                         "",
