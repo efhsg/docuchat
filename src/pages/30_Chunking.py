@@ -4,17 +4,16 @@ from components.chunker.interfaces.chunker import Chunker
 from components.chunker.interfaces.chunker_repository import ChunkerRepository
 from components.reader.interfaces.reader_repository import ReaderRepository
 from components.reader.interfaces.text_compressor import TextCompressor
-from pages.utils.interfaces.form import Form
 from logging import Logger
 from injector import (
     get_chunker_config,
     get_chunker_repository,
     get_config,
-    get_form,
     get_logger,
     get_reader_repository,
     get_compressor,
 )
+from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
     get_index,
     select_text,
@@ -25,7 +24,6 @@ from pages.utils.utils import (
 
 config = get_config()
 chunker_config = get_chunker_config()
-form: Form = get_form()
 logger: Logger = get_logger()
 compressor: TextCompressor = get_compressor()
 reader_repository: ReaderRepository = get_reader_repository()
@@ -72,22 +70,23 @@ def create_chunk_processes(selected_text):
     chunker_details = chunker_options[method]
     chunker_class: Chunker = chunker_details["class"]
 
+    form_config = {
+        "params": chunker_details["params"],
+        "validations": chunker_details.get("validations", []),
+        "constants": chunker_details["constants"],
+    }
+    form = StreamlitForm(form_config)
     form_values = init_form_values(chunker_details["params"].items())
-    submitted = form.generate_form(
-        chunker_details, form_values, "chunk_process", "Start chunking"
-    )
+    submitted = form.generate_form(form_values, "chunk_process", "Start chunking")
     if submitted:
-        try:
-            if not form.validate_form_values(
-                form_values,
-                chunker_details.get("validations", []),
-                chunker_details.get("constants", {}),
-            ):
-                return
-            save_form_values_to_context(form_values)
-            process_text_to_chunks(selected_text, method, chunker_class, form_values)
-        except Exception as e:
-            st.error(f"Failed to validate: {e}")
+        if form.validate_form_values(form_values):
+            try:
+                save_form_values_to_context(form_values)
+                process_text_to_chunks(
+                    selected_text, method, chunker_class, form_values
+                )
+            except Exception as e:
+                st.error(f"Failed to validate or process chunks: {e}")
 
 
 def init_form_values(fields):
