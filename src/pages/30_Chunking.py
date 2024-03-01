@@ -14,12 +14,14 @@ from injector import (
     get_compressor,
 )
 from pages.utils.utils import (
-    generate_form,
     get_index,
     select_text,
     set_default_state,
     select_domain,
     setup_page,
+)
+from pages.utils.forms import (
+    generate_form,
     validate_form_values,
 )
 
