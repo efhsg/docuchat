@@ -20,13 +20,11 @@ from pages.utils.utils import (
     select_domain,
     setup_page,
 )
-from pages.utils.forms import (
-    generate_form,
-    validate_form_values,
-)
+from pages.utils.form import Form
 
 config = get_config()
 chunker_config = get_chunker_config()
+form: Form = Form()
 logger: Logger = get_logger()
 compressor: TextCompressor = get_compressor()
 reader_repository: ReaderRepository = get_reader_repository()
@@ -70,10 +68,10 @@ def create_chunk_processes(selected_text):
     chunker_class: Chunker = chunker_details["class"]
 
     form_values = init_form_values(chunker_details["params"].items())
-    submit_button = generate_form(chunker_details, form_values, "chunk_process")
+    submit_button = form.generate_form(chunker_details, form_values, "chunk_process")
     if submit_button:
         try:
-            if not validate_form_values(
+            if not form.validate_form_values(
                 form_values,
                 chunker_details.get("validations", []),
                 chunker_details.get("constants", {}),
