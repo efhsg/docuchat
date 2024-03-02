@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+import os
+from typing import Any, Dict, List, Union
 
 
 class Chunker(ABC):
@@ -11,7 +12,20 @@ class Chunker(ABC):
     def chunk(self, text: str) -> List[str]:
         pass
 
+    @staticmethod
+    def getenv(
+        param: str, default: str = "", separator: str = ","
+    ) -> Union[str, List[str]]:
+        value = os.getenv(param, default)
+        if separator in value:
+            return value.split(separator)
+        return value
+
     @classmethod
-    @abstractmethod
     def get_chunker_options(cls) -> Dict[str, Any]:
-        pass
+        return {
+            "constants": {
+                "MIN_CHUNK_SIZE": cls.MIN_CHUNK_SIZE,
+                "MAX_CHUNK_SIZE": cls.MAX_CHUNK_SIZE,
+            }
+        }

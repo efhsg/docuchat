@@ -1,4 +1,3 @@
-import os
 from typing import List, Dict, Any
 from .interfaces.chunker import Chunker
 import spacy
@@ -23,36 +22,55 @@ class SemanticChunker(Chunker):
         return chunks
 
     @classmethod
-    def get_chunker_options(cls) -> Dict[str, Any]:
-        return {
-            "fields": {
-                "model": {
-                    "label": "NLP Model",
-                    "type": "select",
-                    "default": os.getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
-                    "options": os.getenv(
-                        "CHUNKER_NLP_MODEL_OPTIONS",
-                        "en_core_web_sm,en_core_web_md,en_core_web_lg",
-                    ).split(","),
-                },
-                "max_chunk_size": {
-                    "label": "Max Chunk Size",
-                    "type": "number",
-                    "default": 500,
-                },
+    def _fields(cls):
+        fields = {
+            "model": {
+                "label": "NLP Model",
+                "type": "select",
+                "default": cls.getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
+                "options": cls.getenv(
+                    "CHUNKER_NLP_MODEL_OPTIONS",
+                    "en_core_web_sm,en_core_web_md,en_core_web_lg",
+                    separator=",",
+                ),
             },
-            "validations": [
-                {
-                    "rule": ("max_chunk_size", "ge", "MIN_CHUNK_SIZE"),
-                    "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
-                },
-                {
-                    "rule": ("max_chunk_size", "le", "MAX_CHUNK_SIZE"),
-                    "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
-                },
-            ],
-            "constants": {
-                "MIN_CHUNK_SIZE": cls.MIN_CHUNK_SIZE,
-                "MAX_CHUNK_SIZE": cls.MAX_CHUNK_SIZE,
+            "max_chunk_size": {
+                "label": "Max Chunk Size",
+                "type": "number",
+                "default": 500,
             },
         }
+
+        return fields
+
+    @classmethod
+    def _validations(cls):
+        validations = [
+            {
+                "rule": ("max_chunk_size", "ge", cls.MIN_CHUNK_SIZE),
+                "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
+            },
+            {
+                "rule": ("max_chunk_size", "le", cls.MAX_CHUNK_SIZE),
+                "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
+            },
+        ]
+
+        return validations
+
+    @classmethod
+    def get_chunker_options(cls) -> Dict[str, Any]:
+        options = super().get_chunker_options()
+
+        fields = cls._fields()
+
+        validations = cls._validations()
+
+        options.update(
+            {
+                "fields": fields,
+                "validations": validations,
+            }
+        )
+
+        return options
