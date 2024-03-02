@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple, Union
 from .interfaces.chunker import Chunker
 import spacy
 
@@ -22,8 +22,8 @@ class SemanticChunker(Chunker):
         return chunks
 
     @classmethod
-    def _fields(cls):
-        fields = {
+    def _fields(cls) -> Dict[str, Any]:
+        return {
             "model": {
                 "label": "NLP Model",
                 "type": "select",
@@ -31,7 +31,6 @@ class SemanticChunker(Chunker):
                 "options": cls.getenv(
                     "CHUNKER_NLP_MODEL_OPTIONS",
                     "en_core_web_sm,en_core_web_md,en_core_web_lg",
-                    separator=",",
                 ),
             },
             "max_chunk_size": {
@@ -41,11 +40,9 @@ class SemanticChunker(Chunker):
             },
         }
 
-        return fields
-
     @classmethod
-    def _validations(cls):
-        validations = [
+    def _validations(cls) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
+        return [
             {
                 "rule": ("max_chunk_size", "ge", cls.MIN_CHUNK_SIZE),
                 "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
@@ -55,22 +52,3 @@ class SemanticChunker(Chunker):
                 "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
             },
         ]
-
-        return validations
-
-    @classmethod
-    def get_chunker_options(cls) -> Dict[str, Any]:
-        options = super().get_chunker_options()
-
-        fields = cls._fields()
-
-        validations = cls._validations()
-
-        options.update(
-            {
-                "fields": fields,
-                "validations": validations,
-            }
-        )
-
-        return options
