@@ -2,7 +2,7 @@ import streamlit as st
 from typing import Dict, Any, Callable
 
 
-def comparison_operator(operator: str) -> Callable[[Any, Any], bool]:
+def get_comparison_operator(operator: str) -> Callable[[Any, Any], bool]:
     return {
         "lt": lambda x, y: x < y,
         "le": lambda x, y: x <= y,
@@ -13,28 +13,23 @@ def comparison_operator(operator: str) -> Callable[[Any, Any], bool]:
     }[operator]
 
 
-def special_char_mapping(reverse: bool = False) -> Dict[str, str]:
-    mapping = {
-        "Double New Line (\\n\\n)": "\n\n",
-        "New Line (\\n)": "\n",
-        "Carriage Return (\\r)": "\r",
-        'Space (" ")': " ",
-        'Empty String ("")': "",
-    }
-    return {v: k for k, v in mapping.items()} if reverse else mapping
-
-
-def widget_mapping() -> Dict[str, Callable]:
-    return {
+class StreamlitForm:
+    _widget_mapping = {
         "string": st.text_input,
         "number": st.number_input,
         "select": st.selectbox,
         "checkbox": st.checkbox,
         "multi_select": st.multiselect,
     }
+    _special_char_mapping = {
+        "Double New Line (\\n\\n)": "\n\n",
+        "New Line (\\n)": "\n",
+        "Carriage Return (\\r)": "\r",
+        'Space (" ")': " ",
+        'Empty String ("")': "",
+    }
+    _special_char_mapping_reverse = {v: k for k, v in _special_char_mapping.items()}
 
-
-class StreamlitForm:
     def __init__(self, form_config: Dict[str, Any]):
         self.form_config = form_config
 
@@ -43,7 +38,7 @@ class StreamlitForm:
     ) -> bool:
         with st.form(key=name):
             for param, details in self.form_config["params"].items():
-                widget_func = widget_mapping().get(details["type"])
+                widget_func = self._widget_mapping.get(details["type"])
                 if widget_func:
                     widget_args = self._build_widget_args(
                         name, param, details, form_values
@@ -52,8 +47,7 @@ class StreamlitForm:
             submit_button_clicked = st.form_submit_button(label=submit_button_label)
             if submit_button_clicked and "separators" in form_values:
                 form_values["separators"] = [
-                    special_char_mapping().get(value, value)
-                    for value in form_values["separators"]
+                    self._get_mapped_value(value) for value in form_values["separators"]
                 ]
             return submit_button_clicked
 
@@ -76,7 +70,7 @@ class StreamlitForm:
         field1, operator, field2 = rule
         value1 = form_values.get(field1)
         value2 = constants.get(field2, form_values.get(field2, field2))
-        return comparison_operator(operator)(value1, value2)
+        return get_comparison_operator(operator)(value1, value2)
 
     def _build_widget_args(
         self,
@@ -92,7 +86,9 @@ class StreamlitForm:
                 {"min_value": details.get("min_value", 0), "value": default}
             )
         elif details["type"] in ["select", "multi_select"]:
-            options = self._get_options(details)
+            options = [
+                self._get_mapped_value(option, True) for option in details["options"]
+            ]
             widget_args["options"] = options
             if details["type"] == "select":
                 widget_args["index"] = (
@@ -111,15 +107,17 @@ class StreamlitForm:
     ) -> Any:
         if details["type"] in ["select", "multi_select"]:
             default = [
-                special_char_mapping(reverse=True).get(option, option)
+                self._get_mapped_value(option, True)
                 for option in form_values.get(param, details.get("default", []))
             ]
         else:
             default = form_values.get(param, details.get("default", ""))
         return default
 
-    def _get_options(self, details: Dict[str, Any]) -> list:
-        return [
-            special_char_mapping(reverse=True).get(option, option)
-            for option in details["options"]
-        ]
+    def _get_mapped_value(self, value: str, reverse: bool = False) -> str:
+        mapping = (
+            self._special_char_mapping_reverse
+            if reverse
+            else self._special_char_mapping
+        )
+        return mapping.get(value, value)
