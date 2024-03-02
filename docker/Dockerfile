@@ -13,6 +13,11 @@ RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
+# Download the spaCy models
+RUN python -m spacy download en_core_web_sm
+RUN python -m spacy download en_core_web_md
+RUN python -m spacy download en_core_web_lg
+
 # Set the working directory for the application
 WORKDIR /app
 

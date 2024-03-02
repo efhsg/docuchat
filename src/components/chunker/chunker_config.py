@@ -1,4 +1,6 @@
 from typing import Dict, Any, List
+
+from components.chunker.semantic_chunker import SemanticChunker
 from .fixed_length_overlap_chunker import FixedLengthOverLapChunker
 from .fixed_length_chunker import FixedLengthChunker
 from .recursive_split_chunker import (
@@ -21,5 +23,9 @@ class ChunkerConfig:
             "Recursive Split": {
                 "class": RecursiveSplitChunker,
                 **RecursiveSplitChunker.get_chunker_options(),
+            },
+            "Semantic": {
+                "class": SemanticChunker,
+                **SemanticChunker.get_chunker_options(),
             },
         }
