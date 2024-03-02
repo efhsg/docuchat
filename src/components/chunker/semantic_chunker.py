@@ -37,6 +37,6 @@ class SemanticChunker(Chunker):
             "chunk_size": {
                 "label": "Max Chunk Size",
                 "type": "number",
-                "default": 500,
+                "default": 2000,
             },
         }

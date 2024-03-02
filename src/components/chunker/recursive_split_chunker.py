@@ -29,12 +29,12 @@ class RecursiveSplitChunker(Chunker):
             "chunk_size": {
                 "label": "Chunk Size",
                 "type": "number",
-                "default": 100,
+                "default": 1000,
             },
             "overlap": {
                 "label": "Overlap Size",
                 "type": "number",
-                "default": 20,
+                "default": 50,
             },
             "separators": {
                 "label": "Separators",
