@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple, Union
+from typing import List, Dict, Any
 from .interfaces.chunker import Chunker
 
 
@@ -20,16 +20,3 @@ class FixedLengthChunker(Chunker):
                 "default": 1000,
             },
         }
-
-    @classmethod
-    def _validations(cls) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
-        return [
-            {
-                "rule": ("chunk_size", "ge", cls.MIN_CHUNK_SIZE),
-                "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
-            },
-            {
-                "rule": ("chunk_size", "le", cls.MAX_CHUNK_SIZE),
-                "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
-            },
-        ]

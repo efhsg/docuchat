@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List
 from .interfaces.chunker import Chunker
 
 
@@ -29,24 +29,3 @@ class FixedLengthOverLapChunker(Chunker):
                 "default": 100,
             },
         }
-
-    @classmethod
-    def _validations(cls) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
-        return [
-            {
-                "rule": ("chunk_size", "ge", cls.MIN_CHUNK_SIZE),
-                "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
-            },
-            {
-                "rule": ("chunk_size", "le", cls.MAX_CHUNK_SIZE),
-                "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
-            },
-            {
-                "rule": ("overlap", "ge", cls.MIN_OVERLAP_SIZE),
-                "message": f"Overlap size must be at least {cls.MIN_OVERLAP_SIZE}.",
-            },
-            {
-                "rule": ("overlap", "lt", "chunk_size"),
-                "message": "Overlap size must be less than Chunk size.",
-            },
-        ]
