@@ -35,7 +35,7 @@ class FixedLengthOverLapChunker(Chunker):
             "validations": [
                 {
                     "rule": ("overlap", "lt", "chunk_size"),
-                    "message": "Overlap must be less than Chunk size.",
+                    "message": "Overlap size must be less than Chunk size.",
                 },
                 {
                     "rule": (
