@@ -1,19 +1,17 @@
+import os
 from typing import List, Dict, Any
 from .interfaces.chunker import Chunker
 import spacy
 
 
 class SemanticChunker(Chunker):
-    MAX_CHUNK_SIZE = 10000
-
     def __init__(self, model: str = "en_core_web_sm", max_chunk_size: int = 500):
         self.nlp = spacy.load(model)
         self.max_chunk_size = max_chunk_size
 
     def chunk(self, text: str) -> List[str]:
         doc = self.nlp(text)
-        chunks = []
-        chunk = ""
+        chunks, chunk = [], ""
         for sent in doc.sents:
             if len(chunk) + len(sent.text) + 1 > self.max_chunk_size:
                 chunks.append(chunk.strip())
@@ -31,8 +29,11 @@ class SemanticChunker(Chunker):
                 "model": {
                     "label": "NLP Model",
                     "type": "select",
-                    "default": "en_core_web_sm",
-                    "options": ["en_core_web_sm", "en_core_web_md", "en_core_web_lg"],
+                    "default": os.getenv("NLP_MODEL_DEFAULT", "en_core_web_sm"),
+                    "options": os.getenv(
+                        "NLP_MODEL_OPTIONS",
+                        "en_core_web_sm,en_core_web_md,en_core_web_lg",
+                    ).split(","),
                 },
                 "max_chunk_size": {
                     "label": "Max Chunk Size",
