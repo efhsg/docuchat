@@ -76,9 +76,10 @@ def create_chunk_processes(selected_text):
         "constants": chunker_details["constants"],
     }
     form = StreamlitForm(form_config)
-    form_values = init_form_values(chunker_details["params"].items())
     submitted, updated_form_values = form.generate_form(
-        form_values, "chunk_process", "Start chunking"
+        init_form_values(chunker_details["params"].items()),
+        "chunk_process",
+        "Start chunking",
     )
     if submitted:
         if form.validate_form_values(updated_form_values):
@@ -92,12 +93,10 @@ def create_chunk_processes(selected_text):
 
 
 def init_form_values(fields):
-    form_values = {
+    return {
         param: st.session_state.get(f"context_{param}", details["default"])
         for param, details in fields
     }
-
-    return form_values
 
 
 def save_form_values_to_context(values):
