@@ -77,13 +77,15 @@ def create_chunk_processes(selected_text):
     }
     form = StreamlitForm(form_config)
     form_values = init_form_values(chunker_details["params"].items())
-    submitted = form.generate_form(form_values, "chunk_process", "Start chunking")
+    submitted, updated_form_values = form.generate_form(
+        form_values, "chunk_process", "Start chunking"
+    )
     if submitted:
-        if form.validate_form_values(form_values):
+        if form.validate_form_values(updated_form_values):
             try:
-                save_form_values_to_context(form_values)
+                save_form_values_to_context(updated_form_values)
                 process_text_to_chunks(
-                    selected_text, method, chunker_class, form_values
+                    selected_text, method, chunker_class, updated_form_values
                 )
             except Exception as e:
                 st.error(f"Failed to validate or process chunks: {e}")

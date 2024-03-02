@@ -1,55 +1,60 @@
 import streamlit as st
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Tuple
 
 
 def get_comparison_operator(operator: str) -> Callable[[Any, Any], bool]:
-    return {
+    operators = {
         "lt": lambda x, y: x < y,
         "le": lambda x, y: x <= y,
         "gt": lambda x, y: x > y,
         "ge": lambda x, y: x >= y,
         "eq": lambda x, y: x == y,
         "ne": lambda x, y: x != y,
-    }[operator]
+    }
+    return operators[operator]
 
 
 class StreamlitForm:
-    _widget_mapping = {
+    _widget_mapping: Dict[str, Callable] = {
         "string": st.text_input,
         "number": st.number_input,
         "select": st.selectbox,
         "checkbox": st.checkbox,
         "multi_select": st.multiselect,
     }
-    _special_char_mapping = {
+    _special_char_mapping: Dict[str, str] = {
         "Double New Line (\\n\\n)": "\n\n",
         "New Line (\\n)": "\n",
         "Carriage Return (\\r)": "\r",
         'Space (" ")': " ",
         'Empty String ("")': "",
     }
-    _special_char_mapping_reverse = {v: k for k, v in _special_char_mapping.items()}
+    _special_char_mapping_reverse: Dict[str, str] = {
+        v: k for k, v in _special_char_mapping.items()
+    }
 
     def __init__(self, form_config: Dict[str, Any]):
         self.form_config = form_config
 
     def generate_form(
         self, form_values: Dict[str, Any], name: str, submit_button_label: str
-    ) -> bool:
+    ) -> Tuple[bool, Dict[str, Any]]:
+        updated_form_values = form_values.copy()
         with st.form(key=name):
             for param, details in self.form_config["params"].items():
                 widget_func = self._widget_mapping.get(details["type"])
                 if widget_func:
                     widget_args = self._build_widget_args(
-                        name, param, details, form_values
+                        name, param, details, updated_form_values
                     )
-                    form_values[param] = widget_func(**widget_args)
+                    updated_form_values[param] = widget_func(**widget_args)
             submit_button_clicked = st.form_submit_button(label=submit_button_label)
-            if submit_button_clicked and "separators" in form_values:
-                form_values["separators"] = [
-                    self._get_mapped_value(value) for value in form_values["separators"]
+            if submit_button_clicked and "separators" in updated_form_values:
+                updated_form_values["separators"] = [
+                    self._get_mapped_value(value)
+                    for value in updated_form_values["separators"]
                 ]
-            return submit_button_clicked
+            return submit_button_clicked, updated_form_values
 
     def validate_form_values(self, form_values: Dict[str, Any]) -> bool:
         validations = self.form_config.get("validations", [])
