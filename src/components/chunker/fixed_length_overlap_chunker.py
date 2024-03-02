@@ -1,9 +1,9 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Union
 from .interfaces.chunker import Chunker
 
 
 class FixedLengthOverLapChunker(Chunker):
-    def __init__(self, chunk_size: int, overlap: int):
+    def __init__(self, chunk_size: int = 1000, overlap: int = 100):
         self.chunk_size = chunk_size
         self.overlap = overlap
 
@@ -16,35 +16,29 @@ class FixedLengthOverLapChunker(Chunker):
         return chunks
 
     @classmethod
-    def get_chunker_options(cls) -> Dict[str, Any]:
+    def _fields(cls) -> Dict[str, Any]:
         return {
-            "fields": {
-                "chunk_size": {
-                    "label": "Chunk size",
-                    "type": "number",
-                    "min_value": 1,
-                    "default": 1000,
-                },
-                "overlap": {
-                    "label": "Overlap size",
-                    "type": "number",
-                    "min_value": 0,
-                    "default": 100,
-                },
+            "chunk_size": {
+                "label": "Chunk Size",
+                "type": "number",
+                "default": 1000,
             },
-            "validations": [
-                {
-                    "rule": ("overlap", "lt", "chunk_size"),
-                    "message": "Overlap size must be less than Chunk size.",
-                },
-                {
-                    "rule": (
-                        "chunk_size",
-                        "le",
-                        "MAX_CHUNK_SIZE",
-                    ),
-                    "message": f"Chunk size must not exceed {Chunker.MAX_CHUNK_SIZE}.",
-                },
-            ],
-            "constants": {"MAX_CHUNK_SIZE": Chunker.MAX_CHUNK_SIZE},
+            "overlap": {
+                "label": "Overlap Size",
+                "type": "number",
+                "default": 100,
+            },
         }
+
+    @classmethod
+    def _validations(cls) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
+        return [
+            {
+                "rule": ("overlap", "lt", "chunk_size"),
+                "message": "Overlap size must be less than Chunk size.",
+            },
+            {
+                "rule": ("chunk_size", "le", cls.MAX_CHUNK_SIZE),
+                "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
+            },
+        ]

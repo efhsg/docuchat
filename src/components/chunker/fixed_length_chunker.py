@@ -1,9 +1,9 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple, Union
 from .interfaces.chunker import Chunker
 
 
 class FixedLengthChunker(Chunker):
-    def __init__(self, chunk_size: int):
+    def __init__(self, chunk_size: int = 1000):
         self.chunk_size = chunk_size
 
     def chunk(self, text: str) -> List[str]:
@@ -12,25 +12,24 @@ class FixedLengthChunker(Chunker):
         ]
 
     @classmethod
-    def get_chunker_options(cls) -> Dict[str, Any]:
+    def _fields(cls) -> Dict[str, Any]:
         return {
-            "fields": {
-                "chunk_size": {
-                    "label": "Chunk size",
-                    "type": "number",
-                    "min_value": 1,
-                    "default": 1000,
-                },
+            "chunk_size": {
+                "label": "Chunk Size",
+                "type": "number",
+                "default": 1000,
             },
-            "validations": [
-                {
-                    "rule": (
-                        "chunk_size",
-                        "le",
-                        "MAX_CHUNK_SIZE",
-                    ),
-                    "message": f"Chunk size must not exceed {Chunker.MAX_CHUNK_SIZE}.",
-                },
-            ],
-            "constants": {"MAX_CHUNK_SIZE": Chunker.MAX_CHUNK_SIZE},
         }
+
+    @classmethod
+    def _validations(cls) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
+        return [
+            {
+                "rule": ("chunk_size", "ge", cls.MIN_CHUNK_SIZE),
+                "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
+            },
+            {
+                "rule": ("chunk_size", "le", cls.MAX_CHUNK_SIZE),
+                "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
+            },
+        ]
