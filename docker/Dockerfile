@@ -11,12 +11,17 @@ RUN pip install --upgrade pip
 
 # Copy the requirements file into the container
 COPY requirements.txt .
+
+# Install requirements
 RUN python -m pip install -r requirements.txt
 
+# Copy the spaCy model download script into the container and make it executable
+COPY download_spacy_models.sh .
+RUN chmod +x download_spacy_models.sh
+
 # Download the spaCy models
-RUN python -m spacy download en_core_web_sm
-RUN python -m spacy download en_core_web_md
-RUN python -m spacy download en_core_web_lg
+ARG CHUNKER_NLP_MODEL_OPTIONS
+RUN /bin/bash ./download_spacy_models.sh
 
 # Set the working directory for the application
 WORKDIR /app

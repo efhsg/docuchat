@@ -29,24 +29,30 @@ class SemanticChunker(Chunker):
                 "model": {
                     "label": "NLP Model",
                     "type": "select",
-                    "default": os.getenv("NLP_MODEL_DEFAULT", "en_core_web_sm"),
+                    "default": os.getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
                     "options": os.getenv(
-                        "NLP_MODEL_OPTIONS",
+                        "CHUNKER_NLP_MODEL_OPTIONS",
                         "en_core_web_sm,en_core_web_md,en_core_web_lg",
                     ).split(","),
                 },
                 "max_chunk_size": {
                     "label": "Max Chunk Size",
                     "type": "number",
-                    "min_value": 100,
                     "default": 500,
                 },
             },
             "validations": [
                 {
+                    "rule": ("max_chunk_size", "ge", "MIN_CHUNK_SIZE"),
+                    "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
+                },
+                {
                     "rule": ("max_chunk_size", "le", "MAX_CHUNK_SIZE"),
                     "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
                 },
             ],
-            "constants": {"MAX_CHUNK_SIZE": cls.MAX_CHUNK_SIZE},
+            "constants": {
+                "MIN_CHUNK_SIZE": cls.MIN_CHUNK_SIZE,
+                "MAX_CHUNK_SIZE": cls.MAX_CHUNK_SIZE,
+            },
         }
