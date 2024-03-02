@@ -27,7 +27,7 @@ class SemanticChunker(Chunker):
     @classmethod
     def get_chunker_options(cls) -> Dict[str, Any]:
         return {
-            "params": {
+            "fields": {
                 "model": {
                     "label": "NLP Model",
                     "type": "select",
@@ -48,5 +48,4 @@ class SemanticChunker(Chunker):
                 },
             ],
             "constants": {"MAX_CHUNK_SIZE": cls.MAX_CHUNK_SIZE},
-            "order": ["model", "max_chunk_size"],
         }

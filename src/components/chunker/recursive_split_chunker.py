@@ -8,8 +8,8 @@ class RecursiveSplitChunker(Chunker):
     def __init__(self, chunk_size: int, overlap: int, separators: List[str] = None):
         if separators is None:
             separators = [
-                "\n",
                 "\n\n",
+                "\n",
                 " ",
                 "",
             ]
@@ -30,7 +30,7 @@ class RecursiveSplitChunker(Chunker):
     @classmethod
     def get_chunker_options(cls) -> Dict[str, Any]:
         return {
-            "params": {
+            "fields": {
                 "chunk_size": {
                     "label": "Chunk size",
                     "type": "number",
@@ -46,10 +46,10 @@ class RecursiveSplitChunker(Chunker):
                 "separators": {
                     "label": "Separators",
                     "type": "multi_select",
-                    "default": ["\n", "\n\n", " ", ""],
+                    "default": ["\n\n", "\n", " ", ""],
                     "options": [
-                        "\n",
                         "\n\n",
+                        "\n",
                         "\r",
                         " ",
                         "",
@@ -78,5 +78,4 @@ class RecursiveSplitChunker(Chunker):
                 },
             ],
             "constants": {"MAX_CHUNK_SIZE": Chunker.MAX_CHUNK_SIZE},
-            "order": ["chunk_size", "overlap", "separators"],
         }

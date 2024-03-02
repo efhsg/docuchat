@@ -71,13 +71,13 @@ def create_chunk_processes(selected_text):
     chunker_class: Chunker = chunker_details["class"]
 
     form_config = {
-        "params": chunker_details["params"],
+        "fields": chunker_details["fields"],
         "validations": chunker_details.get("validations", []),
         "constants": chunker_details["constants"],
     }
     form = StreamlitForm(form_config)
     updated_form_values = form.generate_form(
-        init_form_values(chunker_details["params"].items()),
+        init_form_values(chunker_details["fields"].items()),
         "chunk_process",
         "Start chunking",
     )
@@ -211,15 +211,19 @@ def delete_process(session):
 def show_process_header(session):
     method_display = f"{session.method} ({session.parameters['name']})"
     chunker_options = chunker_config.chunker_options[session.method]
-    params_order = chunker_options.get("order", [])
-    params_display = ", ".join(
+
+    fields_order = chunker_options.get(
+        "order", list(chunker_options.get("fields").keys())
+    )
+
+    fields_display = ", ".join(
         [
             f"{key}: {session.parameters[key]}"
-            for key in params_order
+            for key in fields_order
             if key in session.parameters
         ]
     )
-    st.markdown(f"**{method_display}**, {params_display}")
+    st.markdown(f"**{method_display}**, {fields_display}")
 
 
 def show_chunks(session):

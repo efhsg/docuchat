@@ -41,7 +41,7 @@ class StreamlitForm:
     ) -> Optional[Dict[str, Any]]:
         updated_form_values = form_values.copy()
         with st.form(key=name):
-            for param, details in self.form_config["params"].items():
+            for param, details in self.form_config["fields"].items():
                 widget_func = self._widget_mapping.get(details["type"])
                 if widget_func:
                     widget_args = self._build_widget_args(

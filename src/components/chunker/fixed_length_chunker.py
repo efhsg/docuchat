@@ -14,7 +14,7 @@ class FixedLengthChunker(Chunker):
     @classmethod
     def get_chunker_options(cls) -> Dict[str, Any]:
         return {
-            "params": {
+            "fields": {
                 "chunk_size": {
                     "label": "Chunk size",
                     "type": "number",
@@ -33,5 +33,4 @@ class FixedLengthChunker(Chunker):
                 },
             ],
             "constants": {"MAX_CHUNK_SIZE": Chunker.MAX_CHUNK_SIZE},
-            "order": ["chunk_size"],
         }
