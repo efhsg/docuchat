@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import os
 from typing import Any, Dict, List, Tuple, Union
 
 
@@ -36,10 +35,3 @@ class Chunker(ABC):
             and attr.isupper()
             and not attr.startswith("_")
         }
-
-    @staticmethod
-    def getenv(
-        param: str, default: str = "", separator: str = ","
-    ) -> Union[str, List[str]]:
-        value = os.getenv(param, default)
-        return value.split(separator) if separator in value else value

@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple, Union
+from utils.env_utils import getenv
 from .interfaces.chunker import Chunker
 import spacy
 
@@ -27,8 +28,8 @@ class SemanticChunker(Chunker):
             "model": {
                 "label": "NLP Model",
                 "type": "select",
-                "default": cls.getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
-                "options": cls.getenv(
+                "default": getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
+                "options": getenv(
                     "CHUNKER_NLP_MODEL_OPTIONS",
                     "en_core_web_sm,en_core_web_md,en_core_web_lg",
                 ),
