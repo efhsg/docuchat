@@ -237,8 +237,9 @@ def show_chunks(session):
             for chunk in displayed_chunks:
                 with st.container(border=True):
                     text_content = compressor.decompress(chunk.chunk)
+                    chunk_size = len(text_content)
                     st.text_area(
-                        label=f"Chunk: {chunk.index + 1}",
+                        label=f"Chunk: {chunk.index + 1} (Size: {chunk_size} characters)",
                         value=text_content,
                         key=f"chunk_{session.id}_{chunk.index}",
                         height=200,
