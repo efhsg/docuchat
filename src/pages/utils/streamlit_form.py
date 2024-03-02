@@ -90,7 +90,7 @@ class StreamlitForm:
         default = self._get_default(details, form_values, param)
         if details["type"] == "number":
             widget_args.update(
-                {"min_value": details.get("min_value", 0), "value": default}
+                {"min_value": details.get("min_value"), "value": default}
             )
         elif details["type"] in ["select", "multi_select"]:
             options = [

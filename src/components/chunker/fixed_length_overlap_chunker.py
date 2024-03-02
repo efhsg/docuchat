@@ -34,6 +34,10 @@ class FixedLengthOverLapChunker(Chunker):
     def _validations(cls) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
         return [
             {
+                "rule": ("chunk_size", "ge", cls.MIN_CHUNK_SIZE),
+                "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
+            },
+            {
                 "rule": ("overlap", "lt", "chunk_size"),
                 "message": "Overlap size must be less than Chunk size.",
             },
