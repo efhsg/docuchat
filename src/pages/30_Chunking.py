@@ -76,12 +76,12 @@ def create_chunk_processes(selected_text):
         "constants": chunker_details["constants"],
     }
     form = StreamlitForm(form_config)
-    submitted, updated_form_values = form.generate_form(
+    updated_form_values = form.generate_form(
         init_form_values(chunker_details["params"].items()),
         "chunk_process",
         "Start chunking",
     )
-    if submitted:
+    if updated_form_values:
         if form.validate_form_values(updated_form_values):
             try:
                 save_form_values_to_context(updated_form_values)

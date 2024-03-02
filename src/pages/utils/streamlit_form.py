@@ -1,5 +1,5 @@
 import streamlit as st
-from typing import Dict, Any, Callable, Tuple
+from typing import Dict, Any, Callable, Tuple, Optional
 
 
 def get_comparison_operator(operator: str) -> Callable[[Any, Any], bool]:
@@ -38,7 +38,7 @@ class StreamlitForm:
 
     def generate_form(
         self, form_values: Dict[str, Any], name: str, submit_button_label: str
-    ) -> Tuple[bool, Dict[str, Any]]:
+    ) -> Optional[Dict[str, Any]]:
         updated_form_values = form_values.copy()
         with st.form(key=name):
             for param, details in self.form_config["params"].items():
@@ -49,12 +49,14 @@ class StreamlitForm:
                     )
                     updated_form_values[param] = widget_func(**widget_args)
             submit_button_clicked = st.form_submit_button(label=submit_button_label)
-            if submit_button_clicked and "separators" in updated_form_values:
-                updated_form_values["separators"] = [
-                    self._get_mapped_value(value)
-                    for value in updated_form_values["separators"]
-                ]
-            return submit_button_clicked, updated_form_values
+            if submit_button_clicked:
+                if "separators" in updated_form_values:
+                    updated_form_values["separators"] = [
+                        self._get_mapped_value(value)
+                        for value in updated_form_values["separators"]
+                    ]
+                return updated_form_values
+        return None
 
     def validate_form_values(self, form_values: Dict[str, Any]) -> bool:
         validations = self.form_config.get("validations", [])
