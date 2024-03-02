@@ -37,11 +37,11 @@ def main():
         reader_repository.list_domains_with_extracted_texts()
     )
     st.title(f"{selected_domain}")
-    domain_options = reader_repository.list_texts_by_domain(selected_domain)
-    if not domain_options:
+    text_options = reader_repository.list_texts_by_domain(selected_domain)
+    if not text_options:
         return ()
 
-    selected_text = select_text(domain_options)
+    selected_text = select_text(text_options)
     create_chunk_processes(selected_text)
     manage_chunk_processes(selected_text)
 
