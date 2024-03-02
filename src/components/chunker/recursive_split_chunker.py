@@ -30,13 +30,11 @@ class RecursiveSplitChunker(Chunker):
                 "label": "Chunk Size",
                 "type": "number",
                 "default": 100,
-                "min_value": 1,
             },
             "overlap": {
                 "label": "Overlap Size",
                 "type": "number",
                 "default": 20,
-                "min_value": 0,
             },
             "separators": {
                 "label": "Separators",
@@ -63,11 +61,19 @@ class RecursiveSplitChunker(Chunker):
     def _validations(cls) -> List[Dict[str, Any]]:
         return [
             {
-                "rule": ("overlap", "lt", "chunk_size"),
-                "message": "Overlap size must be less than Chunk size.",
+                "rule": ("chunk_size", "ge", cls.MIN_CHUNK_SIZE),
+                "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
             },
             {
                 "rule": ("chunk_size", "le", cls.MAX_CHUNK_SIZE),
                 "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
+            },
+            {
+                "rule": ("overlap", "ge", cls.MIN_OVERLAP_SIZE),
+                "message": f"Overlap size must be at least {cls.MIN_OVERLAP_SIZE}.",
+            },
+            {
+                "rule": ("overlap", "lt", "chunk_size"),
+                "message": "Overlap size must be less than Chunk size.",
             },
         ]
