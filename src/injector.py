@@ -1,4 +1,6 @@
 from components.chunker.chunker_config import ChunkerConfig
+from components.chunker.config_based_chunker_factory import ConfigBasedChunkerFactory
+from components.chunker.interfaces.chunker_factory import ChunkerFactory
 from components.chunker.interfaces.chunker_repository import ChunkerRepository
 from components.chunker.sqlAlchemy_chunker_repository import SqlAlchemyChunkerRepository
 from components.database.mysql_connector import MySQLConnector
@@ -53,3 +55,7 @@ def get_chunker_repository() -> ChunkerRepository:
         compressor=ZlibTextCompressor(),
         logger=NativeLogger.get_logger("docuchat"),
     )
+
+
+def get_chunker_factory() -> ChunkerFactory:
+    return ConfigBasedChunkerFactory()

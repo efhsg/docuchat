@@ -7,6 +7,7 @@ from components.reader.interfaces.text_compressor import TextCompressor
 from logging import Logger
 from injector import (
     get_chunker_config,
+    get_chunker_factory,
     get_chunker_repository,
     get_config,
     get_logger,
@@ -28,6 +29,7 @@ logger: Logger = get_logger()
 compressor: TextCompressor = get_compressor()
 reader_repository: ReaderRepository = get_reader_repository()
 chunker_repository: ChunkerRepository = get_chunker_repository()
+chunker_factory = get_chunker_factory()
 
 
 def main():
@@ -83,9 +85,7 @@ def create_chunk_processes(selected_text):
         if form.validate_form_values(updated_form_values):
             try:
                 save_form_values_to_context(updated_form_values)
-                process_text_to_chunks(
-                    selected_text, method, chunker_class, updated_form_values
-                )
+                process_text_to_chunks(selected_text, method, updated_form_values)
             except Exception as e:
                 st.error(f"Failed to validate or process chunks: {e}")
 
@@ -102,10 +102,10 @@ def save_form_values_to_context(values):
         st.session_state[f"context_{value}"] = values[value]
 
 
-def process_text_to_chunks(selected_text, method, chunker_class, values):
+def process_text_to_chunks(selected_text, method, values):
     try:
         with st.spinner("Chunking..."):
-            chunker_instance = chunker_class(**values)
+            chunker_instance = chunker_factory.create_chunker(method, **values)
 
             values["name"] = generate_default_name()
             chunk_process_id = chunker_repository.create_chunk_process(
