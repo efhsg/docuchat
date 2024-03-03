@@ -100,19 +100,18 @@ class StreamlitForm:
             widget_args.update(
                 {"min_value": details.get("min_value"), "value": default}
             )
-        elif details["type"] in ["select", "multi_select"]:
+        elif details["type"] == "select":
             options = [
                 self._get_mapped_value(option, True) for option in details["options"]
             ]
             widget_args["options"] = options
-            if details["type"] == "select":
-                self.logger.info(options)
-                self.logger.info(default)
-                widget_args["index"] = (
-                    options.index(default) if default in options else 0
-                )
-            else:
-                widget_args["default"] = default
+            widget_args["index"] = options.index(default) if default in options else 0
+        elif details["type"] == "multi_select":
+            options = [
+                self._get_mapped_value(option, True) for option in details["options"]
+            ]
+            widget_args["options"] = options
+            widget_args["default"] = default
         elif details["type"] == "checkbox":
             widget_args["value"] = default
         else:
@@ -122,11 +121,14 @@ class StreamlitForm:
     def _get_default(
         self, details: Dict[str, Any], form_values: Dict[str, Any], param: str
     ) -> Any:
-        if details["type"] in ["select", "multi_select"]:
-            default = [
-                self._get_mapped_value(option, True)
-                for option in form_values.get(param, details.get("default", []))
-            ]
+        if details["type"] == "select":
+            default = form_values.get(param, details.get("default", ""))
+            if isinstance(default, list):
+                default = default[0]
+            default = self._get_mapped_value(default, True)
+        elif details["type"] == "multi_select":
+            default = form_values.get(param, details.get("default", []))
+            default = [self._get_mapped_value(option, True) for option in default]
         else:
             default = form_values.get(param, details.get("default", ""))
         return default
