@@ -52,8 +52,6 @@ def setup_session_state():
         ("context_domain", None),
         ("context_text", None),
         ("context_chunk_method", None),
-        ("context_chunk_size", 1000),
-        ("context_chunk_overlap", 100),
     ]
     for state_name, default_value in default_session_states:
         set_default_state(state_name, default_value)

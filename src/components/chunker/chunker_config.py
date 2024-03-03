@@ -24,38 +24,16 @@ class ChunkerConfig:
         "Semantic": SemanticChunker,
     }
 
-    @classmethod
-    def _get_fields(cls, chunker_class):
-        chunk_size_fields = {
-            "label": "Chunk Size",
-            "type": "number",
-            "default": 1000,
-        }
-        overlap_fields = {
-            "label": "Overlap Size",
-            "type": "number",
-            "default": 0,  # Adjusted to reflect actual defaults for each chunker
-        }
-        separators_fields = {
+    base_field_definitions = {
+        "chunk_size": {"label": "Chunk Size", "type": "number", "default": 2000},
+        "overlap_size": {"label": "Overlap Size", "type": "number", "default": 100},
+        "separators": {
             "label": "Separators",
             "type": "multi_select",
             "default": ["\n\n", "\n", " ", ""],
-            "options": [
-                "\n\n",
-                "\n",
-                "\r",
-                " ",
-                "",
-                ".",
-                "!",
-                "?",
-                ",",
-                ";",
-                ":",
-                "|",
-            ],
-        }
-        model_fields = {
+            "options": ["\n\n", "\n", "\r", " ", "", ".", "!", "?", ",", ";", ":", "|"],
+        },
+        "model": {
             "label": "NLP Model",
             "type": "select",
             "default": getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
@@ -63,31 +41,35 @@ class ChunkerConfig:
                 "CHUNKER_NLP_MODEL_OPTIONS",
                 "en_core_web_sm,en_core_web_md,en_core_web_lg",
             ),
-        }
+        },
+        "max_chunk_size": {
+            "label": "Max Chunk Size",
+            "type": "number",
+            "default": 2000,
+        },
+    }
+
+    @classmethod
+    def _get_fields(cls, chunker_class):
         chunker_fields = {
-            FixedLengthChunker: {"chunk_size": chunk_size_fields},
+            FixedLengthChunker: {
+                "chunk_size": cls.base_field_definitions["chunk_size"]
+            },
             FixedLengthOverLapChunker: {
-                "chunk_size": chunk_size_fields,
-                "overlap": {
-                    **overlap_fields,
-                    "default": 100,
-                },
+                "chunk_size": cls.base_field_definitions["chunk_size"],
+                "overlap_size": cls.base_field_definitions["overlap_size"],
             },
             RecursiveSplitChunker: {
-                "chunk_size": chunk_size_fields,
-                "overlap": {
-                    **overlap_fields,
-                    "default": 50,
+                "chunk_size": cls.base_field_definitions["chunk_size"],
+                "overlap_size": {
+                    **cls.base_field_definitions["overlap_size"],
+                    "default": 200,
                 },
-                "separators": separators_fields,
+                "separators": cls.base_field_definitions["separators"],
             },
             SemanticChunker: {
-                "model": model_fields,
-                "max_chunk_size": {
-                    "label": "Max Chunk Size",
-                    "type": "number",
-                    "default": 2000,
-                },
+                "model": cls.base_field_definitions["model"],
+                "max_chunk_size": cls.base_field_definitions["max_chunk_size"],
             },
         }
 
@@ -116,15 +98,15 @@ class ChunkerConfig:
                     },
                 ]
             )
-        if "overlap" in fields:
+        if "overlap_size" in fields:
             validations.extend(
                 [
                     {
-                        "rule": ("overlap", "ge", cls.MIN_OVERLAP_SIZE),
+                        "rule": ("overlap_size", "ge", cls.MIN_OVERLAP_SIZE),
                         "message": f"Overlap size must be at least {cls.MIN_OVERLAP_SIZE}.",
                     },
                     {
-                        "rule": ("overlap", "lt", "chunk_size"),
+                        "rule": ("overlap_size", "lt", "chunk_size"),
                         "message": "Overlap size must be less than Chunk size.",
                     },
                 ]
