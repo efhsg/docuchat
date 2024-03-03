@@ -25,71 +25,77 @@ class ChunkerConfig:
     }
 
     @classmethod
+    def _get_fields(cls, chunker_class):
+        chunk_size_fields = {
+            "label": "Chunk Size",
+            "type": "number",
+            "default": 1000,
+        }
+        overlap_fields = {
+            "label": "Overlap Size",
+            "type": "number",
+            "default": 0,  # Adjusted to reflect actual defaults for each chunker
+        }
+        separators_fields = {
+            "label": "Separators",
+            "type": "multi_select",
+            "default": ["\n\n", "\n", " ", ""],
+            "options": [
+                "\n\n",
+                "\n",
+                "\r",
+                " ",
+                "",
+                ".",
+                "!",
+                "?",
+                ",",
+                ";",
+                ":",
+                "|",
+            ],
+        }
+        model_fields = {
+            "label": "NLP Model",
+            "type": "select",
+            "default": getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
+            "options": getenv(
+                "CHUNKER_NLP_MODEL_OPTIONS",
+                "en_core_web_sm,en_core_web_md,en_core_web_lg",
+            ),
+        }
+        chunker_fields = {
+            FixedLengthChunker: {"chunk_size": chunk_size_fields},
+            FixedLengthOverLapChunker: {
+                "chunk_size": chunk_size_fields,
+                "overlap": {
+                    **overlap_fields,
+                    "default": 100,
+                },
+            },
+            RecursiveSplitChunker: {
+                "chunk_size": chunk_size_fields,
+                "overlap": {
+                    **overlap_fields,
+                    "default": 50,
+                },
+                "separators": separators_fields,
+            },
+            SemanticChunker: {
+                "model": model_fields,
+                "max_chunk_size": {
+                    "label": "Max Chunk Size",
+                    "type": "number",
+                    "default": 2000,
+                },
+            },
+        }
+
+        return chunker_fields.get(chunker_class, {})
+
+    @classmethod
     def _fields(cls, chunker_class) -> Dict[str, Any]:
-        fields = {}
-        if chunker_class == FixedLengthChunker:
-            fields["chunk_size"] = {
-                "label": "Chunk Size",
-                "type": "number",
-                "default": 1000,
-            }
-        elif chunker_class == FixedLengthOverLapChunker:
-            fields["chunk_size"] = {
-                "label": "Chunk Size",
-                "type": "number",
-                "default": 1000,
-            }
-            fields["overlap"] = {
-                "label": "Overlap Size",
-                "type": "number",
-                "default": 100,
-            }
-        elif chunker_class == RecursiveSplitChunker:
-            fields["chunk_size"] = {
-                "label": "Chunk Size",
-                "type": "number",
-                "default": 1000,
-            }
-            fields["overlap"] = {
-                "label": "Overlap Size",
-                "type": "number",
-                "default": 50,
-            }
-            fields["separators"] = {
-                "label": "Separators",
-                "type": "multi_select",
-                "default": ["\n\n", "\n", " ", ""],
-                "options": [
-                    "\n\n",
-                    "\n",
-                    "\r",
-                    " ",
-                    "",
-                    ".",
-                    "!",
-                    "?",
-                    ",",
-                    ";",
-                    ":",
-                    "|",
-                ],
-            }
-        elif chunker_class == SemanticChunker:
-            fields["model"] = {
-                "label": "NLP Model",
-                "type": "select",
-                "default": getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
-                "options": getenv(
-                    "CHUNKER_NLP_MODEL_OPTIONS",
-                    "en_core_web_sm,en_core_web_md,en_core_web_lg",
-                ),
-            }
-            fields["chunk_size"] = {
-                "label": "Max Chunk Size",
-                "type": "number",
-                "default": 2000,
-            }
-        return fields
+        return cls._get_fields(chunker_class)
 
     @classmethod
     def _validations(
@@ -120,6 +126,19 @@ class ChunkerConfig:
                     {
                         "rule": ("overlap", "lt", "chunk_size"),
                         "message": "Overlap size must be less than Chunk size.",
+                    },
+                ]
+            )
+        if "max_chunk_size" in fields:
+            validations.extend(
+                [
+                    {
+                        "rule": ("max_chunk_size", "ge", cls.MIN_CHUNK_SIZE),
+                        "message": f"Chunk size must be at least {cls.MIN_CHUNK_SIZE}.",
+                    },
+                    {
+                        "rule": ("max_chunk_size", "le", cls.MAX_CHUNK_SIZE),
+                        "message": f"Chunk size must not exceed {cls.MAX_CHUNK_SIZE}.",
                     },
                 ]
             )
