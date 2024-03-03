@@ -68,7 +68,6 @@ def create_chunk_processes(selected_text):
     method = select_method(list(chunker_options.keys()))
 
     chunker_details = chunker_options[method]
-    chunker_class: Chunker = chunker_details["class"]
 
     form_config = {
         "fields": chunker_details["fields"],
