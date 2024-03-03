@@ -1,5 +1,7 @@
 import streamlit as st
-from typing import Dict, Any, Callable, Tuple, Optional
+from typing import Dict, Any, Callable, Optional
+
+from injector import get_logger
 
 
 def get_comparison_operator(operator: str) -> Callable[[Any, Any], bool]:
@@ -33,8 +35,13 @@ class StreamlitForm:
         v: k for k, v in _special_char_mapping.items()
     }
 
-    def __init__(self, form_config: Dict[str, Any]):
+    def __init__(
+        self,
+        form_config: Dict[str, Any],
+        logger: Optional[Callable[[str], None]] = None,
+    ):
         self.form_config = form_config
+        self.logger = logger or get_logger()
 
     def generate_form(
         self, form_values: Dict[str, Any], name: str, submit_button_label: str
@@ -102,7 +109,9 @@ class StreamlitForm:
                     options.index(default) if default in options else 0
                 )
             else:
-                widget_args["default"] = default
+                widget_args["default"] = [
+                    options.index(opt) for opt in default if opt in options
+                ]
         elif details["type"] == "checkbox":
             widget_args["value"] = default
         else:
@@ -113,10 +122,11 @@ class StreamlitForm:
         self, details: Dict[str, Any], form_values: Dict[str, Any], param: str
     ) -> Any:
         if details["type"] in ["select", "multi_select"]:
-            default = [
-                self._get_mapped_value(option, True)
-                for option in form_values.get(param, details.get("default", []))
-            ]
+            default = form_values.get(param, details.get("default", []))
+            if isinstance(default, list):
+                default = [self._get_mapped_value(option, True) for option in default]
+            else:
+                default = self._get_mapped_value(default, True)
         else:
             default = form_values.get(param, details.get("default", ""))
         return default
