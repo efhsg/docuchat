@@ -21,22 +21,3 @@ class SemanticChunker(Chunker):
         if chunk:
             chunks.append(chunk.strip())
         return chunks
-
-    @classmethod
-    def _fields(cls) -> Dict[str, Any]:
-        return {
-            "model": {
-                "label": "NLP Model",
-                "type": "select",
-                "default": getenv("CHUNKER_NLP_MODEL_DEFAULT", "en_core_web_sm"),
-                "options": getenv(
-                    "CHUNKER_NLP_MODEL_OPTIONS",
-                    "en_core_web_sm,en_core_web_md,en_core_web_lg",
-                ),
-            },
-            "chunk_size": {
-                "label": "Max Chunk Size",
-                "type": "number",
-                "default": 2000,
-            },
-        }

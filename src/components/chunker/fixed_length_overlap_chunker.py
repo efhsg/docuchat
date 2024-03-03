@@ -14,18 +14,3 @@ class FixedLengthOverLapChunker(Chunker):
             chunks.append(text[i : i + self.chunk_size])
             i += self.chunk_size - self.overlap
         return chunks
-
-    @classmethod
-    def _fields(cls) -> Dict[str, Any]:
-        return {
-            "chunk_size": {
-                "label": "Chunk Size",
-                "type": "number",
-                "default": 1000,
-            },
-            "overlap": {
-                "label": "Overlap Size",
-                "type": "number",
-                "default": 100,
-            },
-        }

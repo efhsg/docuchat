@@ -10,13 +10,3 @@ class FixedLengthChunker(Chunker):
         return [
             text[i : i + self.chunk_size] for i in range(0, len(text), self.chunk_size)
         ]
-
-    @classmethod
-    def _fields(cls) -> Dict[str, Any]:
-        return {
-            "chunk_size": {
-                "label": "Chunk Size",
-                "type": "number",
-                "default": 1000,
-            },
-        }

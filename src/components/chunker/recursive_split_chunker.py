@@ -22,37 +22,3 @@ class RecursiveSplitChunker(Chunker):
 
     def chunk(self, text: str) -> List[str]:
         return self.text_splitter.split_text(text)
-
-    @classmethod
-    def _fields(cls) -> Dict[str, Any]:
-        return {
-            "chunk_size": {
-                "label": "Chunk Size",
-                "type": "number",
-                "default": 1000,
-            },
-            "overlap": {
-                "label": "Overlap Size",
-                "type": "number",
-                "default": 50,
-            },
-            "separators": {
-                "label": "Separators",
-                "type": "multi_select",
-                "default": ["\n\n", "\n", " ", ""],
-                "options": [
-                    "\n\n",
-                    "\n",
-                    "\r",
-                    " ",
-                    "",
-                    ".",
-                    "!",
-                    "?",
-                    ",",
-                    ";",
-                    ":",
-                    "|",
-                ],
-            },
-        }
