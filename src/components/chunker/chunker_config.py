@@ -76,15 +76,11 @@ class ChunkerConfig:
         return chunker_fields.get(chunker_class, {})
 
     @classmethod
-    def _fields(cls, chunker_class) -> Dict[str, Any]:
-        return cls._get_fields(chunker_class)
-
-    @classmethod
     def _validations(
         cls, chunker_class
     ) -> List[Dict[str, Union[Tuple[str, str, int], str]]]:
         validations = []
-        fields = cls._fields(chunker_class)
+        fields = cls._get_fields(chunker_class)
         if "chunk_size" in fields:
             validations.extend(
                 [
@@ -139,14 +135,11 @@ class ChunkerConfig:
     @property
     def chunker_options(self) -> Dict[str, Dict[str, Any]]:
         return {
-            name: {"class": cls, **self._get_chunker_options(cls)}
+            name: {
+                "class": cls,
+                "fields": self._get_fields(cls),
+                "validations": self._validations(cls),
+                "constants": self._constants(cls),
+            }
             for name, cls in self.chunker_classes.items()
-        }
-
-    @classmethod
-    def _get_chunker_options(cls, chunker_class) -> Dict[str, Any]:
-        return {
-            "fields": cls._fields(chunker_class),
-            "validations": cls._validations(chunker_class),
-            "constants": cls._constants(chunker_class),
         }
