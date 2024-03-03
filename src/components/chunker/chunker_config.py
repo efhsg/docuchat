@@ -24,24 +24,6 @@ class ChunkerConfig:
         "Semantic": SemanticChunker,
     }
 
-    @property
-    def chunker_options(self) -> Dict[str, Dict[str, Any]]:
-        return {
-            name: {"class": cls, **self._get_chunker_options(cls)}
-            for name, cls in self.chunker_classes.items()
-        }
-
-    def get_chunker_config(self, name: str) -> Dict[str, Any]:
-        return self.chunker_options[name]
-
-    @classmethod
-    def _get_chunker_options(cls, chunker_class) -> Dict[str, Any]:
-        return {
-            "fields": cls._fields(chunker_class),
-            "validations": cls._validations(chunker_class),
-            "constants": cls._constants(chunker_class),
-        }
-
     @classmethod
     def _fields(cls, chunker_class) -> Dict[str, Any]:
         fields = {}
@@ -151,4 +133,19 @@ class ChunkerConfig:
             if not callable(getattr(cls, attr))
             and attr.isupper()
             and not attr.startswith("_")
+        }
+
+    @property
+    def chunker_options(self) -> Dict[str, Dict[str, Any]]:
+        return {
+            name: {"class": cls, **self._get_chunker_options(cls)}
+            for name, cls in self.chunker_classes.items()
+        }
+
+    @classmethod
+    def _get_chunker_options(cls, chunker_class) -> Dict[str, Any]:
+        return {
+            "fields": cls._fields(chunker_class),
+            "validations": cls._validations(chunker_class),
+            "constants": cls._constants(chunker_class),
         }

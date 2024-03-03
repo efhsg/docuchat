@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List
 from components.chunker.interfaces.chunker import Chunker
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
