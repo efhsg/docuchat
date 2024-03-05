@@ -1,9 +1,13 @@
-import base64
-from typing import List
 import streamlit as st
 from components.database.models import ExtractedText
 from injector import get_config, get_logger, get_reader_repository, get_compressor
-from pages.utils.utils import get_index, select_text, set_default_state, show_messages
+from pages.utils.utils import (
+    extracted_text_original_name_to_label,
+    get_index,
+    select_texts,
+    set_default_state,
+    show_messages,
+)
 from pages.utils.utils import (
     setup_page,
     select_domain,
@@ -38,12 +42,14 @@ def setup_session_state() -> None:
 def manage_texts(selected_domain):
 
     if selected_domain is None:
-        st.info("Nothing to manage.")
+        st.info("First extract texts")
         return
 
     st.title(f"Texts in {selected_domain}")
 
-    selected_text = select_text(reader_repository.list_texts_by_domain(selected_domain))
+    selected_text = select_texts(
+        reader_repository.list_texts_by_domain(selected_domain)
+    )
 
     show_messages()
 
@@ -107,7 +113,9 @@ def handle_text_rename(selected_domain: str, selected_text: ExtractedText):
 
     with st.form("Rename_text", clear_on_submit=False):
         new_name = st.text_input("Rename text", value=selected_text.name)
-        st.write(f"Original name: {selected_text.original_name}")
+        st.write(
+            f"Original name: {extracted_text_original_name_to_label(selected_text)}"
+        )
         save_text_name = st.form_submit_button(label="Save")
 
     if save_text_name:

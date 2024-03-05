@@ -1,5 +1,6 @@
 from sqlalchemy import (
     Column,
+    Index,
     Integer,
     String,
     ForeignKey,
@@ -16,7 +17,7 @@ Base = declarative_base()
 
 class Validatable:
     MAX_NAME_LENGTH = 255
-    NAME_PATTERN = r"^[a-zA-Z0-9 .@#$%^&*()_+\[\]\:\\/{}<>!?\-`']+$"
+    NAME_PATTERN = r"^[a-zA-Z0-9 `~!@#$%^&*()\-_+=\[\]{\}|\\:;\"'<>,\.\?/]+$"
 
     @validates("name")
     def validate_name(self, key, name):
@@ -26,9 +27,10 @@ class Validatable:
             )
         if not re.match(self.NAME_PATTERN, name):
             raise ValueError(
-                "Invalid name. Allowed characters are letters, digits, spaces, and .@#$%^&*()_+[]/\\\\{}<>!?-:`'"
+                "Invalid name. Allowed characters include letters, digits, and most special characters found on a standard US keyboard. Received: "
                 + name
             )
+
         return name
 
 
@@ -73,5 +75,38 @@ class Chunk(Base):
     __table_args__ = (
         UniqueConstraint(
             "chunk_process_id", "index", name="_chunk_process_id_index_uc"
+        ),
+    )
+
+
+class EmbeddingProcess(Base, Validatable):
+    __tablename__ = "embedding_processes"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    extracted_text_id = Column(
+        Integer, ForeignKey("extracted_texts.id"), nullable=False
+    )
+    method = Column(String(255), nullable=False)
+    parameters = Column(MutableDict.as_mutable(JSON), nullable=False)
+
+    extracted_text = relationship("ExtractedText", backref="embedding_processes")
+
+
+class Embedding(Base):
+    __tablename__ = "embeddings"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    chunk_id = Column(Integer, ForeignKey("chunks.id"), nullable=False)
+    embedding_process_id = Column(
+        Integer, ForeignKey("embedding_processes.id"), nullable=False
+    )
+    embedding = deferred(Column(LONGBLOB, nullable=False))
+
+    chunk = relationship("Chunk", backref="embeddings")
+    embedding_process = relationship("EmbeddingProcess", backref="embeddings")
+
+    __table_args__ = (
+        Index("ix_embeddings_chunk_id", "chunk_id"),
+        Index("ix_embeddings_embedding_process_id", "embedding_process_id"),
+        UniqueConstraint(
+            "chunk_id", "embedding_process_id", name="uix_chunk_id_embedding_process_id"
         ),
     )

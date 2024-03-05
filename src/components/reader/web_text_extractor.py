@@ -21,6 +21,7 @@ class WebTextExtractor(TextExtractor):
             return text
         except requests.RequestException as e:
             self.logger.error(f"HTTP error occurred: {e}")
+            raise
         except Exception as e:
             self.logger.error(f"Failed to extract text from URL {source} due to: {e}")
-        return None
+            raise

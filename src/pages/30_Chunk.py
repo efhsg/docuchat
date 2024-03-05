@@ -16,8 +16,11 @@ from injector import (
 )
 from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
+    generate_default_name,
     get_index,
-    select_text,
+    init_form_values,
+    save_form_values_to_context,
+    select_texts,
     set_default_state,
     select_domain,
     setup_page,
@@ -38,12 +41,16 @@ def main():
     selected_domain = select_domain(
         reader_repository.list_domains_with_extracted_texts()
     )
+    if selected_domain is None:
+        st.info("First extract texts")
+        return
+
     st.title(f"{selected_domain}")
     text_options = reader_repository.list_texts_by_domain(selected_domain)
     if not text_options:
         return ()
 
-    selected_text = select_text(text_options)
+    selected_text = select_texts(text_options)
     create_chunk_processes(selected_text)
     manage_chunk_processes(selected_text)
 
@@ -89,18 +96,6 @@ def create_chunk_processes(selected_text):
                 st.error(f"Failed to validate or process chunks: {e}")
 
 
-def init_form_values(fields):
-    return {
-        param: st.session_state.get(f"context_{param}", details["default"])
-        for param, details in fields
-    }
-
-
-def save_form_values_to_context(values):
-    for value in values:
-        st.session_state[f"context_{value}"] = values[value]
-
-
 def process_text_to_chunks(selected_text, method, values):
     try:
         with st.spinner("Chunking..."):
@@ -137,10 +132,6 @@ def select_method(method_options):
     return method
 
 
-def generate_default_name() -> str:
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
-
-
 def manage_chunk_processes(selected_text):
     if selected_text is None:
         return
@@ -150,6 +141,7 @@ def manage_chunk_processes(selected_text):
         st.write("No chunk sessions found for this text.")
         return
 
+    st.subheader("Chunked")
     for session in chunk_sessions:
         with st.container(border=True):
             col1, col2, col3 = st.columns([8, 1, 1])
@@ -224,12 +216,14 @@ def show_process_header(session):
 
 
 def show_chunks(session):
-    with st.expander(f"Chunks:"):
-        chunks = chunker_repository.list_chunks_by_process(session.id)
+    chunks = chunker_repository.list_chunks_by_process(session.id)
+    chunk_count = len(chunks)
+
+    with st.expander(f"{chunk_count} chunks"):
         if chunks:
             page_number = st.session_state.get(f"page_{session.id}", 0)
             page_size = 5
-            total_pages = (len(chunks) - 1) // page_size + 1
+            total_pages = (chunk_count - 1) // page_size + 1
             start_index = page_number * page_size
             end_index = start_index + page_size
             displayed_chunks = chunks[start_index:end_index]
@@ -247,7 +241,6 @@ def show_chunks(session):
                         disabled=True,
                     )
             chunks_page_nav(session, page_number, total_pages, "bottom")
-
         else:
             st.write("No chunks found for this session.")
 

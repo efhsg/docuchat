@@ -1,3 +1,4 @@
+from typing import List
 from urllib.parse import urlparse
 import streamlit as st
 from injector import (
@@ -28,9 +29,11 @@ def main():
     setup_page()
     setup_session_state()
     selected_domain = select_domain(reader_repository.list_domains())
+    if selected_domain is None:
+        st.info("First add a domain")
+        return
     manage_extracted(selected_domain)
     extract(selected_domain)
-    show_summary()
 
 
 def setup_session_state() -> None:
@@ -58,77 +61,83 @@ def manage_extracted(selected_domain):
         )
 
 
-def upload_files(selected_domain):
+def upload_files(selected_domain: str) -> None:
+    files = upload_form(selected_domain)
+    show_summary()
+    if st.session_state.get("uploading", False):
+        upload_progress = st.progress(0)
+        if not files:
+            st.session_state["uploading"] = False
+            st.rerun()
+
+        total_files = len(files)
+        st.session_state["total_files"] = total_files
+
+        for i, uploaded_file in enumerate(files):
+            file_name, file_extension = split_filename(uploaded_file)
+            upload_progress.progress((i + 1) / total_files)
+
+            if reader_repository.text_exists(
+                selected_domain, file_name, file_extension
+            ):
+                add_message(
+                    f"Skipped: '{uploaded_file.name}'. Extracted text already exists.",
+                    "warning",
+                )
+                continue
+
+            with st.spinner(f"Extracting text from {uploaded_file.name}"):
+                try:
+                    text = text_extractor.extract_text(uploaded_file)
+                    reader_repository.save_text(
+                        selected_domain,
+                        file_name,
+                        file_extension,
+                        uploaded_file.name,
+                        text,
+                    )
+                    add_message(f"Done: '{uploaded_file.name}'", "info")
+                except Exception as e:
+                    add_message(
+                        f"Failed to process: '{uploaded_file.name}'. Error: {e}",
+                        "error",
+                    )
+
+        st.session_state["select_all_texts"] = False
+        st.session_state["uploading"] = False
+        st.rerun()
+
+
+def upload_form(selected_domain: str) -> List:
     with st.form("upload", clear_on_submit=True):
         st.subheader(selected_domain)
+
+        def on_upload_click():
+            clear_messages()
+            st.session_state.update(uploading=True)
+
         files = st.file_uploader(
             "Select files",
             type=config.upload_extensions,
             accept_multiple_files=True,
-            disabled=st.session_state.get("uploading", False)
-            or st.session_state["total_files"] > 0,
+            disabled=st.session_state.get("uploading", False),
         )
-        upload = st.form_submit_button(
+        st.form_submit_button(
             "Upload",
-            on_click=lambda: st.session_state.update(uploading=True),
-            disabled=st.session_state.get("uploading", False)
-            or st.session_state["total_files"] > 0,
+            on_click=on_upload_click,
+            disabled=st.session_state.get("uploading", False),
         )
 
-        if upload:
-            clear_messages()
-            upload_progress = st.progress(0)
-            if not files:
-                st.session_state["uploading"] = False
-                st.rerun()
-
-            total_files = len(files)
-            st.session_state["total_files"] = total_files
-
-            for i, uploaded_file in enumerate(files):
-                file_name, file_extension = split_filename(uploaded_file)
-                upload_progress.progress((i + 1) / total_files)
-
-                if reader_repository.text_exists(
-                    selected_domain, file_name, file_extension
-                ):
-                    add_message(
-                        f"Skipped: '{uploaded_file.name}'. Extracted text already exists.",
-                        "warning",
-                    )
-                    continue
-
-                with st.spinner(text=f"Extracting text from {uploaded_file.name}"):
-                    try:
-                        text = text_extractor.extract_text(uploaded_file)
-                        reader_repository.save_text(
-                            selected_domain,
-                            file_name,
-                            file_extension,
-                            uploaded_file.name,
-                            text,
-                        )
-                        add_message(f"Done: '{uploaded_file.name}'", "info")
-                    except Exception as e:
-                        add_message(
-                            f"Failed to process: '{uploaded_file.name}'. Error: {e}",
-                            "error",
-                        )
-
-            st.session_state["select_all_texts"] = False
-            st.session_state["uploading"] = False
-            st.rerun()
+        return files
 
 
 def scrape_website(selected_domain):
-    with st.form("scrape_website", clear_on_submit=True):
-        st.subheader(selected_domain)
-        url = st.text_input("Enter the website", "")
-        scrape = st.form_submit_button("Scrape")
-
-        if scrape and url:
-            clear_messages()
-            with st.spinner(text=f"Scraping website {url}"):
+    url = scrape_website_form(selected_domain)
+    show_summary()
+    if st.session_state.get("uploading", False):
+        with st.spinner(text=f"Scraping website {url}"):
+            st.session_state["total_files"] = 1
+            try:
                 text = web_extractor.extract_text(url)
                 if text:
                     file_name, file_extension = url_to_name_and_extension(url)
@@ -151,7 +160,32 @@ def scrape_website(selected_domain):
                             )
                 else:
                     add_message(f"Failed to scrape text from: '{url}'", "error")
-            st.rerun()
+            except Exception as e:
+                add_message(f"Failed to scrape text from: '{url}'. Error: {e}", "error")
+        st.session_state["uploading"] = False
+        st.rerun()
+
+
+def scrape_website_form(selected_domain):
+    with st.form("scrape_website", clear_on_submit=True):
+        st.subheader(selected_domain)
+
+        def on_scrape_click():
+            clear_messages()
+            st.session_state.update(uploading=True)
+
+        url = st.text_input(
+            label="Enter the website",
+            value="",
+            disabled=st.session_state.get("uploading", False),
+        )
+        st.form_submit_button(
+            label="Scrape",
+            on_click=on_scrape_click,
+            disabled=st.session_state.get("uploading", False),
+        )
+
+    return url
 
 
 def extract(selected_domain):
@@ -191,29 +225,30 @@ def display_message(message: str, message_type: str) -> None:
 
 
 def display_summary():
-    extracted = st.session_state["message_counts"].get("info", 0)
-    warnings = st.session_state["message_counts"].get("warning", 0)
-    errors = st.session_state["message_counts"].get("error", 0)
-    total = st.session_state["total_files"]
-    st.write(
-        f"Total files: {total}, Files extracted: {extracted}, Warnings: {warnings}, Errors: {errors}"
-    )
+    with st.container(border=True):
+        extracted = st.session_state["message_counts"].get("info", 0)
+        warnings = st.session_state["message_counts"].get("warning", 0)
+        errors = st.session_state["message_counts"].get("error", 0)
+        total = st.session_state["total_files"]
+        st.write(
+            f"Total: {total}, Extracted: {extracted}, Warnings: {warnings}, Errors: {errors}"
+        )
 
-    col1, col2 = st.columns([1, 12])
-    with col1:
-        if st.button("Clear"):
-            clear_messages()
-            st.rerun()
-    with col2:
-        if not st.session_state.get("show_details"):
-            if st.button("Show details"):
-                st.session_state["show_details"] = True
+        col1, col2 = st.columns([1, 12])
+        with col1:
+            if st.button("OK"):
+                clear_messages()
                 st.rerun()
+        with col2:
+            if not st.session_state.get("show_details"):
+                if st.button("Show details"):
+                    st.session_state["show_details"] = True
+                    st.rerun()
 
-    if st.session_state.get("show_details", False):
-        display_messages(st.session_state["messages"])
-    else:
-        display_errors(st.session_state["messages"])
+        if st.session_state.get("show_details", False):
+            display_messages(st.session_state["messages"])
+        else:
+            display_errors(st.session_state["messages"])
 
 
 def display_errors(messages):
@@ -238,7 +273,10 @@ def clear_messages():
 
 
 def show_summary():
-    if not st.session_state.uploading and st.session_state.total_files > 0:
+    if (
+        not st.session_state.get("uploading", False)
+        and st.session_state.total_files > 0
+    ):
         display_summary()
 
 

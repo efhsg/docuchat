@@ -4,6 +4,13 @@ from components.chunker.interfaces.chunker_factory import ChunkerFactory
 from components.chunker.interfaces.chunker_repository import ChunkerRepository
 from components.chunker.sqlAlchemy_chunker_repository import SqlAlchemyChunkerRepository
 from components.database.mysql_connector import MySQLConnector
+from components.embedder.config_based_embedder_factory import ConfigBasedEmbedderFactory
+from components.embedder.embedder_config import EmbedderConfig
+from components.embedder.interfaces.embedder_factory import EmbedderFactory
+from components.embedder.interfaces.embedder_repository import EmbedderRepository
+from components.embedder.sqlAlchemy_embedder_repository import (
+    SqlAlchemyEmbedderRepository,
+)
 from components.reader.interfaces.text_compressor import TextCompressor
 from components.reader.sqlAlchemy_reader_repository import SqlalchemyReaderRepository
 from components.reader.interfaces.reader_repository import ReaderRepository
@@ -57,5 +64,21 @@ def get_chunker_repository() -> ChunkerRepository:
     )
 
 
+def get_embedder_repository() -> EmbedderRepository:
+    return SqlAlchemyEmbedderRepository(
+        connector=MySQLConnector(),
+        compressor=ZlibTextCompressor(),
+        logger=NativeLogger.get_logger("docuchat"),
+    )
+
+
 def get_chunker_factory() -> ChunkerFactory:
     return ConfigBasedChunkerFactory()
+
+
+def get_embedder_config():
+    return EmbedderConfig()
+
+
+def get_embedder_factory() -> EmbedderFactory:
+    return ConfigBasedEmbedderFactory()

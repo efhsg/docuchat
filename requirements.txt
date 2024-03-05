@@ -10,3 +10,4 @@ pytest
 alembic
 langchain
 spacy
+sentence_transformers

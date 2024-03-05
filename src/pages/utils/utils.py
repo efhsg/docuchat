@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from PIL import Image
 from datetime import datetime
@@ -43,7 +44,7 @@ def select_domain(domain_options):
     )
 
 
-def select_text(text_options: List[ExtractedText]) -> ExtractedText:
+def select_texts(text_options: List[ExtractedText]) -> ExtractedText:
     options_dict = {f"{extracted_text_to_label(text)}": text for text in text_options}
 
     selected_label = st.selectbox(
@@ -95,7 +96,15 @@ def join_filename(base_name: str, extension: str) -> str:
 
 
 def extracted_text_to_label(extracted_text: ExtractedText):
-    return f"{extracted_text.name} ({extracted_text.type})"
+    return f"{extracted_text.name} ({extracted_text.type.lstrip('.')})"
+
+
+def extracted_text_original_name_to_label(extracted_text: ExtractedText):
+    base_filename, extension = os.path.splitext(extracted_text.original_name)
+    if extension:
+        return f"({base_filename} {extension.lstrip('.')})"
+    else:
+        return base_filename
 
 
 def filename_extension_to_label(filename: str, extension: str) -> str:
@@ -115,3 +124,19 @@ def url_to_name_and_extension(url: str) -> tuple[str, str]:
         filename = f"{stripped_url}_{current_date}"
 
     return filename, extension
+
+
+def init_form_values(fields):
+    return {
+        param: st.session_state.get(f"context_{param}", details["default"])
+        for param, details in fields
+    }
+
+
+def save_form_values_to_context(values):
+    for value in values:
+        st.session_state[f"context_{value}"] = values[value]
+
+
+def generate_default_name() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")

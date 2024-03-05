@@ -127,7 +127,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
             if existing_text:
                 existing_text.text = compressed_text
                 existing_text.original_name = original_name
-                self.logger.info(
+                self.logger.debug(
                     f"Updated '{text_name}' with domain name '{domain_name}' and type '{text_type}'."
                 )
             else:
@@ -139,7 +139,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
                     domain_id=domain_id,
                 )
                 self.session.add(new_text)
-                self.logger.info(
+                self.logger.debug(
                     f"Saved new '{text_name}' with domain name '{domain_name}' and type '{text_type}'."
                 )
 
@@ -178,7 +178,7 @@ class SqlalchemyReaderRepository(ReaderRepository):
                     ExtractedText.type == text_type,
                 ).delete(synchronize_session="fetch")
             self.session.commit()
-            self.logger.info(f"Deleted specified texts from domain '{domain_name}'.")
+            self.logger.debug(f"Deleted specified texts from domain '{domain_name}'.")
         except Exception as e:
             self.logger.error(
                 f"Failed to delete specified texts from domain '{domain_name}'. Error: {e}"
