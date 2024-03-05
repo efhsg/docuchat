@@ -28,4 +28,4 @@ class Config:
 
     @property
     def latest_migration_version(self):
-        return "bbdf2a5bb233"
+        return "ead706eaa70e"
