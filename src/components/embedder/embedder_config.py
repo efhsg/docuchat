@@ -2,6 +2,7 @@ from typing import Any, Dict
 from components.embedder.sentence_transformer_embedder import (
     SentenceTransformerEmbedder,
 )
+from utils.env_utils import getenv
 
 
 class EmbedderConfig:
@@ -13,13 +14,11 @@ class EmbedderConfig:
         "model": {
             "label": "NLP Model",
             "type": "select",
-            "default": "all-MiniLM-L6-v2",
-            "options": [
-                "all-MiniLM-L6-v2",
-                "paraphrase-MiniLM-L3-v2",
-                "paraphrase-xlm-r-multilingual-v1",
-                "stsb-xlm-r-multilingual",
-            ],
+            "default": getenv("EMBEDDING_NLP_MODEL_DEFAULT", "all-MiniLM-L6-v2"),
+            "options": getenv(
+                "EMBEDDING_NLP_MODEL_OPTIONS",
+                "all-MiniLM-L6-v2,stsb-xlm-r-multilingual",
+            ),
         },
     }
 
