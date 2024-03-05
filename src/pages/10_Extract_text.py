@@ -199,6 +199,7 @@ def extract(selected_domain):
         on_change=lambda: st.session_state.update(
             context_source_type=st.session_state["source_type"]
         ),
+        disabled=st.session_state.get("uploading", False),
     )
     if source_type == "Upload Files":
         upload_files(selected_domain)
