@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: ead706eaa70e
+Revision ID: b92391a07210
 Revises: 
-Create Date: 2024-03-05 20:40:16.851137
+Create Date: 2024-03-06 00:44:04.682156
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision: str = "ead706eaa70e"
+revision: str = "b92391a07210"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,14 +36,8 @@ def upgrade() -> None:
         sa.Column("type", sa.String(length=10), nullable=False),
         sa.Column("original_name", sa.String(length=255), nullable=False),
         sa.Column("text", mysql.LONGBLOB(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["domain_id"],
-            ["domains.id"],
-        ),
+        sa.ForeignKeyConstraint(["domain_id"], ["domains.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "name", "domain_id", "type", name="_name_domain_id_type_uc"
-        ),
     )
     op.create_table(
         "chunk_processes",
@@ -52,8 +46,7 @@ def upgrade() -> None:
         sa.Column("parameters", mysql.JSON(), nullable=True),
         sa.Column("method", sa.String(length=50), nullable=False),
         sa.ForeignKeyConstraint(
-            ["extracted_text_id"],
-            ["extracted_texts.id"],
+            ["extracted_text_id"], ["extracted_texts.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -64,8 +57,7 @@ def upgrade() -> None:
         sa.Column("method", sa.String(length=255), nullable=False),
         sa.Column("parameters", mysql.JSON(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["extracted_text_id"],
-            ["extracted_texts.id"],
+            ["extracted_text_id"], ["extracted_texts.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -76,8 +68,7 @@ def upgrade() -> None:
         sa.Column("index", sa.Integer(), nullable=False),
         sa.Column("chunk", mysql.LONGBLOB(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["chunk_process_id"],
-            ["chunk_processes.id"],
+            ["chunk_process_id"], ["chunk_processes.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
@@ -90,13 +81,9 @@ def upgrade() -> None:
         sa.Column("chunk_id", sa.Integer(), nullable=False),
         sa.Column("embedding_process_id", sa.Integer(), nullable=False),
         sa.Column("embedding", mysql.LONGBLOB(), nullable=False),
+        sa.ForeignKeyConstraint(["chunk_id"], ["chunks.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
-            ["chunk_id"],
-            ["chunks.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["embedding_process_id"],
-            ["embedding_processes.id"],
+            ["embedding_process_id"], ["embedding_processes.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(

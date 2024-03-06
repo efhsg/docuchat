@@ -1,15 +1,7 @@
-from sqlalchemy import (
-    Column,
-    Index,
-    Integer,
-    String,
-    ForeignKey,
-    UniqueConstraint,
-)
-from sqlalchemy.dialects.mysql import LONGBLOB
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, Index
+from sqlalchemy.dialects.mysql import LONGBLOB, JSON
 from sqlalchemy.orm import declarative_base, relationship, validates, deferred
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.dialects.mysql import JSON
 import re
 
 Base = declarative_base()
@@ -30,7 +22,6 @@ class Validatable:
                 "Invalid name. Allowed characters include letters, digits, and most special characters found on a standard US keyboard. Received: "
                 + name
             )
-
         return name
 
 
@@ -38,27 +29,28 @@ class Domain(Base, Validatable):
     __tablename__ = "domains"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), unique=True, nullable=False)
+    extracted_texts = relationship(
+        "ExtractedText", backref="domain", cascade="all, delete-orphan"
+    )
 
 
 class ExtractedText(Base, Validatable):
     __tablename__ = "extracted_texts"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    domain_id = Column(Integer, ForeignKey("domains.id"), nullable=False)
+    domain_id = Column(
+        Integer, ForeignKey("domains.id", ondelete="CASCADE"), nullable=False
+    )
     name = Column(String(255), nullable=False)
     type = Column(String(10), nullable=False)
     original_name = Column(String(255), nullable=False)
     text = deferred(Column(LONGBLOB, nullable=False))
-    domain = relationship("Domain", backref="extracted_texts")
-    __table_args__ = (
-        UniqueConstraint("name", "domain_id", "type", name="_name_domain_id_type_uc"),
-    )
 
 
 class ChunkProcess(Base):
     __tablename__ = "chunk_processes"
     id = Column(Integer, primary_key=True, autoincrement=True)
     extracted_text_id = Column(
-        Integer, ForeignKey("extracted_texts.id"), nullable=False
+        Integer, ForeignKey("extracted_texts.id", ondelete="CASCADE"), nullable=False
     )
     parameters = Column(MutableDict.as_mutable(JSON))
     method = Column(String(50), nullable=False)
@@ -68,7 +60,9 @@ class ChunkProcess(Base):
 class Chunk(Base):
     __tablename__ = "chunks"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    chunk_process_id = Column(Integer, ForeignKey("chunk_processes.id"), nullable=False)
+    chunk_process_id = Column(
+        Integer, ForeignKey("chunk_processes.id", ondelete="CASCADE"), nullable=False
+    )
     index = Column(Integer, nullable=False)
     chunk = deferred(Column(LONGBLOB, nullable=False))
     chunk_process = relationship("ChunkProcess", backref="chunks")
@@ -83,26 +77,27 @@ class EmbeddingProcess(Base, Validatable):
     __tablename__ = "embedding_processes"
     id = Column(Integer, primary_key=True, autoincrement=True)
     extracted_text_id = Column(
-        Integer, ForeignKey("extracted_texts.id"), nullable=False
+        Integer, ForeignKey("extracted_texts.id", ondelete="CASCADE"), nullable=False
     )
     method = Column(String(255), nullable=False)
     parameters = Column(MutableDict.as_mutable(JSON), nullable=False)
-
     extracted_text = relationship("ExtractedText", backref="embedding_processes")
 
 
 class Embedding(Base):
     __tablename__ = "embeddings"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    chunk_id = Column(Integer, ForeignKey("chunks.id"), nullable=False)
+    chunk_id = Column(
+        Integer, ForeignKey("chunks.id", ondelete="CASCADE"), nullable=False
+    )
     embedding_process_id = Column(
-        Integer, ForeignKey("embedding_processes.id"), nullable=False
+        Integer,
+        ForeignKey("embedding_processes.id", ondelete="CASCADE"),
+        nullable=False,
     )
     embedding = deferred(Column(LONGBLOB, nullable=False))
-
     chunk = relationship("Chunk", backref="embeddings")
     embedding_process = relationship("EmbeddingProcess", backref="embeddings")
-
     __table_args__ = (
         Index("ix_embeddings_chunk_id", "chunk_id"),
         Index("ix_embeddings_embedding_process_id", "embedding_process_id"),
