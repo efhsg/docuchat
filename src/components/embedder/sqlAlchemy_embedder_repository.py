@@ -48,7 +48,7 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
             .all()
         )
 
-    def list_chunk_processes_by_text(self, extracted_text_id):
+    def list_chunk_processes_by_text_id(self, extracted_text_id):
         return (
             self.session.query(ChunkProcess)
             .filter(ChunkProcess.extracted_text_id == extracted_text_id)
@@ -71,11 +71,11 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
             raise
 
     def create_embedding_process(
-        self, extracted_text_id: int, method: str, parameters: Dict
+        self, chunk_process_id: int, method: str, parameters: dict
     ) -> int:
         try:
             embedding_process = EmbeddingProcess(
-                extracted_text_id=extracted_text_id,
+                chunk_process_id=chunk_process_id,
                 method=method,
                 parameters=parameters,
             )
@@ -120,23 +120,23 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
             )
             raise
 
-    def list_embedding_processes_by_text(
-        self, extracted_text_id: int
+    def list_embedding_processes_by_chunk_process_id(
+        self, chunk_process_id: int
     ) -> List[EmbeddingProcess]:
         try:
             embedding_processes = (
                 self.session.query(EmbeddingProcess)
-                .filter(EmbeddingProcess.extracted_text_id == extracted_text_id)
+                .filter(EmbeddingProcess.chunk_process_id == chunk_process_id)
                 .all()
             )
             return embedding_processes
         except SQLAlchemyError as e:
             self.logger.error(
-                f"Failed to list embedding processes by text ID {extracted_text_id}: {e}"
+                f"Failed to list embedding processes by chunk process ID {chunk_process_id}: {e}"
             )
             raise
 
-    def list_embeddings_by_process(
+    def list_embeddings_by_process_id(
         self, embedding_process: EmbeddingProcess
     ) -> List[Embedding]:
         try:
@@ -159,7 +159,7 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
             self.logger.error(f"Failed to update embedding process: {e}")
             raise
 
-    def delete_embeddings_by_process(self, embedding_process_id: int) -> None:
+    def delete_embeddings_by_process_id(self, embedding_process_id: int) -> None:
         try:
             embeddings = self.session.query(Embedding).filter(
                 Embedding.embedding_process_id == embedding_process_id
@@ -175,8 +175,6 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
 
     def delete_embedding_process(self, embedding_process_id: int) -> None:
         try:
-            self.delete_embeddings_by_process(embedding_process_id)
-
             embedding_process = (
                 self.session.query(EmbeddingProcess)
                 .filter(EmbeddingProcess.id == embedding_process_id)

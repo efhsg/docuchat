@@ -48,11 +48,11 @@ def main():
         )
         if selected_text:
             selected_chunk_process_id = select_chunk_process(
-                embedder_repository.list_chunk_processes_by_text(selected_text.id)
+                embedder_repository.list_chunk_processes_by_text_id(selected_text.id)
             )
     if selected_chunk_process_id:
-        create_embedding_processes(selected_text.id, selected_chunk_process_id)
-    manage_embedding_processes(selected_text.id)
+        create_embedding_processes(selected_chunk_process_id)
+    manage_embedding_processes(selected_chunk_process_id)
 
 
 def setup_session_state():
@@ -103,7 +103,7 @@ def select_chunk_process(chunk_processes):
     return chunk_process_options[selected_label]
 
 
-def create_embedding_processes(selected_text_id, selected_chunk_process_id):
+def create_embedding_processes(selected_chunk_process_id):
     embedder_options = embedder_config.embedder_options
 
     with st.container(border=True):
@@ -128,7 +128,6 @@ def create_embedding_processes(selected_text_id, selected_chunk_process_id):
             try:
                 save_form_values_to_context(updated_form_values)
                 process_chunks_to_embed(
-                    selected_text_id,
                     selected_chunk_process_id,
                     method,
                     updated_form_values,
@@ -151,15 +150,13 @@ def select_method(method_options):
     return method
 
 
-def process_chunks_to_embed(
-    selected_text_id, selected_chunk_process_id, method, values
-):
+def process_chunks_to_embed(selected_chunk_process_id, method, values):
     with st.spinner("Embedding..."):
         embedder: Embedder = embedder_factory.create_embedder(method, **values)
 
         values["name"] = generate_default_name()
         embedding_process_id = embedder_repository.create_embedding_process(
-            extracted_text_id=selected_text_id,
+            chunk_process_id=selected_chunk_process_id,
             method=method,
             parameters=values,
         )
@@ -192,8 +189,10 @@ def manage_embedding_processes(selected_text_id):
     if selected_text_id is None:
         return
 
-    embedding_sessions = embedder_repository.list_embedding_processes_by_text(
-        selected_text_id
+    embedding_sessions = (
+        embedder_repository.list_embedding_processes_by_chunk_process_id(
+            selected_text_id
+        )
     )
     if not embedding_sessions:
         st.write("No embedding sessions found for this text.")
@@ -226,7 +225,7 @@ def show_process_header(session):
     method_display = f"{session.method} ({session.parameters['name']})"
     embedder_options = embedder_config.embedder_options[session.method]
 
-    embeddings = embedder_repository.list_embeddings_by_process(session)
+    embeddings = embedder_repository.list_embeddings_by_process_id(session)
     embedding_count = 0 if embeddings is None else len(embeddings)
 
     fields_order = embedder_options.get(
@@ -240,9 +239,8 @@ def show_process_header(session):
             if key in session.parameters
         ]
     )
-
     st.markdown(
-        f"**{method_display}**\n\n{fields_display} ({embedding_count} embeddings)"
+        f"**{method_display}**, {fields_display} ({embedding_count} embeddings)"
     )
 
 

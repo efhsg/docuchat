@@ -55,6 +55,7 @@ class ChunkProcess(Base):
     parameters = Column(MutableDict.as_mutable(JSON))
     method = Column(String(50), nullable=False)
     extracted_text = relationship("ExtractedText", backref="chunk_processes")
+    embedding_processes = relationship("EmbeddingProcess", backref="chunk_process")
 
 
 class Chunk(Base):
@@ -65,7 +66,6 @@ class Chunk(Base):
     )
     index = Column(Integer, nullable=False)
     chunk = deferred(Column(LONGBLOB, nullable=False))
-    chunk_process = relationship("ChunkProcess", backref="chunks")
     __table_args__ = (
         UniqueConstraint(
             "chunk_process_id", "index", name="_chunk_process_id_index_uc"
@@ -76,12 +76,11 @@ class Chunk(Base):
 class EmbeddingProcess(Base, Validatable):
     __tablename__ = "embedding_processes"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    extracted_text_id = Column(
-        Integer, ForeignKey("extracted_texts.id", ondelete="CASCADE"), nullable=False
+    chunk_process_id = Column(
+        Integer, ForeignKey("chunk_processes.id", ondelete="CASCADE"), nullable=False
     )
     method = Column(String(255), nullable=False)
     parameters = Column(MutableDict.as_mutable(JSON), nullable=False)
-    extracted_text = relationship("ExtractedText", backref="embedding_processes")
 
 
 class Embedding(Base):
@@ -96,8 +95,6 @@ class Embedding(Base):
         nullable=False,
     )
     embedding = deferred(Column(LONGBLOB, nullable=False))
-    chunk = relationship("Chunk", backref="embeddings")
-    embedding_process = relationship("EmbeddingProcess", backref="embeddings")
     __table_args__ = (
         Index("ix_embeddings_chunk_id", "chunk_id"),
         Index("ix_embeddings_embedding_process_id", "embedding_process_id"),

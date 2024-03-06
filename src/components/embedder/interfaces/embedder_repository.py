@@ -7,7 +7,7 @@ from components.database.models import (
     EmbeddingProcess,
     ExtractedText,
 )
-from typing import List, Tuple
+from typing import List
 
 
 class EmbedderRepository(ABC):
@@ -21,7 +21,7 @@ class EmbedderRepository(ABC):
     ) -> List[ExtractedText]: ...
 
     @abstractmethod
-    def list_chunk_processes_by_text(
+    def list_chunk_processes_by_text_id(
         self, extracted_text_id: int
     ) -> List[ChunkProcess]: ...
 
@@ -30,7 +30,7 @@ class EmbedderRepository(ABC):
 
     @abstractmethod
     def create_embedding_process(
-        self, extracted_text_id: int, method: str, parameters: dict
+        self, chunk_process_id: int, method: str, parameters: dict
     ) -> int: ...
 
     @abstractmethod
@@ -39,19 +39,23 @@ class EmbedderRepository(ABC):
     ) -> None: ...
 
     @abstractmethod
-    def list_embedding_processes_by_text(
-        selected_text_d: int,
+    def list_embedding_processes_by_chunk_process_id(
+        self,
+        chunk_process_id: int,
     ) -> List[EmbeddingProcess]: ...
 
-    def list_embeddings_by_process(
-        self, embedding_process: EmbeddingProcess
+    @abstractmethod
+    def list_embeddings_by_process_id(
+        self, embedding_process_id: int
     ) -> List[Embedding]: ...
 
     @abstractmethod
-    def update_embedding_process(self, embedding_process: EmbeddingProcess) -> None: ...
+    def update_embedding_process(
+        self, embedding_process_id: int, parameters: dict
+    ) -> None: ...
 
     @abstractmethod
-    def delete_embeddings_by_process(self, embedding_process_id: int) -> None: ...
+    def delete_embeddings_by_process_id(self, embedding_process_id: int) -> None: ...
 
     @abstractmethod
     def delete_embedding_process(self, embedding_process_id: int) -> None: ...
