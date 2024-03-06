@@ -93,26 +93,30 @@ def get_existing_domains():
 
 
 def domain_management_form(selected_domain):
-    with st.sidebar.form("manage_domain_form", clear_on_submit=True):
-        new_domain_name = st.text_input("New Domain Name ", key="update_domain_input")
+    with st.sidebar.form("manage_domain_form", clear_on_submit=False):
+        new_domain_name = st.text_input("New Domain Name", key="update_domain_input")
         col1, col2 = st.columns([1, 2])
         with col1:
             update_domain_button = st.form_submit_button("Update")
+
         with col2:
             delete_domain_button = st.form_submit_button(label="🗑️ Delete")
 
-    if delete_domain_button and selected_domain:
-        try:
-            reader_repository.delete_domain(selected_domain)
-            st.session_state["message"] = (
-                f"Domain '{selected_domain}' deleted successfully!",
-                "success",
-            )
-            st.session_state["context_domain"] = None
-            st.session_state["select_all_texts"] = False
-        except Exception as e:
-            st.session_state["message"] = (str(e), "error")
-        st.rerun()
+        if delete_domain_button:
+            confirm_delete = st.checkbox(f"Confirm to delete '{selected_domain}'")
+            if confirm_delete:
+                try:
+                    reader_repository.delete_domain(selected_domain)
+                    st.session_state["message"] = (
+                        f"Domain '{selected_domain}' deleted successfully!",
+                        "success",
+                    )
+                    st.session_state["context_domain"] = None
+                    st.session_state["select_all_texts"] = False
+                except Exception as e:
+                    st.session_state["message"] = (str(e), "error")
+                finally:
+                    st.rerun()
 
     if update_domain_button and selected_domain and new_domain_name:
         try:
