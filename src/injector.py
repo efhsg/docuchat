@@ -90,7 +90,9 @@ def get_embedder_config():
 
 
 def get_embedder_factory() -> EmbedderFactory:
-    return ConfigBasedEmbedderFactory()
+    return ConfigBasedEmbedderFactory(
+        logger=NativeLogger.get_logger("docuchat"),
+    )
 
 
 def get_retriever_factory() -> RetrieverFactory:
