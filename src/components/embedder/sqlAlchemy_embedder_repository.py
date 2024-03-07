@@ -1,5 +1,4 @@
-import base64
-from typing import Dict, List
+from typing import List
 from sqlalchemy import exists
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -100,15 +99,13 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
                 .one_or_none()
             )
 
-            embedding_bytes = base64.b64decode(embedding)
-
             if existing_embedding:
-                existing_embedding.embedding = embedding_bytes
+                existing_embedding.embedding = embedding
             else:
                 new_embedding = Embedding(
                     embedding_process_id=embedding_process_id,
                     chunk_id=chunk_id,
-                    embedding=embedding_bytes,
+                    embedding=embedding,
                 )
                 self.session.add(new_embedding)
 

@@ -4,7 +4,7 @@ from PIL import Image
 from datetime import datetime
 from datetime import datetime
 from typing import Dict, List, Union, Any
-from components.database.models import ExtractedText
+from components.database.models import Domain, ExtractedText
 from injector import get_config, get_logger
 from operator import lt, le, gt, ge, eq, ne
 
@@ -32,7 +32,7 @@ def show_messages():
         st.session_state["message"] = (None, None)
 
 
-def select_domain(domain_options):
+def select_domain(domain_options: List[str]) -> str:
     return st.sidebar.selectbox(
         label="Select Domain",
         options=domain_options,
@@ -42,6 +42,21 @@ def select_domain(domain_options):
             context_domain=st.session_state["selected_domain"], select_all_texts=False
         ),
     )
+
+
+def select_domain_instance(domain_options: List[Domain]) -> Domain:
+    if not domain_options:
+        return None
+
+    domain_names = [domain.name for domain in domain_options]
+
+    selected_domain_name = select_domain(domain_names)
+    
+    for domain in domain_options:
+        if domain.name == selected_domain_name:
+            return domain
+
+    return None
 
 
 def select_texts(text_options: List[ExtractedText]) -> ExtractedText:

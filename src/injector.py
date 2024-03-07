@@ -19,6 +19,15 @@ from components.reader.zlib_text_compressor import ZlibTextCompressor
 from components.reader.interfaces.text_extractor import TextExtractor
 from components.reader.file_text_extractor import FileTextExtractor
 from components.logger.native_logger import NativeLogger
+from components.retriever.config_based_retriever_factory import (
+    ConfigBasedRetrieverFactory,
+)
+from components.retriever.interfaces.retriever_factory import RetrieverFactory
+from components.retriever.interfaces.retriever_repository import RetrieverRepository
+from components.retriever.retriever_config import RetrieverConfig
+from components.retriever.sqlAlchemy_retriever_repository import (
+    SqlAlchemyRetrieverRepository,
+)
 from config import Config
 
 
@@ -82,3 +91,22 @@ def get_embedder_config():
 
 def get_embedder_factory() -> EmbedderFactory:
     return ConfigBasedEmbedderFactory()
+
+
+def get_retriever_factory() -> RetrieverFactory:
+    return ConfigBasedRetrieverFactory(
+        connector=MySQLConnector(),
+        logger=NativeLogger.get_logger("docuchat"),
+    )
+
+
+def get_retriever_repository() -> RetrieverRepository:
+    return SqlAlchemyRetrieverRepository(
+        connector=MySQLConnector(),
+        compressor=ZlibTextCompressor(),
+        logger=NativeLogger.get_logger("docuchat"),
+    )
+
+
+def get_retriever_config():
+    return RetrieverConfig()
