@@ -11,4 +11,5 @@ alembic
 langchain
 spacy
 sentence_transformers
+pymilvus==2.3.6
 groq

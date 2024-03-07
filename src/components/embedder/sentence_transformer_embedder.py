@@ -1,5 +1,4 @@
 import pickle
-import base64
 from typing import List, Tuple
 from sentence_transformers import SentenceTransformer
 from .interfaces.embedder import Embedder
@@ -8,7 +7,12 @@ from .interfaces.embedder import Embedder
 class SentenceTransformerEmbedder(Embedder):
     def __init__(self, model: str = "all-MiniLM-L6-v2"):
         self.model_name = model
-        self.model = SentenceTransformer(model)
+        try:
+            self.model = SentenceTransformer(model)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to download or load the SentenceTransformer model '{model}'. Error: {e}"
+            )
 
     def embed(self, chunks: List[Tuple[int, str]]) -> List[Tuple[int, bytes]]:
         chunk_ids, texts = zip(*chunks)

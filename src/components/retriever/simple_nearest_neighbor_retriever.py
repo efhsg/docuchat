@@ -12,19 +12,24 @@ class SimpleNearestNeighborRetriever(Retriever):
     def __init__(
         self, session: Session, logger: StandardLogger = None, top_n: int = 5
     ) -> None:
-        self.session: Session = session
-        self.logger: StandardLogger = logger
-        self.top_n: int = top_n
+        self.session = session
+        self.logger = logger
+        self.top_n = top_n
 
     def retrieve(
         self, domain_id: int, query_vector: List[float]
     ) -> List[Tuple[int, float]]:
-        embeddings: List[Embedding] = self._fetch_embeddings(domain_id)
-        embeddings_matrix: np.ndarray = self._deserialize_embeddings(embeddings)
-        query_vector_array: np.ndarray = np.array(query_vector).reshape(1, -1)
-        similarities: np.ndarray = self._compute_similarities(
-            query_vector_array, embeddings_matrix
-        )
+        embeddings = self._fetch_embeddings(domain_id)
+        if not embeddings:
+            return []
+        embeddings_matrix = self._deserialize_embeddings(embeddings)
+        if embeddings_matrix.shape[1] != len(query_vector):
+            error_msg = f"Incompatible dimension for query vector and embeddings matrix: {len(query_vector)} vs {embeddings_matrix.shape[1]}"
+            if self.logger:
+                self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        query_vector_array = np.array(query_vector).reshape(1, -1)
+        similarities = self._compute_similarities(query_vector_array, embeddings_matrix)
         return self._get_top_similar_embeddings(embeddings, similarities)
 
     def get_configuration(self) -> dict:
@@ -51,5 +56,5 @@ class SimpleNearestNeighborRetriever(Retriever):
     def _get_top_similar_embeddings(
         self, embeddings: List[Embedding], similarities: np.ndarray
     ) -> List[Tuple[int, float]]:
-        top_indices: np.ndarray = np.argsort(similarities)[-self.top_n :][::-1]
+        top_indices = np.argsort(similarities)[-self.top_n :][::-1]
         return [(embeddings[i].id, similarities[i]) for i in top_indices]

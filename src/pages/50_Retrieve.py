@@ -136,13 +136,20 @@ def display_retriever(retriever):
             st.rerun()
 
 
-def query(domain_id: int, embedder: Embedder, retriever: Retriever):
+def query(domain_id: int, embedder, retriever):
     query_text = st.text_input("Enter your query:")
     if query_text:
-        serialized_query_vector = convert_query_to_vector(query_text, embedder)[0][1]
-        query_vector = pickle.loads(serialized_query_vector)
-        embeddings = retriever.retrieve(domain_id=domain_id, query_vector=query_vector)
-        display_embeddings(embeddings)
+        try:
+            serialized_query_vector = convert_query_to_vector(query_text, embedder)[0][
+                1
+            ]
+            query_vector = pickle.loads(serialized_query_vector)
+            embeddings = retriever.retrieve(
+                domain_id=domain_id, query_vector=query_vector
+            )
+            display_embeddings(embeddings)
+        except RuntimeError as e:
+            st.error(f"Error retrieving embeddings: {e}")
 
 
 def convert_query_to_vector(query: str, embedder: Embedder) -> list:
