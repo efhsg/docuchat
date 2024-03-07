@@ -7,7 +7,7 @@ import pages.utils.utils as utils
 logger = get_logger()
 
 
-def manage_extracted_data(
+def manage_extracted_text(
     reader_repository: ReaderRepository, selected_domain: str, uploading: bool
 ) -> None:
     st.title(f"Texts in {selected_domain}")

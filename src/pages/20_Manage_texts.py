@@ -2,7 +2,6 @@ import streamlit as st
 from components.database.models import ExtractedText
 from injector import get_config, get_logger, get_reader_repository, get_compressor
 from pages.utils.utils import (
-    extracted_text_original_name_to_label,
     get_index,
     select_texts,
     set_default_state,
@@ -113,9 +112,7 @@ def handle_text_rename(selected_domain: str, selected_text: ExtractedText):
 
     with st.form("Rename_text", clear_on_submit=False):
         new_name = st.text_input("Rename text", value=selected_text.name)
-        st.write(
-            f"Original name: {extracted_text_original_name_to_label(selected_text)}"
-        )
+        st.write(f"Original name: {(selected_text.original_name)}")
         save_text_name = st.form_submit_button(label="Save")
 
     if save_text_name:

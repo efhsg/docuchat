@@ -34,8 +34,7 @@ class SimpleNearestNeighborRetriever(Retriever):
         similarities = cosine_similarity(
             query_vector_array, embeddings_matrix
         ).flatten()
-        # top_indices = np.argsort(similarities)[-self.top_n :]
-        top_indices = np.argsort(similarities)[::-1][: self.top_n]
+        top_indices = np.argsort(similarities)[-self.top_n :]
 
         return [(embeddings[i].id, similarities[i]) for i in top_indices]
 

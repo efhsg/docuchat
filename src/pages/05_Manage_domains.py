@@ -2,7 +2,7 @@ import re
 import streamlit as st
 from components.database.models import Domain
 from injector import get_logger, get_reader_repository
-from pages.utils.extracted_data import manage_extracted_data
+from pages.utils.extracted_data import manage_extracted_text
 from pages.utils.utils import (
     set_default_state,
     setup_page,
@@ -134,7 +134,7 @@ def domain_management_form(selected_domain):
 def extracted_data(selected_domain):
     if selected_domain:
         with st.sidebar:
-            manage_extracted_data(
+            manage_extracted_text(
                 reader_repository,
                 selected_domain,
                 uploading=st.session_state.get("uploading", False),

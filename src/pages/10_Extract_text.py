@@ -1,5 +1,4 @@
 from typing import List
-from urllib.parse import urlparse
 import streamlit as st
 from injector import (
     get_config,
@@ -8,8 +7,10 @@ from injector import (
     get_logger,
     get_web_extractor,
 )
-from pages.utils.extracted_data import manage_extracted_data
+from pages.utils.extracted_data import manage_extracted_text
 from pages.utils.utils import (
+    filename_extension_to_label,
+    filename_to_label,
     get_index,
     set_default_state,
     setup_page,
@@ -32,13 +33,14 @@ def main():
     if selected_domain is None:
         st.info("First add a domain")
         return
-    manage_extracted(selected_domain)
+    extracted_text(selected_domain)
     extract(selected_domain)
 
 
 def setup_session_state() -> None:
     DEFAULT_SESSION_STATES = [
         ("context_domain", None),
+        ("context_text", None),
         ("context_source_type", None),
         ("select_all_texts", False),
         ("uploading", False),
@@ -52,9 +54,9 @@ def setup_session_state() -> None:
         set_default_state(state_name, default_value)
 
 
-def manage_extracted(selected_domain):
+def extracted_text(selected_domain):
     with st.sidebar:
-        manage_extracted_data(
+        manage_extracted_text(
             reader_repository,
             selected_domain,
             uploading=st.session_state.get("uploading", False),
@@ -97,6 +99,11 @@ def upload_files(selected_domain: str) -> None:
                         text,
                     )
                     add_message(f"Done: '{uploaded_file.name}'", "info")
+                    st.session_state.update(
+                        context_text=filename_extension_to_label(
+                            file_name, file_extension
+                        )
+                    )
                 except Exception as e:
                     add_message(
                         f"Failed to process: '{uploaded_file.name}'. Error: {e}",
@@ -154,6 +161,11 @@ def scrape_website(selected_domain):
                                 selected_domain, file_name, file_extension, url, text
                             )
                             add_message(f"Done: '{file_name}'", "info")
+                            st.session_state.update(
+                                context_text=filename_extension_to_label(
+                                    file_name, file_extension
+                                )
+                            )
                         except Exception as e:
                             add_message(
                                 f"Failed to process: '{file_name}'. Error: {e}", "error"

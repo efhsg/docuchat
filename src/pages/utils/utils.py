@@ -51,7 +51,7 @@ def select_domain_instance(domain_options: List[Domain]) -> Domain:
     domain_names = [domain.name for domain in domain_options]
 
     selected_domain_name = select_domain(domain_names)
-    
+
     for domain in domain_options:
         if domain.name == selected_domain_name:
             return domain
@@ -114,12 +114,15 @@ def extracted_text_to_label(extracted_text: ExtractedText):
     return f"{extracted_text.name} ({extracted_text.type.lstrip('.')})"
 
 
-def extracted_text_original_name_to_label(extracted_text: ExtractedText):
-    base_filename, extension = os.path.splitext(extracted_text.original_name)
-    if extension:
-        return f"({base_filename} {extension.lstrip('.')})"
+def filename_to_label(filename: str) -> str:
+    if "." in filename:
+        file_name, file_extension = filename.rsplit(".", 1)
+        file_extension = file_extension.lower()
     else:
-        return base_filename
+        file_name = filename
+        file_extension = ""
+    clean_extension = file_extension.lstrip(".")
+    return f"{file_name} ({clean_extension})"
 
 
 def filename_extension_to_label(filename: str, extension: str) -> str:
@@ -131,7 +134,7 @@ def url_to_name_and_extension(url: str) -> tuple[str, str]:
     stripped_url = url.split("//")[-1].rstrip("/").lstrip("www.")
     current_date = datetime.utcnow().strftime("%Y%m%d")
     filename = f"{stripped_url}_{current_date}"
-    extension = ".web"
+    extension = "web"
 
     if len(filename) + len(extension) > 255:
         max_length = 255 - len(current_date) - len(extension) - 1
