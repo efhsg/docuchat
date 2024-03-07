@@ -162,9 +162,8 @@ def display_embeddings(embeddings: list):
                     chunk, text_file_name = chunk_with_filename
                     text_content = compressor.decompress(chunk.chunk)
                     chunk_size = len(text_content)
-                    st.write(f"Embedding ID: {embedding_id}, Score: {score:.4f}")
                     st.write(
-                        f"Source: {extracted_text_to_label(text_file_name)}"
+                        f"Score: {score:.4f}, {extracted_text_to_label(text_file_name)}"
                     )
                     st.text_area(
                         label=f"Chunk: {chunk.index + 1} (Size: {chunk_size} characters)",
