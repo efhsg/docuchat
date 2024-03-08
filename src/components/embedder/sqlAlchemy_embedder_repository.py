@@ -1,7 +1,7 @@
 from typing import List
 from sqlalchemy import exists
 from sqlalchemy.exc import SQLAlchemyError
-
+from sqlalchemy.orm.exc import NoResultFound
 
 from components.database.interfaces.connector import Connector
 from components.reader.interfaces.text_compressor import TextCompressor
@@ -189,5 +189,49 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
             self.session.rollback()
             self.logger.error(
                 f"Failed to delete embedding process ID {embedding_process_id}: {e}"
+            )
+            raise
+
+    def list_unembedded_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
+        try:
+            domain = self.session.query(Domain).filter_by(name=domain_name).one()
+            unembedded_texts = (
+                self.session.query(ExtractedText)
+                .join(ChunkProcess, ExtractedText.id == ChunkProcess.extracted_text_id)
+                .outerjoin(Chunk, ChunkProcess.id == Chunk.chunk_process_id)
+                .outerjoin(Embedding, Chunk.id == Embedding.chunk_id)
+                .filter(ExtractedText.domain_id == domain.id, Embedding.id == None)
+                .distinct()
+                .order_by(ExtractedText.name)
+                .all()
+            )
+            return unembedded_texts
+        except NoResultFound:
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list unembedded texts for domain '{domain_name}'. Error: {e}"
+            )
+            raise
+
+    def list_embedded_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
+        try:
+            domain = self.session.query(Domain).filter_by(name=domain_name).one()
+            embedded_texts = (
+                self.session.query(ExtractedText)
+                .join(ChunkProcess, ExtractedText.id == ChunkProcess.extracted_text_id)
+                .join(Chunk, ChunkProcess.id == Chunk.chunk_process_id)
+                .join(Embedding, Chunk.id == Embedding.chunk_id)
+                .filter(ExtractedText.domain_id == domain.id)
+                .distinct()
+                .order_by(ExtractedText.name)
+                .all()
+            )
+            return embedded_texts
+        except NoResultFound:
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list embedded texts for domain '{domain_name}'. Error: {e}"
             )
             raise

@@ -53,13 +53,24 @@ def main():
         manage_chunk_processes(selected_text)
 
 
+def setup_session_state():
+    default_session_states = [
+        ("message", (None, None)),
+        ("context_domain", None),
+        ("context_text", None),
+        ("context_chunk_method", None),
+    ]
+    for state_name, default_value in default_session_states:
+        set_default_state(state_name, default_value)
+
+
 def text_selector(selected_domain):
     text_options = (
         chunker_repository.list_unchunked_texts_by_domain(selected_domain)
-        if st.session_state.get("filter_unchunked_texts", False)
+        if st.session_state.get("context_filter_unchunked", False)
         else (
             chunker_repository.list_chunked_texts_by_domain(selected_domain)
-            if st.session_state.get("filter_chunked_texts", False)
+            if st.session_state.get("context_filter_chunked", False)
             else reader_repository.list_texts_by_domain(selected_domain)
         )
     )
@@ -70,28 +81,27 @@ def text_selector(selected_domain):
         with col1:
             st.checkbox(
                 label="Only without chunks",
-                key="filter_unchunked_texts",
-                on_change=lambda: st.session_state.update(filter_chunked_texts=False),
+                key="filter_unchunked",
+                value=st.session_state.get("context_filter_unchunked", False),
+                on_change=lambda: st.session_state.update(
+                    filter_chunked=False,
+                    context_filter_chunked=False,
+                    context_filter_unchunked=st.session_state["filter_unchunked"],
+                ),
             )
         with col2:
             st.checkbox(
                 label="Only with chunks",
-                key="filter_chunked_texts",
-                on_change=lambda: st.session_state.update(filter_unchunked_texts=False),
+                key="filter_chunked",
+                value=st.session_state.get("context_filter_chunked", False),
+                on_change=lambda: st.session_state.update(
+                    filter_unchunked=False,
+                    context_filter_unchunked=False,
+                    context_filter_chunked=st.session_state["filter_chunked"],
+                ),
             )
 
     return selected_text
-
-
-def setup_session_state():
-    default_session_states = [
-        ("message", (None, None)),
-        ("context_domain", None),
-        ("context_text", None),
-        ("context_chunk_method", None),
-    ]
-    for state_name, default_value in default_session_states:
-        set_default_state(state_name, default_value)
 
 
 def create_chunk_processes(selected_text):

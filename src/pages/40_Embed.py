@@ -41,18 +41,14 @@ def main():
         return
     st.title(f"{selected_domain}")
     with st.container(border=True):
-        selected_text = select_texts(
-            embedder_repository.list_extracted_texts_by_domain_with_chunks(
-                selected_domain
-            )
-        )
+        selected_text = text_selector(selected_domain)
         if selected_text:
             selected_chunk_process_id = select_chunk_process(
                 embedder_repository.list_chunk_processes_by_text_id(selected_text.id)
             )
-    if selected_chunk_process_id:
-        create_embedding_processes(selected_chunk_process_id)
-    manage_embedding_processes(selected_chunk_process_id)
+            if selected_chunk_process_id:
+                create_embedding_processes(selected_chunk_process_id)
+            manage_embedding_processes(selected_chunk_process_id)
 
 
 def setup_session_state():
@@ -73,6 +69,50 @@ def list_domain_names_with_chunks():
     ]
 
     return domain_options
+
+
+def text_selector(selected_domain):
+    text_options = (
+        embedder_repository.list_unembedded_texts_by_domain(selected_domain)
+        if st.session_state.get("context_filter_unembedded", False)
+        else (
+            embedder_repository.list_embedded_texts_by_domain(selected_domain)
+            if st.session_state.get("context_filter_embedded", False)
+            else embedder_repository.list_extracted_texts_by_domain_with_chunks(
+                selected_domain
+            )
+        )
+    )
+
+    with st.container(border=True):
+        selected_text = select_texts(text_options)
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            st.checkbox(
+                label="Only without embeddings",
+                key="filter_unembedded",
+                value=st.session_state.get("context_filter_unembedded", False),
+                on_change=lambda: st.session_state.update(
+                    filter_embedded=False,
+                    context_filter_embedded=False,
+                    context_filter_unembedded=st.session_state["filter_unembedded"],
+                ),
+            )
+
+        with col2:
+            st.checkbox(
+                label="Only with embeddings",
+                key="filter_embedded",
+                value=st.session_state.get("context_filter_embedded", False),
+                on_change=lambda: st.session_state.update(
+                    filter_unembedded=False,
+                    context_filter_unembedded=False,
+                    context_filter_embedded=st.session_state["filter_embedded"],
+                ),
+            )
+
+    return selected_text
 
 
 def select_chunk_process(chunk_processes):

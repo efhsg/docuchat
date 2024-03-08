@@ -59,3 +59,13 @@ class EmbedderRepository(ABC):
 
     @abstractmethod
     def delete_embedding_process(self, embedding_process_id: int) -> None: ...
+
+    @abstractmethod
+    def list_unembedded_texts_by_domain(
+        self, domain_name: str
+    ) -> List[ExtractedText]: ...
+
+    @abstractmethod
+    def list_embedded_texts_by_domain(
+        self, domain_name: str
+    ) -> List[ExtractedText]: ...
