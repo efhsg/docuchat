@@ -1,9 +1,12 @@
-from components.database.models import ChunkProcess, Chunk
+from typing import List
+
+from components.database.models import ChunkProcess, Chunk, Domain, ExtractedText
 from .interfaces.chunker_repository import ChunkerRepository
 from components.reader.interfaces.text_compressor import TextCompressor
 from components.database.interfaces.connector import Connector
 from sqlalchemy.exc import SQLAlchemyError
 from logging import Logger as StandardLogger
+from sqlalchemy.orm.exc import NoResultFound
 
 
 class SqlAlchemyChunkerRepository(ChunkerRepository):
@@ -116,4 +119,25 @@ class SqlAlchemyChunkerRepository(ChunkerRepository):
         except SQLAlchemyError as e:
             self.session.rollback()
             self.logger.error(f"Failed to update chunk process: {e}")
+            raise
+
+    def list_unchunked_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
+        try:
+            domain = self.session.query(Domain).filter_by(name=domain_name).one()
+            unchunked_texts = (
+                self.session.query(ExtractedText)
+                .outerjoin(
+                    ChunkProcess, ExtractedText.id == ChunkProcess.extracted_text_id
+                )
+                .filter(ExtractedText.domain_id == domain.id, ChunkProcess.id == None)
+                .order_by(ExtractedText.name)
+                .all()
+            )
+            return unchunked_texts
+        except NoResultFound:
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list unchunked texts for domain '{domain_name}'. Error: {e}"
+            )
             raise

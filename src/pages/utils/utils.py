@@ -76,8 +76,6 @@ def select_texts(text_options: List[ExtractedText]) -> ExtractedText:
         if extracted_text_to_label(text) == selected_label:
             return text
 
-    raise ValueError("Selected text not found.")
-
 
 def set_default_state(
     key: str, default: Union[bool, List, Dict[str, int], int]

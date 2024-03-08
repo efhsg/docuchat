@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 from components.database.models import (
     Chunk,
     ChunkProcess,
+    ExtractedText,
 )
 
 
@@ -46,4 +47,8 @@ class ChunkerRepository(ABC):
 
     @abstractmethod
     def update_chunk_process(self, chunk_process: ChunkProcess) -> None:
+        pass
+
+    @abstractmethod
+    def list_unchunked_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
         pass
