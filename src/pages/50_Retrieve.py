@@ -54,8 +54,10 @@ def main():
     if st.session_state.get("context_embedder", None):
         embedder: Embedder = st.session_state.get("context_embedder")
         display_embedder(embedder)
-        if st.session_state.get("context_retriever", None):
-            retriever: Retriever = st.session_state.get("context_retriever")
+        if st.session_state.get(
+            "context_retriever_method", None
+        ) and st.session_state.get("context_retriever_values", None):
+            retriever: Retriever = create_retriever()
             display_retriever(retriever)
             query(selected_domain.id, embedder, retriever)
         else:
@@ -119,9 +121,16 @@ def select_retriever():
         "Configure Retriever",
     )
     if updated_form_values:
-        retriever = retriever_factory.create_retriever(method, **updated_form_values)
-        st.session_state["context_retriever"] = retriever
+        st.session_state["context_retriever_method"] = method
+        st.session_state["context_retriever_values"] = updated_form_values
         st.rerun()
+
+
+def create_retriever() -> Retriever:
+    return retriever_factory.create_retriever(
+        st.session_state["context_retriever_method"],
+        **st.session_state["context_retriever_values"],
+    )
 
 
 def display_retriever(retriever):
@@ -132,7 +141,8 @@ def display_retriever(retriever):
         fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
         st.markdown(f"**{method_display}**, {fields_display}")
         if st.button("Change retriever"):
-            st.session_state["context_retriever"] = None
+            st.session_state["context_retriever_method"] = None
+            st.session_state["context_retriever_values"] = None
             st.rerun()
 
 
@@ -191,7 +201,6 @@ def setup_session_state():
     default_session_states = [
         ("context_domain", None),
         ("context_embedder", None),
-        ("context_retriever", None),
     ]
     for state_name, default_value in default_session_states:
         set_default_state(state_name, default_value)
