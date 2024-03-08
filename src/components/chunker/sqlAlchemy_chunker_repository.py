@@ -141,3 +141,23 @@ class SqlAlchemyChunkerRepository(ChunkerRepository):
                 f"Failed to list unchunked texts for domain '{domain_name}'. Error: {e}"
             )
             raise
+
+    def list_chunked_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
+        try:
+            domain = self.session.query(Domain).filter_by(name=domain_name).one()
+            chunked_texts = (
+                self.session.query(ExtractedText)
+                .join(ChunkProcess, ExtractedText.id == ChunkProcess.extracted_text_id)
+                .filter(ExtractedText.domain_id == domain.id)
+                .distinct()
+                .order_by(ExtractedText.name)
+                .all()
+            )
+            return chunked_texts
+        except NoResultFound:
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list chunked texts for domain '{domain_name}'. Error: {e}"
+            )
+            raise

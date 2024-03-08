@@ -57,16 +57,28 @@ def text_selector(selected_domain):
     text_options = (
         chunker_repository.list_unchunked_texts_by_domain(selected_domain)
         if st.session_state.get("filter_unchunked_texts", False)
-        else reader_repository.list_texts_by_domain(selected_domain)
+        else (
+            chunker_repository.list_chunked_texts_by_domain(selected_domain)
+            if st.session_state.get("filter_chunked_texts", False)
+            else reader_repository.list_texts_by_domain(selected_domain)
+        )
     )
 
     with st.container(border=True):
-        logger.info(st.session_state.get("filter_unchunked_texts", False))
         selected_text = select_texts(text_options)
-        st.checkbox(
-            label="Only show texts without chunk any chunks",
-            key="filter_unchunked_texts",
-        )
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.checkbox(
+                label="Only without chunks",
+                key="filter_unchunked_texts",
+                on_change=lambda: st.session_state.update(filter_chunked_texts=False),
+            )
+        with col2:
+            st.checkbox(
+                label="Only with chunks",
+                key="filter_chunked_texts",
+                on_change=lambda: st.session_state.update(filter_unchunked_texts=False),
+            )
 
     return selected_text
 

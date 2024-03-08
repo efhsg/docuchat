@@ -52,3 +52,7 @@ class ChunkerRepository(ABC):
     @abstractmethod
     def list_unchunked_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
         pass
+
+    @abstractmethod
+    def list_chunked_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
+        pass
