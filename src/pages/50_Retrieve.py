@@ -121,9 +121,10 @@ def select_retriever():
         "Configure Retriever",
     )
     if updated_form_values:
-        st.session_state["context_retriever_method"] = method
-        st.session_state["context_retriever_values"] = updated_form_values
-        st.rerun()
+        if form.validate_form_values(updated_form_values):
+            st.session_state["context_retriever_method"] = method
+            st.session_state["context_retriever_values"] = updated_form_values
+            st.rerun()
 
 
 def create_retriever() -> Retriever:

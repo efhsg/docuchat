@@ -6,6 +6,8 @@ from utils.env_utils import getenv
 
 
 class RetrieverConfig:
+    MIN_TOP_N_SIZE: int = 1
+    MAX_TOP_N_SIZE: int = 100
     retriever_classes = {
         "simple_nearest_neighbor": SimpleNearestNeighborRetriever,
     }
@@ -28,7 +30,22 @@ class RetrieverConfig:
 
     @classmethod
     def _validations(cls, retriever_class):
-        return []
+        validations = []
+        fields = cls._get_fields(retriever_class)
+        if "top_n" in fields:
+            validations.extend(
+                [
+                    {
+                        "rule": ("top_n", "ge", cls.MIN_TOP_N_SIZE),
+                        "message": f"Top N Results must be at least {cls.MIN_TOP_N_SIZE}.",
+                    },
+                    {
+                        "rule": ("top_n", "le", cls.MAX_TOP_N_SIZE),
+                        "message": f"Top N Results must not exceed {cls.MAX_TOP_N_SIZE}.",
+                    },
+                ]
+            )
+        return validations
 
     @classmethod
     def _constants(cls, retriever_class):
