@@ -13,10 +13,12 @@ from injector import (
     get_embedder_factory,
     get_logger,
     get_compressor,
+    get_reader_repository,
     get_retriever_config,
     get_retriever_factory,
     get_retriever_repository,
 )
+from pages.utils.extracted_data import manage_extracted_text
 from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
     extracted_text_to_label,
@@ -35,6 +37,7 @@ retriever_config = get_retriever_config()
 embedder_config = get_embedder_config()
 embedder_factory: EmbedderFactory = get_embedder_factory()
 compressor: TextCompressor = get_compressor()
+reader_repository = get_reader_repository()
 
 
 def main():
@@ -48,6 +51,8 @@ def main():
     if selected_domain is None:
         st.info("First embed some texts")
         return
+    else:
+        extracted_data(selected_domain)
 
     st.title(f"{selected_domain.name}")
 
@@ -64,6 +69,29 @@ def main():
             select_retriever()
     else:
         select_embedder()
+
+
+def extracted_data(selected_domain):
+    with st.sidebar:
+        st.title(f"Texts to use")
+        extracted_texts = reader_repository.list_texts_by_domain(selected_domain.name)
+        with st.container(border=True):
+            st.session_state["texts_to_use"] = {
+                extracted_text: st.checkbox(
+                    label=extracted_text_to_label(extracted_text),
+                    value=st.session_state["use_all_texts"],
+                    key=f"{extracted_text.name}.{extracted_text.type}",
+                )
+                for extracted_text in extracted_texts
+            }
+        st.checkbox(
+            "Select all texts",
+            key="select_all_texts_toggle",
+            on_change=lambda: st.session_state.update(
+                use_all_texts=not st.session_state["use_all_texts"]
+            ),
+            value=st.session_state["use_all_texts"],
+        )
 
 
 def select_embedder():
@@ -147,16 +175,30 @@ def display_retriever(retriever):
             st.rerun()
 
 
-def query(domain_id: int, embedder, retriever):
+def query(domain_id: int, embedder: Embedder, retriever: Retriever):
     query_text = st.text_input("Enter your query:")
+    if st.button("Submit Query") or query_text:
+        _run_query(query_text, domain_id, embedder, retriever)
+
+
+def _run_query(
+    query_text: str, domain_id: int, embedder: Embedder, retriever: Retriever
+):
     if query_text:
+        selected_text_ids = [
+            int(extracted_text.id)
+            for extracted_text, is_checked in st.session_state["texts_to_use"].items()
+            if is_checked
+        ]
         try:
             serialized_query_vector = convert_query_to_vector(query_text, embedder)[0][
                 1
             ]
             query_vector = pickle.loads(serialized_query_vector)
             embeddings = retriever.retrieve(
-                domain_id=domain_id, query_vector=query_vector
+                domain_id=domain_id,
+                query_vector=query_vector,
+                text_ids=selected_text_ids,
             )
             display_embeddings(embeddings)
         except RuntimeError as e:
@@ -202,6 +244,7 @@ def setup_session_state():
     default_session_states = [
         ("context_domain", None),
         ("context_embedder", None),
+        ("use_all_texts", True),
     ]
     for state_name, default_value in default_session_states:
         set_default_state(state_name, default_value)

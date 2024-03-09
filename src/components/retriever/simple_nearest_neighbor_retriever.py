@@ -17,9 +17,9 @@ class SimpleNearestNeighborRetriever(Retriever):
         self.top_n = top_n
 
     def retrieve(
-        self, domain_id: int, query_vector: List[float]
+        self, domain_id: int, query_vector: List[float], text_ids: List[int] = None
     ) -> List[Tuple[int, float]]:
-        embeddings = self._fetch_embeddings(domain_id)
+        embeddings = self._fetch_embeddings(domain_id, text_ids)
         if not embeddings:
             return []
         embeddings_matrix = self._deserialize_embeddings(embeddings)
@@ -35,15 +35,19 @@ class SimpleNearestNeighborRetriever(Retriever):
     def get_configuration(self) -> dict:
         return {"method": "SimpleNearestNeighbor", "params": {"top_n": self.top_n}}
 
-    def _fetch_embeddings(self, domain_id: int) -> List[Embedding]:
-        return (
+    def _fetch_embeddings(
+        self, domain_id: int, text_ids: List[int] = None
+    ) -> List[Embedding]:
+        query = (
             self.session.query(Embedding)
             .join(Chunk)
             .join(ChunkProcess)
             .join(ExtractedText)
             .filter(ExtractedText.domain_id == domain_id)
-            .all()
         )
+        if text_ids is not None:
+            query = query.filter(ExtractedText.id.in_(text_ids))
+        return query.all()
 
     def _deserialize_embeddings(self, embeddings: List[Embedding]) -> np.ndarray:
         return np.array([pickle.loads(embedding.embedding) for embedding in embeddings])
