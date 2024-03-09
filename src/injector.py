@@ -92,6 +92,7 @@ def get_embedder_config():
 def get_embedder_factory() -> EmbedderFactory:
     return ConfigBasedEmbedderFactory(
         logger=NativeLogger.get_logger("docuchat"),
+        model_cache_dir=get_config().model_cache_dir,
     )
 
 

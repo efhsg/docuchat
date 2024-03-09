@@ -3,7 +3,6 @@ pymysql
 cryptography
 python-dotenv
 pypdf
-epub2txt
 requests
 beautifulsoup4
 pytest
@@ -11,5 +10,6 @@ alembic
 langchain
 spacy
 sentence_transformers
-pymilvus
+tensorflow
+tensorflow-hub
 groq

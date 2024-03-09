@@ -21,7 +21,6 @@ class SentenceTransformerEmbedder(Embedder):
                 self.model = SentenceTransformer(model_path)
             else:
                 self.model = SentenceTransformer(model)
-                self.logger.info(f"Save to cache: {model_path}")
                 os.makedirs(model_cache_dir, exist_ok=True)
                 self.model.save(model_path)
         except Exception as e:

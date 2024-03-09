@@ -52,9 +52,6 @@ class SimpleNearestNeighborRetriever(Retriever):
     def _fetch_embeddings(
         self, domain_id: int, text_ids: List[int] = None, model: str = None
     ) -> List[Embedding]:
-
-        self.logger.info(model)
-
         query = (
             self.session.query(Embedding)
             .join(Chunk)

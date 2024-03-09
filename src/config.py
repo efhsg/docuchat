@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+from utils.env_utils import getenv
+
 
 class Config:
     _current_file_path = Path(__file__).resolve()
@@ -25,6 +27,10 @@ class Config:
     @property
     def logo_small_path(self):
         return str(self.project_root / "src/img/logo_small_v2.1.png")
+
+    @property
+    def model_cache_dir(self):
+        return str(getenv("MODEL_CACHE_DIR", self.project_root / "data/models"))
 
     @property
     def latest_migration_version(self):
