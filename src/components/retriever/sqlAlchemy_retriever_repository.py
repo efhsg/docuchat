@@ -1,4 +1,5 @@
 from typing import List, Tuple
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -10,6 +11,7 @@ from components.database.models import (
     ChunkProcess,
     Domain,
     Embedding,
+    EmbeddingProcess,
     ExtractedText,
 )
 from logging import Logger as StandardLogger
@@ -82,17 +84,21 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
 
     def list_texts_by_domain_and_embedder(self, domain_name: str, embedder_model: str):
         try:
-            all_texts = self.list_texts_by_domain(domain_name)
-            filtered_texts = []
+            domain = self.session.query(Domain).filter_by(name=domain_name).one()
 
-            for text in all_texts:
-                for chunk_process in text.chunk_processes:
-                    for embedding_process in chunk_process.embedding_processes:
-                        if embedding_process.parameters.get("model") == embedder_model:
-                            filtered_texts.append(text)
-                            break
-
-            return filtered_texts
+            texts = (
+                self.session.query(ExtractedText)
+                .join(ExtractedText.chunk_processes)
+                .join(ChunkProcess.embedding_processes)
+                .filter(Domain.id == domain.id)
+                .filter(
+                    func.JSON_EXTRACT(EmbeddingProcess.parameters, "$.model")
+                    == embedder_model
+                )
+                .order_by(ExtractedText.name)
+                .all()
+            )
+            return texts
         except NoResultFound:
             self.logger.error(f"Domain '{domain_name}' does not exist.")
             return []

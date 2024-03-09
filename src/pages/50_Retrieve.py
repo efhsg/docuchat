@@ -208,11 +208,17 @@ def display_retriever(retriever):
 def query(domain_id: int, embedder: Embedder, retriever: Retriever):
     query_text = st.text_input("Enter your query:")
     if st.button("Submit Query") or query_text:
-        _run_query(query_text, domain_id, embedder, retriever)
+        config = embedder.get_configuration()
+        model_name = config.get("model") or config.get("params", {}).get("model")
+        _run_query(query_text, domain_id, embedder, retriever, model_name=model_name)
 
 
 def _run_query(
-    query_text: str, domain_id: int, embedder: Embedder, retriever: Retriever
+    query_text: str,
+    domain_id: int,
+    embedder: Embedder,
+    retriever: Retriever,
+    model_name: str = None,
 ):
     if query_text:
         selected_text_ids = [
@@ -229,6 +235,7 @@ def _run_query(
                 domain_id=domain_id,
                 query_vector=query_vector,
                 text_ids=selected_text_ids,
+                model=model_name,
             )
             display_embeddings(embeddings)
         except RuntimeError as e:
