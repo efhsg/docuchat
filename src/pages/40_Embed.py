@@ -90,7 +90,7 @@ def text_selector(selected_domain):
 
         with col1:
             st.checkbox(
-                label="Only without embeddings",
+                label="Show only without embeddings",
                 key="filter_unembedded",
                 value=st.session_state.get("context_filter_unembedded", False),
                 on_change=lambda: st.session_state.update(
@@ -102,7 +102,7 @@ def text_selector(selected_domain):
 
         with col2:
             st.checkbox(
-                label="Only with embeddings",
+                label="Show only with embeddings",
                 key="filter_embedded",
                 value=st.session_state.get("context_filter_embedded", False),
                 on_change=lambda: st.session_state.update(

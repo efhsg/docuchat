@@ -1,5 +1,6 @@
 from typing import List, Tuple
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
 
 from components.database.interfaces.connector import Connector
 from components.reader.interfaces.text_compressor import TextCompressor
@@ -57,5 +58,46 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
         except SQLAlchemyError as e:
             self.logger.error(
                 f"Failed to retrieve chunk and filename for embedding ID {id}: {e}"
+            )
+            raise
+
+    def list_texts_by_domain(self, domain_name):
+        try:
+            domain = self.session.query(Domain).filter_by(name=domain_name).one()
+            texts = (
+                self.session.query(ExtractedText)
+                .filter_by(domain_id=domain.id)
+                .order_by(ExtractedText.name)
+                .all()
+            )
+            return texts
+        except NoResultFound:
+            self.logger.error(f"Domain '{domain_name}' does not exist.")
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list texts for domain '{domain_name}'. Error: {e}"
+            )
+            raise
+
+    def list_texts_by_domain_and_embedder(self, domain_name: str, embedder_model: str):
+        try:
+            all_texts = self.list_texts_by_domain(domain_name)
+            filtered_texts = []
+
+            for text in all_texts:
+                for chunk_process in text.chunk_processes:
+                    for embedding_process in chunk_process.embedding_processes:
+                        if embedding_process.parameters.get("model") == embedder_model:
+                            filtered_texts.append(text)
+                            break
+
+            return filtered_texts
+        except NoResultFound:
+            self.logger.error(f"Domain '{domain_name}' does not exist.")
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list texts for domain '{domain_name}'. Error: {e}"
             )
             raise

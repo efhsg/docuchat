@@ -13,12 +13,10 @@ from injector import (
     get_embedder_factory,
     get_logger,
     get_compressor,
-    get_reader_repository,
     get_retriever_config,
     get_retriever_factory,
     get_retriever_repository,
 )
-from pages.utils.extracted_data import manage_extracted_text
 from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
     extracted_text_to_label,
@@ -37,7 +35,6 @@ retriever_config = get_retriever_config()
 embedder_config = get_embedder_config()
 embedder_factory: EmbedderFactory = get_embedder_factory()
 compressor: TextCompressor = get_compressor()
-reader_repository = get_reader_repository()
 
 
 def main():
@@ -83,16 +80,18 @@ def extracted_data(selected_domain):
                 embedder.get_configuration().get("params", {}).get("model", None)
             )
             if embedder_model_name:
-                extracted_texts = reader_repository.list_texts_by_domain_and_embedder(
-                    selected_domain.name, embedder_model_name
+                extracted_texts = (
+                    retriever_repository.list_texts_by_domain_and_embedder(
+                        selected_domain.name, embedder_model_name
+                    )
                 )
             else:
                 st.warning("Embedder model name not found. Showing all texts.")
-                extracted_texts = reader_repository.list_texts_by_domain(
+                extracted_texts = retriever_repository.list_texts_by_domain(
                     selected_domain.name
                 )
         else:
-            extracted_texts = reader_repository.list_texts_by_domain(
+            extracted_texts = retriever_repository.list_texts_by_domain(
                 selected_domain.name
             )
 

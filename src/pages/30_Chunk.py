@@ -80,7 +80,7 @@ def text_selector(selected_domain):
         col1, col2 = st.columns([1, 4])
         with col1:
             st.checkbox(
-                label="Only without chunks",
+                label="Show only without chunks",
                 key="filter_unchunked",
                 value=st.session_state.get("context_filter_unchunked", False),
                 on_change=lambda: st.session_state.update(
@@ -91,7 +91,7 @@ def text_selector(selected_domain):
             )
         with col2:
             st.checkbox(
-                label="Only with chunks",
+                label="Show only with chunks",
                 key="filter_chunked",
                 value=st.session_state.get("context_filter_chunked", False),
                 on_change=lambda: st.session_state.update(
