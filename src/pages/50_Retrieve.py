@@ -56,7 +56,7 @@ def main():
 
     st.title(f"{selected_domain.name}")
 
-    if st.session_state.get("context_embedder", None):
+    if st.session_state.get("context_embedder", False):
         embedder: Embedder = st.session_state.get("context_embedder")
         display_embedder(embedder)
         if st.session_state.get(
@@ -74,7 +74,28 @@ def main():
 def extracted_data(selected_domain):
     with st.sidebar:
         st.title(f"Texts to use")
-        extracted_texts = reader_repository.list_texts_by_domain(selected_domain.name)
+
+        if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
+            "context_embedder", False
+        ):
+            embedder: Embedder = st.session_state["context_embedder"]
+            embedder_model_name = (
+                embedder.get_configuration().get("params", {}).get("model", None)
+            )
+            if embedder_model_name:
+                extracted_texts = reader_repository.list_texts_by_domain_and_embedder(
+                    selected_domain.name, embedder_model_name
+                )
+            else:
+                st.warning("Embedder model name not found. Showing all texts.")
+                extracted_texts = reader_repository.list_texts_by_domain(
+                    selected_domain.name
+                )
+        else:
+            extracted_texts = reader_repository.list_texts_by_domain(
+                selected_domain.name
+            )
+
         with st.container(border=True):
             st.session_state["texts_to_use"] = {
                 extracted_text: st.checkbox(
@@ -84,6 +105,7 @@ def extracted_data(selected_domain):
                 )
                 for extracted_text in extracted_texts
             }
+
         st.checkbox(
             "Select all texts",
             key="select_all_texts_toggle",
@@ -91,6 +113,15 @@ def extracted_data(selected_domain):
                 use_all_texts=not st.session_state["use_all_texts"]
             ),
             value=st.session_state["use_all_texts"],
+        )
+
+        st.checkbox(
+            "Same embedder as your query",
+            key="only_chosen_embedder_toggle",
+            on_change=lambda: st.session_state.update(
+                only_chosen_embedder=not st.session_state["only_chosen_embedder"]
+            ),
+            value=st.session_state["only_chosen_embedder"],
         )
 
 
@@ -240,21 +271,22 @@ def display_embeddings(embeddings: list):
         st.info("No relevant embeddings found for your query.")
 
 
-def setup_session_state():
-    default_session_states = [
-        ("context_domain", None),
-        ("context_embedder", None),
-        ("use_all_texts", True),
-    ]
-    for state_name, default_value in default_session_states:
-        set_default_state(state_name, default_value)
-
-
 def list_domain_names_with_embeddings():
     domain_options = [
         (domain.name) for domain in retriever_repository.list_domains_with_embeddings()
     ]
     return domain_options
+
+
+def setup_session_state():
+    default_session_states = [
+        ("context_domain", None),
+        ("context_embedder", None),
+        ("use_all_texts", True),
+        ("only_chosen_embedder", True),
+    ]
+    for state_name, default_value in default_session_states:
+        set_default_state(state_name, default_value)
 
 
 if __name__ == "__main__":

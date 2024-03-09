@@ -7,7 +7,12 @@ from components.reader.interfaces.text_compressor import TextCompressor
 from components.database.interfaces.connector import Connector
 from .interfaces.reader_repository import ReaderRepository
 
-from components.database.models import ExtractedText, Domain
+from components.database.models import (
+    ChunkProcess,
+    EmbeddingProcess,
+    ExtractedText,
+    Domain,
+)
 
 
 class SqlalchemyReaderRepository(ReaderRepository):
@@ -108,6 +113,28 @@ class SqlalchemyReaderRepository(ReaderRepository):
                 .all()
             )
             return texts
+        except NoResultFound:
+            self.logger.error(f"Domain '{domain_name}' does not exist.")
+            return []
+        except Exception as e:
+            self.logger.error(
+                f"Failed to list texts for domain '{domain_name}'. Error: {e}"
+            )
+            raise
+
+    def list_texts_by_domain_and_embedder(self, domain_name: str, embedder_model: str):
+        try:
+            all_texts = self.list_texts_by_domain(domain_name)
+            filtered_texts = []
+
+            for text in all_texts:
+                for chunk_process in text.chunk_processes:
+                    for embedding_process in chunk_process.embedding_processes:
+                        if embedding_process.parameters.get("model") == embedder_model:
+                            filtered_texts.append(text)
+                            break
+
+            return filtered_texts
         except NoResultFound:
             self.logger.error(f"Domain '{domain_name}' does not exist.")
             return []

@@ -34,6 +34,10 @@ class ReaderRepository(ABC):
         pass
 
     @abstractmethod
+    def list_texts_by_domain_and_embedder(self, domain_name: str, embedder: str) -> List[ExtractedText]:
+        pass
+
+    @abstractmethod
     def save_text(
         self,
         domain_name: str,
