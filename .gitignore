@@ -4,4 +4,4 @@
 __pycache__/
 .pytest_cache/
 *.ipynb
-milvus
+logging.ini
