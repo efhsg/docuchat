@@ -20,6 +20,7 @@ from injector import (
 from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
     extracted_text_to_label,
+    get_index,
     init_form_values,
     save_form_values_to_context,
     select_domain_instance,
@@ -126,7 +127,15 @@ def extracted_data(selected_domain):
 
 def select_embedder():
     embedder_options = embedder_config.embedder_options
-    method = st.selectbox("Select an embedder method:", list(embedder_options.keys()))
+    method_options = list(embedder_options.keys())
+    method = st.selectbox(
+        label="Select an embedder method:",
+        options=method_options,
+        index=get_index(method_options, "context_embed_method"),
+        on_change=lambda: st.session_state.update(
+            context_embed_method=st.session_state["embed_method"]
+        ),
+    )
     embedder_details = embedder_options[method]
     form_config = {
         "fields": embedder_details["fields"],
@@ -290,6 +299,7 @@ def setup_session_state():
         ("context_embedder", None),
         ("use_all_texts", True),
         ("only_chosen_embedder", True),
+        ("context_embed_method", True),
     ]
     for state_name, default_value in default_session_states:
         set_default_state(state_name, default_value)
