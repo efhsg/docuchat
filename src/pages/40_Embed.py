@@ -40,15 +40,7 @@ def main():
         st.info("First chunk some texts")
         return
     st.title(f"{selected_domain}")
-    with st.container(border=True):
-        selected_text = text_selector(selected_domain)
-        if selected_text:
-            selected_chunk_process_id = select_chunk_process(
-                embedder_repository.list_chunk_processes_by_text_id(selected_text.id)
-            )
-            if selected_chunk_process_id:
-                create_embedding_processes(selected_chunk_process_id)
-            manage_embedding_processes(selected_chunk_process_id)
+    embed(selected_domain)
 
 
 def setup_session_state():
@@ -115,6 +107,18 @@ def text_selector(selected_domain):
     return selected_text
 
 
+def embed(selected_domain):
+    with st.container(border=True):
+        selected_text = text_selector(selected_domain)
+        if selected_text:
+            selected_chunk_process_id = select_chunk_process(
+                embedder_repository.list_chunk_processes_by_text_id(selected_text.id)
+            )
+            if selected_chunk_process_id:
+                create_embedding_processes(selected_chunk_process_id)
+            manage_embedding_processes(selected_chunk_process_id)
+
+
 def select_chunk_process(chunk_processes):
 
     if not chunk_processes:
@@ -172,6 +176,7 @@ def create_embedding_processes(selected_chunk_process_id):
                     method,
                     updated_form_values,
                 )
+                st.rerun()
             except Exception as e:
                 st.error(f"Failed to validate or process chunks: {e}")
 
