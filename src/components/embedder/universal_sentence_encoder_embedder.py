@@ -14,12 +14,17 @@ class UniversalSentenceEncoderEmbedder(Embedder):
     ):
         self.model_url = model_url
         self.logger = logger
+        self.model_cache_dir = model_cache_dir
+        self.model = self.load_model()
+
+    def load_model(self):
         try:
-            self.model = hub.load(self.model_url)
+            model = hub.load(self.model_url)
             if self.logger:
                 self.logger.info(
                     f"Universal Sentence Encoder loaded from {self.model_url}"
                 )
+            return model
         except Exception as e:
             if self.logger:
                 self.logger.error(

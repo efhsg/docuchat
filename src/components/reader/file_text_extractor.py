@@ -2,7 +2,6 @@ import zipfile
 from typing import Callable, Dict
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
-from ebooklib import epub
 from io import BytesIO
 from .interfaces.text_extractor import TextExtractor
 
