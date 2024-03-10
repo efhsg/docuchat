@@ -43,18 +43,6 @@ def main():
     embed(selected_domain)
 
 
-def setup_session_state():
-    default_session_states = [
-        ("message", (None, None)),
-        ("context_domain", None),
-        ("context_text", None),
-        ("context_embed_method", None),
-        ("context_chunk_process_id", None),
-    ]
-    for state_name, default_value in default_session_states:
-        set_default_state(state_name, default_value)
-
-
 def list_domain_names_with_chunks():
     domain_options = [
         (domain.name) for domain in embedder_repository.list_domains_with_chunks()
@@ -176,7 +164,10 @@ def create_embedding_processes(selected_chunk_process_id):
                     method,
                     updated_form_values,
                 )
-                st.rerun()
+                if st.session_state.get("embed_error", None):
+                    st.error(st.session_state["embed_error"])
+                else:
+                    st.rerun()
             except Exception as e:
                 st.error(f"Failed to validate or process chunks: {e}")
 
@@ -196,38 +187,45 @@ def select_method(method_options):
 
 
 def process_chunks_to_embed(selected_chunk_process_id, method, values):
-    with st.spinner("Embedding..."):
-        embedder: Embedder = embedder_factory.create_embedder(method, **values)
 
-        values["name"] = generate_default_name()
-        embedding_process_id = embedder_repository.create_embedding_process(
-            chunk_process_id=selected_chunk_process_id,
-            method=method,
-            parameters=values,
-        )
+    embedder = embedder_factory.create_embedder(method, **values)
+    values["name"] = generate_default_name()
+    embedding_process_id = embedder_repository.create_embedding_process(
+        chunk_process_id=selected_chunk_process_id,
+        method=method,
+        parameters=values,
+    )
 
-        chunks = embedder_repository.get_chunks_by_process_id(selected_chunk_process_id)
+    chunks = embedder_repository.get_chunks_by_process_id(selected_chunk_process_id)
+    progress_bar = st.progress(0)
+    total_chunks = len(chunks)
 
-        total_chunks = len(chunks)
-        progress_bar = st.progress(0)
-
-        try:
-            for i, chunk in enumerate(chunks):
-                text = compressor.decompress(chunk.chunk)
-                embedding = embedder.embed([(chunk.id, text)])[0][1]
-                embedder_repository.save_embedding(
-                    embedding_process_id, chunk.id, embedding
-                )
-                progress_percentage = int(((i + 1) / total_chunks) * 100)
-                progress_bar.progress(progress_percentage)
-
-                logger.debug(f"Chunk ID {chunk.id} embedded and saved successfully.")
-        except Exception as e:
-            st.error(
-                f"Error embedding chunks for chunk process ID {selected_chunk_process_id}: {e}"
+    try:
+        for i, chunk in enumerate(chunks):
+            text = compressor.decompress(chunk.chunk)
+            embedding = embedder.embed([(chunk.id, text)])[0][1]
+            embedder_repository.save_embedding(
+                embedding_process_id, chunk.id, embedding
             )
-        finally:
-            progress_bar.empty()
+            update_progress_bar(progress_bar, i + 1, total_chunks)
+
+    except Exception as e:
+        handle_embedding_error(e, selected_chunk_process_id, embedding_process_id)
+
+    finally:
+        progress_bar.empty()
+
+
+def update_progress_bar(progress_bar, current_chunk, total_chunks):
+    progress_percentage = int((current_chunk / total_chunks) * 100)
+    progress_bar.progress(progress_percentage)
+
+
+def handle_embedding_error(exception, chunk_process_id, embedding_process_id):
+    st.session_state["embed_error"] = (
+        f"Error embedding chunks for chunk process ID {chunk_process_id}: {exception}"
+    )
+    embedder_repository.delete_embedding_process(embedding_process_id)
 
 
 def manage_embedding_processes(selected_text_id):
@@ -317,6 +315,19 @@ def delete_embedding_process(session):
         st.rerun()
     except Exception as e:
         st.error(f"Failed to delete embedding process ID {session.id}: {e}")
+
+
+def setup_session_state():
+    default_session_states = [
+        ("message", (None, None)),
+        ("context_domain", None),
+        ("context_text", None),
+        ("context_embed_method", None),
+        ("context_chunk_process_id", None),
+        ("embed_error", None),
+    ]
+    for state_name, default_value in default_session_states:
+        set_default_state(state_name, default_value)
 
 
 if __name__ == "__main__":
