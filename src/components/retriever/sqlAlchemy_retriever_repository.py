@@ -63,25 +63,6 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
             )
             raise
 
-    def list_texts_by_domain(self, domain_name):
-        try:
-            domain = self.session.query(Domain).filter_by(name=domain_name).one()
-            texts = (
-                self.session.query(ExtractedText)
-                .filter_by(domain_id=domain.id)
-                .order_by(ExtractedText.name)
-                .all()
-            )
-            return texts
-        except NoResultFound:
-            self.logger.error(f"Domain '{domain_name}' does not exist.")
-            return []
-        except Exception as e:
-            self.logger.error(
-                f"Failed to list texts for domain '{domain_name}'. Error: {e}"
-            )
-            raise
-
     def list_texts_by_domain_and_embedder(self, domain_name: str, embedder_model: str):
         try:
             domain = self.session.query(Domain).filter_by(name=domain_name).one()

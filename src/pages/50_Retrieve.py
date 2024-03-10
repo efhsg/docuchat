@@ -2,6 +2,7 @@ import pickle
 import streamlit as st
 from components.embedder.interfaces.embedder import Embedder
 from components.embedder.interfaces.embedder_factory import EmbedderFactory
+from components.embedder.interfaces.embedder_repository import EmbedderRepository
 from components.retriever.interfaces.retriever import Retriever
 from components.retriever.interfaces.retriever_factory import RetrieverFactory
 from components.reader.interfaces.text_compressor import TextCompressor
@@ -11,6 +12,7 @@ from injector import (
     get_config,
     get_embedder_config,
     get_embedder_factory,
+    get_embedder_repository,
     get_logger,
     get_compressor,
     get_retriever_config,
@@ -30,6 +32,7 @@ from pages.utils.utils import (
 
 config = get_config()
 logger: Logger = get_logger()
+embedder_repository: EmbedderRepository = get_embedder_repository()
 retriever_factory: RetrieverFactory = get_retriever_factory()
 retriever_repository: RetrieverRepository = get_retriever_repository()
 retriever_config = get_retriever_config()
@@ -88,11 +91,11 @@ def extracted_data(selected_domain):
                 )
             else:
                 st.warning("Embedder model name not found. Showing all texts.")
-                extracted_texts = retriever_repository.list_texts_by_domain(
+                extracted_texts = embedder_repository.list_embedded_texts_by_domain(
                     selected_domain.name
                 )
         else:
-            extracted_texts = retriever_repository.list_texts_by_domain(
+            extracted_texts = embedder_repository.list_embedded_texts_by_domain(
                 selected_domain.name
             )
 
@@ -130,6 +133,7 @@ def select_embedder():
     method_options = list(embedder_options.keys())
     embed_method = st.selectbox(
         label="Select an embedder method:",
+        key="embed_method",
         options=method_options,
         index=get_index(method_options, "context_embed_method"),
         on_change=lambda: st.session_state.update(

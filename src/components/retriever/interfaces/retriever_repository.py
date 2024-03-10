@@ -18,9 +18,7 @@ class RetrieverRepository(ABC):
     ) -> Tuple[Chunk, ExtractedText]: ...
 
     @abstractmethod
-    def list_texts_by_domain(self, domain_name: str) -> List[ExtractedText]:
-        pass
-
-    @abstractmethod
-    def list_texts_by_domain_and_embedder(self, domain_name: str, embedder: str) -> List[ExtractedText]:
+    def list_texts_by_domain_and_embedder(
+        self, domain_name: str, embedder: str
+    ) -> List[ExtractedText]:
         pass

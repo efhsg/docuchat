@@ -14,22 +14,29 @@ class SentenceTransformerEmbedder(Embedder):
         model_cache_dir: str = "./data/models",
     ):
         self.model_name = model
-        model_path = os.path.join(model_cache_dir, model)
         self.logger = logger
+        self.model = self.initialize_model(model, model_cache_dir)
+
+    def initialize_model(self, model: str, model_cache_dir: str) -> SentenceTransformer:
+        model_path = os.path.join(model_cache_dir, model)
         try:
             if os.path.exists(model_path):
-                self.model = SentenceTransformer(model_path)
+                return SentenceTransformer(model_path)
             else:
-                self.model = SentenceTransformer(model)
+                model_instance = SentenceTransformer(model)
                 os.makedirs(model_cache_dir, exist_ok=True)
-                self.model.save(model_path)
+                model_instance.save(model_path)
+                return model_instance
         except Exception as e:
-            if self.logger:
-                self.logger.error(
-                    f"Failed to download or load the SentenceTransformer model '{model}'. Error: {e}"
-                )
+            self.log_error(model, e)
             raise RuntimeError(
-                f"Failed to download or load the SentenceTransformer model '{model}'. Error: {e}"
+                f"Failed to download or load the model '{model}'. Error: {e}"
+            )
+
+    def log_error(self, model: str, error: Exception):
+        if self.logger:
+            self.logger.error(
+                f"Failed to download or load the SentenceTransformer model '{model}'. Error: {error}"
             )
 
     def embed(self, chunks: List[Tuple[int, str]]) -> List[Tuple[int, bytes]]:
