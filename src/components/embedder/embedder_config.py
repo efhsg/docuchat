@@ -2,16 +2,12 @@ from typing import Any, Dict
 from components.embedder.sentence_transformer_embedder import (
     SentenceTransformerEmbedder,
 )
-from components.embedder.universal_sentence_encoder_embedder import (
-    UniversalSentenceEncoderEmbedder,
-)
 from utils.env_utils import getenv
 
 
 class EmbedderConfig:
     embedder_classes = {
         "SentenceTransformerEmbedder": SentenceTransformerEmbedder,
-        "UniversalSentenceEncoder": UniversalSentenceEncoderEmbedder,
     }
 
     base_field_definitions = {
@@ -24,11 +20,6 @@ class EmbedderConfig:
                 "all-MiniLM-L6-v2,stsb-xlm-r-multilingual",
             ),
         },
-        "model_url": {
-            "label": "Model URL",
-            "type": "text",
-            "default": "https://tfhub.dev/google/universal-sentence-encoder/4",
-        },
     }
 
     @classmethod
@@ -36,9 +27,6 @@ class EmbedderConfig:
         embedder_fields = {
             SentenceTransformerEmbedder: {
                 "model": cls.base_field_definitions["model"],
-            },
-            UniversalSentenceEncoderEmbedder: {
-                "model_url": cls.base_field_definitions["model_url"],
             },
         }
         return embedder_fields.get(embedder_class, {})
