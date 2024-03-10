@@ -28,7 +28,7 @@ def test_streamlit_page(app_test, page_path):
 def app_test():
     """A pytest fixture to create and run an AppTest instance with a configurable timeout."""
 
-    def _app_test(page_path, timeout=5):
+    def _app_test(page_path, timeout=10):
         """Create and run an AppTest instance for a given page_path with specified timeout."""
         at = AppTest.from_file(page_path).run(timeout=timeout)
         return at

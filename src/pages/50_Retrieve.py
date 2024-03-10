@@ -128,7 +128,7 @@ def extracted_data(selected_domain):
 def select_embedder():
     embedder_options = embedder_config.embedder_options
     method_options = list(embedder_options.keys())
-    method = st.selectbox(
+    embed_method = st.selectbox(
         label="Select an embedder method:",
         options=method_options,
         index=get_index(method_options, "context_embed_method"),
@@ -136,7 +136,7 @@ def select_embedder():
             context_embed_method=st.session_state["embed_method"]
         ),
     )
-    embedder_details = embedder_options[method]
+    embedder_details = embedder_options[embed_method]
     form_config = {
         "fields": embedder_details["fields"],
         "validations": embedder_details.get("validations", []),
@@ -151,7 +151,7 @@ def select_embedder():
     with st.spinner("Getting embedder"):
         if updated_form_values:
             embedder: Embedder = embedder_factory.create_embedder(
-                method, **updated_form_values
+                embed_method, **updated_form_values
             )
             save_form_values_to_context(updated_form_values)
             st.session_state["context_embedder"] = embedder
