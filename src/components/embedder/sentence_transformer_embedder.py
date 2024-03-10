@@ -1,6 +1,7 @@
 import os
 import pickle
 from typing import List, Tuple
+import numpy as np
 from sentence_transformers import SentenceTransformer
 from logging import Logger as StandardLogger
 from .interfaces.embedder import Embedder
@@ -41,10 +42,9 @@ class SentenceTransformerEmbedder(Embedder):
 
     def embed(self, chunks: List[Tuple[int, str]]) -> List[Tuple[int, bytes]]:
         chunk_ids, texts = zip(*chunks)
-        embeddings = self.model.encode(
-            texts, convert_to_tensor=False, show_progress_bar=True
-        )
-        serialized_embeddings = [pickle.dumps(embedding) for embedding in embeddings]
+        embeddings = self.model.encode(texts, convert_to_tensor=True)
+        embeddings_np = embeddings.cpu().numpy().astype(np.float32)
+        serialized_embeddings = [pickle.dumps(embedding) for embedding in embeddings_np]
         return list(zip(chunk_ids, serialized_embeddings))
 
     def get_configuration(self) -> dict:

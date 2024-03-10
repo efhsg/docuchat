@@ -166,6 +166,7 @@ def create_embedding_processes(selected_chunk_process_id):
                 )
                 if st.session_state.get("embed_error", None):
                     st.error(st.session_state["embed_error"])
+                    st.session_state["embed_error"] = None
                 else:
                     st.rerun()
             except Exception as e:

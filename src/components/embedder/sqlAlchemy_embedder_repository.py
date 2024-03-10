@@ -87,7 +87,7 @@ class SqlAlchemyEmbedderRepository(EmbedderRepository):
             raise
 
     def save_embedding(
-        self, embedding_process_id: int, chunk_id: int, embedding: str
+        self, embedding_process_id: int, chunk_id: int, embedding: bytes
     ) -> None:
         try:
             existing_embedding = (
