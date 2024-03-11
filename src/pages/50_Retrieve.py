@@ -144,7 +144,7 @@ def select_embedder():
     embedder_options = embedder_config.embedder_options
     method_options = list(embedder_options.keys())
     embed_method = st.selectbox(
-        label="Select an embedder method:",
+        label="Select an embedder method to use for the query text:",
         key="embed_method",
         options=method_options,
         index=get_index(method_options, "context_embedder"),
@@ -273,10 +273,14 @@ def display_retriever(retriever):
 
 def query(embedder: Embedder, retriever: Retriever):
     query_text = st.text_input(
-        "Enter your query:", value=st.session_state.get("context_query_text", "")
+        label="Enter your query:",
+        value=st.session_state.get("context_query_text", ""),
+        key="query_text",
+        on_change=lambda: st.session_state.update(
+            context_query_text=st.session_state["query_text"]
+        ),
     )
     if st.button("Submit query") or query_text:
-        st.session_state["context_query_text"] = query_text
         _run_query(query_text, embedder, retriever)
 
 
