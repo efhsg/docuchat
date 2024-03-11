@@ -191,6 +191,9 @@ def process_chunks_to_embed(selected_chunk_process_id, method, values):
 
     embedder = embedder_factory.create_embedder(method, **values)
     values["name"] = generate_default_name()
+    values["embedding_dimensions"] = embedder.get_params().get(
+        "embedding_dimension", None
+    )
     embedding_process_id = embedder_repository.create_embedding_process(
         chunk_process_id=selected_chunk_process_id,
         method=method,

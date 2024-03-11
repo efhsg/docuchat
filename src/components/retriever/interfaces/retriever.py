@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
 class Retriever(ABC):
@@ -21,6 +21,9 @@ class Retriever(ABC):
         """
         pass
 
+    def get_configuration(self) -> Dict:
+        return {"method": self.__class__.__name__, "params": self.get_params()}
+
     @abstractmethod
-    def get_configuration(self) -> dict:
+    def get_params(self) -> Dict:
         pass

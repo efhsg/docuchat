@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from logging import Logger as StandardLogger
@@ -17,17 +17,18 @@ class SentenceTransformerEmbedder(Embedder):
         self.model_name = model
         self.logger = logger
         self.model = self.initialize_model(model, model_cache_dir)
+        self.embedding_dimension = self.model.get_sentence_embedding_dimension()
 
     def initialize_model(self, model: str, model_cache_dir: str) -> SentenceTransformer:
         model_path = os.path.join(model_cache_dir, model)
         try:
             if os.path.exists(model_path):
-                return SentenceTransformer(model_path)
+                model_instance = SentenceTransformer(model_path)
             else:
                 model_instance = SentenceTransformer(model)
                 os.makedirs(model_cache_dir, exist_ok=True)
                 model_instance.save(model_path)
-                return model_instance
+            return model_instance
         except Exception as e:
             self.log_error(model, e)
             raise RuntimeError(
@@ -47,5 +48,8 @@ class SentenceTransformerEmbedder(Embedder):
         serialized_embeddings = [pickle.dumps(embedding) for embedding in embeddings_np]
         return list(zip(chunk_ids, serialized_embeddings))
 
-    def get_configuration(self) -> dict:
-        return {"method": "SentenceTransformer", "params": {"model": self.model_name}}
+    def get_params(self) -> Dict:
+        return {
+            "model": self.model_name,
+            "embedding_dimension": self.embedding_dimension,
+        }

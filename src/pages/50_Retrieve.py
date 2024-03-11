@@ -1,4 +1,5 @@
 import pickle
+from typing import List
 import streamlit as st
 from components.embedder.interfaces.embedder import Embedder
 from components.embedder.interfaces.embedder_factory import EmbedderFactory
@@ -8,6 +9,7 @@ from components.retriever.interfaces.retriever_factory import RetrieverFactory
 from components.reader.interfaces.text_compressor import TextCompressor
 from logging import Logger
 from components.retriever.interfaces.retriever_repository import RetrieverRepository
+from components.retriever.retriever_config import RetrieverConfig
 from injector import (
     get_config,
     get_embedder_config,
@@ -57,18 +59,28 @@ def main():
 
     st.title(f"{selected_domain.name}")
 
-    if st.session_state.get("context_embedder", False):
+    retriever_process(selected_domain)
+
+
+def retriever_process(selected_domain):
+    if st.session_state.get("context_embedder", False) and not st.session_state.get(
+        "change_embedder", None
+    ):
         embedder: Embedder = st.session_state.get("context_embedder")
         display_embedder(embedder)
-        if st.session_state.get(
-            "context_retriever_method", None
-        ) and st.session_state.get("context_retriever_values", None):
-            retriever: Retriever = create_retriever()
+        if (
+            st.session_state.get("context_retriever", None)
+            and st.session_state.get("context_retriever_values", None)
+            and not st.session_state.get("change_retriever", None)
+        ):
+            retriever: Retriever = create_retriever(selected_domain.id, embedder)
             display_retriever(retriever)
-            query(selected_domain.id, embedder, retriever)
+            query(embedder, retriever)
         else:
+            st.session_state["change_retriever"] = True
             select_retriever()
     else:
+        st.session_state["change_embedder"] = True
         select_embedder()
 
 
@@ -135,9 +147,9 @@ def select_embedder():
         label="Select an embedder method:",
         key="embed_method",
         options=method_options,
-        index=get_index(method_options, "context_embed_method"),
+        index=get_index(method_options, "context_embedder"),
         on_change=lambda: st.session_state.update(
-            context_embed_method=st.session_state["embed_method"]
+            context_embedder=st.session_state["embed_method"]
         ),
     )
     embedder_details = embedder_options[embed_method]
@@ -159,6 +171,7 @@ def select_embedder():
             )
             save_form_values_to_context(updated_form_values)
             st.session_state["context_embedder"] = embedder
+            st.session_state["change_embedder"] = False
             st.rerun()
 
 
@@ -170,13 +183,22 @@ def display_embedder(embedder):
         fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
         st.markdown(f"**{method_display}**, {fields_display}")
         if st.button("Change embedder"):
-            st.session_state["context_embedder"] = None
+            st.session_state["change_embedder"] = True
             st.rerun()
 
 
 def select_retriever():
+
     retriever_options = retriever_config.retriever_options
-    method = st.selectbox("Select a retriever method:", list(retriever_options.keys()))
+    method = st.selectbox(
+        label="Select a retriever method:",
+        options=list(retriever_options.keys()),
+        key="retriever_method",
+        index=get_index(list(retriever_options.keys()), "context_retriever"),
+        on_change=lambda: st.session_state.update(
+            context_retriever=st.session_state["retriever_method"]
+        ),
+    )
     retriever_details = retriever_options[method]
 
     form_config = {
@@ -185,23 +207,55 @@ def select_retriever():
         "constants": retriever_details.get("constants", {}),
     }
 
+    initial_form_values = get_initial_form_values(retriever_details, form_config)
+
     form = StreamlitForm(form_config)
     updated_form_values = form.generate_form(
-        init_form_values(retriever_details["fields"].items()),
+        initial_form_values,
         "retriever_process",
         "Configure Retriever",
     )
     if updated_form_values:
         if form.validate_form_values(updated_form_values):
-            st.session_state["context_retriever_method"] = method
+            save_form_values_to_context(updated_form_values)
+            st.session_state["context_retriever"] = method
             st.session_state["context_retriever_values"] = updated_form_values
+            st.session_state["change_retriever"] = False
             st.rerun()
 
 
-def create_retriever() -> Retriever:
-    return retriever_factory.create_retriever(
-        st.session_state["context_retriever_method"],
+def get_initial_form_values(retriever_details, form_config):
+    initial_form_values = init_form_values(retriever_details["fields"].items())
+    if (
+        st.session_state.get("context_embedder")
+        and "embedding_dim" in form_config["fields"]
+    ):
+        embedder: Embedder = st.session_state["context_embedder"]
+        embedder_params = embedder.get_params()
+        embedding_dim = embedder_params.get("embedding_dimension")
+        if embedding_dim:
+            form_config["fields"]["embedding_dim"]["default"] = embedding_dim
+            initial_form_values["embedding_dim"] = embedding_dim
+    return initial_form_values
+
+
+def create_retriever(domain_id: int, embedder: Embedder = None) -> Retriever:
+    kwargs = {
+        "domain_id": domain_id,
+        "text_ids": st.session_state["texts_to_use"],
         **st.session_state["context_retriever_values"],
+    }
+    if st.session_state.get("only_chosen_embedder", False):
+        kwargs["embedder_config"] = embedder.get_configuration()
+
+    kwargs["text_ids"] = [
+        int(extracted_text.id)
+        for extracted_text, is_checked in st.session_state["texts_to_use"].items()
+        if is_checked
+    ]
+    return retriever_factory.create_retriever(
+        st.session_state["context_retriever"],
+        **kwargs,
     )
 
 
@@ -213,44 +267,30 @@ def display_retriever(retriever):
         fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
         st.markdown(f"**{method_display}**, {fields_display}")
         if st.button("Change retriever"):
-            st.session_state["context_retriever_method"] = None
-            st.session_state["context_retriever_values"] = None
+            st.session_state["change_retriever"] = True
             st.rerun()
 
 
-def query(domain_id: int, embedder: Embedder, retriever: Retriever):
-    query_text = st.text_input("Enter your query:")
-    if st.button("Submit Query") or query_text:
-        config = embedder.get_configuration()
-        model_name = config.get("model") or config.get("params", {}).get("model")
-        _run_query(query_text, domain_id, embedder, retriever, model_name=model_name)
+def query(embedder: Embedder, retriever: Retriever):
+    query_text = st.text_input(
+        "Enter your query:", value=st.session_state.get("context_query_text", "")
+    )
+    if st.button("Submit query") or query_text:
+        st.session_state["context_query_text"] = query_text
+        _run_query(query_text, embedder, retriever)
 
 
-def _run_query(
-    query_text: str,
-    domain_id: int,
-    embedder: Embedder,
-    retriever: Retriever,
-    model_name: str = None,
-):
+def _run_query(query_text, embedder, retriever):
     if query_text:
-        selected_text_ids = [
-            int(extracted_text.id)
-            for extracted_text, is_checked in st.session_state["texts_to_use"].items()
-            if is_checked
-        ]
+        kwargs = {
+            "query_vector": pickle.loads(
+                convert_query_to_vector(query_text, embedder)[0][1]
+            ),
+        }
         try:
-            serialized_query_vector = convert_query_to_vector(query_text, embedder)[0][
-                1
-            ]
-            query_vector = pickle.loads(serialized_query_vector)
-            embeddings = retriever.retrieve(
-                domain_id=domain_id,
-                query_vector=query_vector,
-                text_ids=selected_text_ids,
-                model=model_name,
-            )
-            display_embeddings(embeddings)
+            display_embeddings(retriever.retrieve(**kwargs))
+        except AssertionError as e:
+            st.error(e)
         except RuntimeError as e:
             st.error(f"Error retrieving embeddings: {e}")
 
@@ -301,9 +341,9 @@ def setup_session_state():
     default_session_states = [
         ("context_domain", None),
         ("context_embedder", None),
+        ("context_retriever", None),
         ("use_all_texts", True),
         ("only_chosen_embedder", True),
-        ("context_embed_method", True),
     ]
     for state_name, default_value in default_session_states:
         set_default_state(state_name, default_value)

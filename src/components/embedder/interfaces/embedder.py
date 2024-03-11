@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
 class Embedder(ABC):
@@ -16,6 +16,9 @@ class Embedder(ABC):
             List[Tuple[int, List[float]]]: A list of tuples, where each tuple contains a chunk's ID and its embedding as a list of floats.
         """
 
+    def get_configuration(self) -> Dict:
+        return {"method": self.__class__.__name__, "params": self.get_params()}
+
     @abstractmethod
-    def get_configuration(self) -> dict:
+    def get_params(self) -> Dict:
         pass
