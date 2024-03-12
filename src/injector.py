@@ -1,3 +1,6 @@
+from components.chatter.chatter_config import ChatterConfig
+from components.chatter.config_based_chatter_factory import ConfigBasedChatterFactory
+from components.chatter.interfaces.chatter_factory import ChatterFactory
 from components.chunker.chunker_config import ChunkerConfig
 from components.chunker.config_based_chunker_factory import ConfigBasedChunkerFactory
 from components.chunker.interfaces.chunker_factory import ChunkerFactory
@@ -113,3 +116,13 @@ def get_retriever_repository() -> RetrieverRepository:
 
 def get_retriever_config():
     return RetrieverConfig()
+
+
+def get_chatter_config():
+    return ChatterConfig()
+
+
+def get_chatter_factory() -> ChatterFactory:
+    return ConfigBasedChatterFactory(
+        logger=NativeLogger.get_logger("docuchat"),
+    )

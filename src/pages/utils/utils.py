@@ -3,7 +3,7 @@ import streamlit as st
 from PIL import Image
 from datetime import datetime
 from datetime import datetime
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Tuple, Union, Any
 from components.database.models import Domain, ExtractedText
 from injector import get_config, get_logger
 from operator import lt, le, gt, ge, eq, ne
@@ -156,3 +156,8 @@ def save_form_values_to_context(values):
 
 def generate_default_name() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def setup_session_state_vars(session_states: List[Tuple[str, Any]]) -> None:
+    for state_name, default_value in session_states:
+        set_default_state(state_name, default_value)

@@ -1,5 +1,6 @@
-import pickle
 import streamlit as st
+from components.chatter.interfaces.chatter import Chatter
+from components.chatter.interfaces.chatter_factory import ChatterFactory
 from components.embedder.interfaces.embedder import Embedder
 from components.embedder.interfaces.embedder_factory import EmbedderFactory
 from components.embedder.interfaces.embedder_repository import EmbedderRepository
@@ -9,6 +10,8 @@ from components.reader.interfaces.text_compressor import TextCompressor
 from logging import Logger
 from components.retriever.interfaces.retriever_repository import RetrieverRepository
 from injector import (
+    get_chatter_config,
+    get_chatter_factory,
     get_config,
     get_embedder_config,
     get_embedder_factory,
@@ -20,16 +23,18 @@ from injector import (
     get_retriever_repository,
 )
 from pages.utils.embedder_retriever import (
-    convert_query_to_vector,
     create_retriever,
     display_embedder,
     display_retriever,
     extracted_data,
+    get_initial_form_values,
     select_embedder,
     select_retriever,
 )
+from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
-    extracted_text_to_label,
+    get_index,
+    save_form_values_to_context,
     setup_session_state_vars,
     select_domain_instance,
     setup_page,
@@ -44,6 +49,8 @@ retriever_config = get_retriever_config()
 embedder_config = get_embedder_config()
 embedder_factory: EmbedderFactory = get_embedder_factory()
 compressor: TextCompressor = get_compressor()
+chatter_config = get_chatter_config()
+chatter_factory: ChatterFactory = get_chatter_factory()
 
 
 def main():
@@ -62,10 +69,10 @@ def main():
 
     st.title(f"{selected_domain.name}")
 
-    setup_retriever(selected_domain)
+    setup_chatter(selected_domain)
 
 
-def setup_retriever(selected_domain):
+def setup_chatter(selected_domain):
     if st.session_state.get("context_embedder", False) and not st.session_state.get(
         "change_embedder", None
     ):
@@ -78,7 +85,18 @@ def setup_retriever(selected_domain):
         ):
             retriever: Retriever = create_retriever(selected_domain.id, embedder)
             display_retriever(retriever)
-            query(embedder, retriever)
+            if (
+                st.session_state.get("context_chatter", None)
+                and st.session_state.get("context_chatter_values", None)
+                and not st.session_state.get("change_chatter", None)
+            ):
+                chatter: Chatter = create_chatter(
+                    selected_domain.id, embedder, retriever
+                )
+                display_chatter(chatter)
+            else:
+                st.session_state["change_chatter"] = True
+                select_chatter()
         else:
             st.session_state["change_retriever"] = True
             select_retriever()
@@ -87,63 +105,66 @@ def setup_retriever(selected_domain):
         select_embedder()
 
 
-def query(embedder: Embedder, retriever: Retriever):
-    query_text = st.text_input(
-        label="Enter your query:",
-        value=st.session_state.get("context_query_text", ""),
-        key="query_text",
+def select_chatter():
+
+    chatter_options = chatter_config.chatter_options
+
+    method = st.selectbox(
+        label="Select a chatter:",
+        options=list(chatter_options.keys()),
+        key="chatter_method",
+        index=get_index(list(chatter_options.keys()), "context_chatter"),
         on_change=lambda: st.session_state.update(
-            context_query_text=st.session_state["query_text"]
+            context_chatter=st.session_state["chatter_method"]
         ),
     )
-    if st.button("Submit query") or query_text:
-        _run_query(query_text, embedder, retriever)
+    chatter_details = chatter_options[method]
+
+    form_config = {
+        "fields": chatter_details.get("fields", {}),
+        "validations": chatter_details.get("validations", []),
+        "constants": chatter_details.get("constants", {}),
+    }
+
+    initial_form_values = get_initial_form_values(chatter_details, form_config)
+
+    form = StreamlitForm(form_config)
+    updated_form_values = form.generate_form(
+        initial_form_values,
+        "chatter_process",
+        "Configure Chatter",
+    )
+    if updated_form_values:
+        if form.validate_form_values(updated_form_values):
+            save_form_values_to_context(updated_form_values)
+            st.session_state["context_chatter"] = method
+            st.session_state["context_chatter_values"] = updated_form_values
+            st.session_state["change_chatter"] = False
+            st.rerun()
 
 
-def _run_query(query_text, embedder, retriever):
-    if query_text:
-        kwargs = {
-            "query_vector": pickle.loads(
-                convert_query_to_vector(query_text, embedder)[0][1]
-            ),
-        }
-        try:
-            display_embeddings(retriever.retrieve(**kwargs))
-        except AssertionError as e:
-            st.error(e)
-        except RuntimeError as e:
-            st.error(f"Error retrieving embeddings: {e}")
+def create_chatter(
+    domain_id: int, embedder: Embedder = None, retriever: Retriever = None
+) -> Chatter:
+    kwargs = {
+        **st.session_state["context_chatter_values"],
+    }
+    return chatter_factory.create_chatter(
+        st.session_state["context_chatter"],
+        **kwargs,
+    )
 
 
-def display_embeddings(embeddings: list):
-    if embeddings:
-        for embedding_id, score in embeddings:
-            with st.container(border=True):
-                chunk_with_filename = (
-                    retriever_repository.get_chunk_by_embedding_id_with_filename(
-                        embedding_id
-                    )
-                )
-                if chunk_with_filename:
-                    chunk, text_file_name = chunk_with_filename
-                    text_content = compressor.decompress(chunk.chunk)
-                    chunk_size = len(text_content)
-                    st.write(
-                        f"Score: {score:.4f}, {extracted_text_to_label(text_file_name)}"
-                    )
-                    st.text_area(
-                        label=f"Chunk: {chunk.index + 1} (Size: {chunk_size} characters)",
-                        value=text_content,
-                        key=f"chunk_{chunk.id}_{chunk.index}",
-                        height=200,
-                        disabled=True,
-                    )
-                else:
-                    st.write(
-                        f"Embedding ID: {embedding_id}, Score: {score}, but chunk not found."
-                    )
-    else:
-        st.info("No relevant embeddings found for your query.")
+def display_chatter(chatter: Chatter):
+    with st.container(border=True):
+        config = chatter.get_configuration()
+        method_display = f"{config['method']}"
+        params = config.get("params", {})
+        fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
+        st.markdown(f"**{method_display}**, {fields_display}")
+        if st.button("Change chatter"):
+            st.session_state["change_chatter"] = True
+            st.rerun()
 
 
 def setup_session_state():
@@ -152,6 +173,7 @@ def setup_session_state():
             ("context_domain", None),
             ("context_embedder", None),
             ("context_retriever", None),
+            ("context_chatter", None),
             ("use_all_texts", True),
             ("only_chosen_embedder", True),
         ]

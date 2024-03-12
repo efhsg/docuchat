@@ -65,13 +65,12 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
 
     def list_texts_by_domain_and_embedder(self, domain_name: str, embedder_model: str):
         try:
-            domain = self.session.query(Domain).filter_by(name=domain_name).one()
-
             texts = (
                 self.session.query(ExtractedText)
                 .join(ExtractedText.chunk_processes)
                 .join(ChunkProcess.embedding_processes)
-                .filter(Domain.id == domain.id)
+                .join(Domain)
+                .filter(Domain.name == domain_name)
                 .filter(
                     func.JSON_EXTRACT(EmbeddingProcess.parameters, "$.model")
                     == embedder_model
