@@ -38,32 +38,28 @@ compressor: TextCompressor = get_compressor()
 
 
 def extracted_data(selected_domain):
-    with st.sidebar:
-        st.title(f"Texts to use")
-
-        if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
-            "context_embedder", False
-        ):
-            embedder: Embedder = st.session_state["context_embedder"]
-            embedder_model_name = (
-                embedder.get_configuration().get("params", {}).get("model", None)
+    if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
+        "context_embedder", False
+    ):
+        embedder: Embedder = st.session_state["context_embedder"]
+        embedder_model_name = (
+            embedder.get_configuration().get("params", {}).get("model", None)
+        )
+        if embedder_model_name:
+            extracted_texts = retriever_repository.list_texts_by_domain_and_embedder(
+                selected_domain.name, embedder_model_name
             )
-            if embedder_model_name:
-                extracted_texts = (
-                    retriever_repository.list_texts_by_domain_and_embedder(
-                        selected_domain.name, embedder_model_name
-                    )
-                )
-            else:
-                st.warning("Embedder model name not found. Showing all texts.")
-                extracted_texts = embedder_repository.list_embedded_texts_by_domain(
-                    selected_domain.name
-                )
         else:
+            st.warning("Embedder model name not found. Showing all texts.")
             extracted_texts = embedder_repository.list_embedded_texts_by_domain(
                 selected_domain.name
             )
+    else:
+        extracted_texts = embedder_repository.list_embedded_texts_by_domain(
+            selected_domain.name
+        )
 
+    with st.sidebar.popover("Show texts"):
         with st.container(border=True):
             st.session_state["texts_to_use"] = {
                 extracted_text: st.checkbox(

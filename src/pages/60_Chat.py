@@ -1,4 +1,7 @@
+from typing import List
+import numpy as np
 import streamlit as st
+from langchain_core.messages import AIMessage, HumanMessage
 from components.chatter.interfaces.chatter import Chatter
 from components.chatter.interfaces.chatter_factory import ChatterFactory
 from components.embedder.interfaces.embedder import Embedder
@@ -77,14 +80,16 @@ def setup_chatter(selected_domain):
         "change_embedder", None
     ):
         embedder: Embedder = st.session_state.get("context_embedder")
-        display_embedder(embedder)
+        with st.sidebar.popover("Show embedder"):
+            display_embedder(embedder)
         if (
             st.session_state.get("context_retriever", None)
             and st.session_state.get("context_retriever_values", None)
             and not st.session_state.get("change_retriever", None)
         ):
             retriever: Retriever = create_retriever(selected_domain.id, embedder)
-            display_retriever(retriever)
+            with st.sidebar.popover("Show retriever"):
+                display_retriever(retriever)
             if (
                 st.session_state.get("context_chatter", None)
                 and st.session_state.get("context_chatter_values", None)
@@ -93,7 +98,9 @@ def setup_chatter(selected_domain):
                 chatter: Chatter = create_chatter(
                     selected_domain.id, embedder, retriever
                 )
-                display_chatter(chatter)
+                with st.sidebar.popover("Show chatter"):
+                    display_chatter(chatter)
+                chat(selected_domain.id, embedder, retriever, chatter)
             else:
                 st.session_state["change_chatter"] = True
                 select_chatter()
@@ -167,6 +174,45 @@ def display_chatter(chatter: Chatter):
             st.rerun()
 
 
+def chat(
+    domain_id: int,
+    embedder: Embedder = None,
+    retriever: Retriever = None,
+    chatter: Chatter = None,
+):
+    with st.container(border=True):
+        user_query = st.chat_input("Start chatting here...")
+        if user_query:
+            try:
+                st.session_state["chat_history"].append(
+                    HumanMessage(content=user_query)
+                )
+                st.session_state["chat_history"].append(
+                    AIMessage(content=query(user_query))
+                )
+            except Exception as e:
+                st.error(f"Failed to chat: {e}")
+        if st.button("Clear history"):
+            st.session_state["chat_history"] = []
+        display_messages()
+
+
+def display_messages():
+    for message in reversed(st.session_state["chat_history"]):
+        if isinstance(message, AIMessage):
+            with st.container(border=True):
+                with st.chat_message("AI"):
+                    st.write(message.content)
+        elif isinstance(message, HumanMessage):
+            with st.container(border=True):
+                with st.chat_message("User"):
+                    st.write(message.content)
+
+
+def query(query: str = ""):
+    return "Whitney"
+
+
 def setup_session_state():
     setup_session_state_vars(
         [
@@ -176,6 +222,7 @@ def setup_session_state():
             ("context_chatter", None),
             ("use_all_texts", True),
             ("only_chosen_embedder", True),
+            ("chat_history", []),
         ]
     )
 
