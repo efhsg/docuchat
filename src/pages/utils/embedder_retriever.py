@@ -1,4 +1,6 @@
+from typing import List
 import streamlit as st
+from components.database.models import Domain, ExtractedText
 from components.embedder.interfaces.embedder import Embedder
 from components.embedder.interfaces.embedder_factory import EmbedderFactory
 from components.embedder.interfaces.embedder_repository import EmbedderRepository
@@ -37,7 +39,47 @@ embedder_factory: EmbedderFactory = get_embedder_factory()
 compressor: TextCompressor = get_compressor()
 
 
-def extracted_data(selected_domain):
+def extracted_data(selected_domain: Domain = None):
+
+    extracted_texts = get_extracted_texts(selected_domain)
+    logger.info(len(extracted_texts))
+    num_selected_texts = setup_texts_to_use(selected_domain, extracted_texts)
+
+    with st.sidebar.popover(f"Show texts ({num_selected_texts})"):
+        with st.container(border=True):
+            st.session_state["texts_to_use"] = {}
+            for extracted_text in extracted_texts:
+                checkbox_key = f"{extracted_text.name}.{extracted_text.type}"
+                st.session_state["texts_to_use"][extracted_text] = st.checkbox(
+                    label=extracted_text_to_label(extracted_text),
+                    key=checkbox_key,
+                    value=st.session_state.get(f"context_{checkbox_key}", False),
+                    on_change=lambda key=checkbox_key: st.session_state.update(
+                        {f"context_{key}": st.session_state.get(f"{key}", False)}
+                    ),
+                )
+        if len(extracted_texts) > 0:
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if st.button("Select all", key="select_all_texts_toggle"):
+                    st.session_state["select_all_texts_button"] = True
+                    st.rerun()
+            with col2:
+                if st.button("Deselect all", key="deselect_all_texts_toggle"):
+                    st.session_state["deselect_all_texts_button"] = True
+                    st.rerun()
+
+        st.checkbox(
+            "Only shows texts that match the chosen embedder",
+            key="only_chosen_embedder_toggle",
+            on_change=lambda: st.session_state.update(
+                only_chosen_embedder=not st.session_state["only_chosen_embedder"]
+            ),
+            value=st.session_state["only_chosen_embedder"],
+        )
+
+
+def get_extracted_texts(selected_domain):
     if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
         "context_embedder", False
     ):
@@ -49,6 +91,7 @@ def extracted_data(selected_domain):
             extracted_texts = retriever_repository.list_texts_by_domain_and_embedder(
                 selected_domain.name, embedder_model_name
             )
+            cleanup_texts_to_use(extracted_texts)
         else:
             st.warning("Embedder model name not found. Showing all texts.")
             extracted_texts = embedder_repository.list_embedded_texts_by_domain(
@@ -59,34 +102,84 @@ def extracted_data(selected_domain):
             selected_domain.name
         )
 
-    with st.sidebar.popover("Show texts"):
-        with st.container(border=True):
-            st.session_state["texts_to_use"] = {
-                extracted_text: st.checkbox(
-                    label=extracted_text_to_label(extracted_text),
-                    value=st.session_state["use_all_texts"],
-                    key=f"{extracted_text.name}.{extracted_text.type}",
-                )
-                for extracted_text in extracted_texts
-            }
+    return extracted_texts
 
-        st.checkbox(
-            "Select all texts",
-            key="select_all_texts_toggle",
-            on_change=lambda: st.session_state.update(
-                use_all_texts=not st.session_state["use_all_texts"]
-            ),
-            value=st.session_state["use_all_texts"],
-        )
 
-        st.checkbox(
-            "Same embedder as your query",
-            key="only_chosen_embedder_toggle",
-            on_change=lambda: st.session_state.update(
-                only_chosen_embedder=not st.session_state["only_chosen_embedder"]
-            ),
-            value=st.session_state["only_chosen_embedder"],
-        )
+def setup_texts_to_use(selected_domain, extracted_texts):
+    embedder: Embedder = st.session_state.get("context_embedder")
+    if embedder:
+        if (
+            not st.session_state.get("context_text_embedder_config", None)
+            or st.session_state.get("context_text_embedder_config")
+            != embedder.get_configuration()
+        ):
+            st.session_state["context_text_embedder_config"] = (
+                embedder.get_configuration()
+            )
+            cleanup_texts_to_use(extracted_texts)
+            return len(extracted_texts)
+
+    if (
+        st.session_state.get("context_text_domain_id", False)
+        and st.session_state.get("context_text_domain_id") == selected_domain.id
+    ):
+        if st.session_state.get("select_all_texts_button", False):
+            num_selected_texts = len(extracted_texts)
+            del st.session_state["select_all_texts_button"]
+            set_all_texts_to_selected(extracted_texts)
+        elif st.session_state.get("deselect_all_texts_button", False):
+            num_selected_texts = 0
+            del st.session_state["deselect_all_texts_button"]
+            set_all_texts_to_deselected(extracted_texts)
+        else:
+            num_selected_texts = count_selected_texts()
+    else:
+        st.session_state["context_text_domain_id"] = selected_domain.id
+        set_all_texts_to_selected(extracted_texts)
+        num_selected_texts = len(extracted_texts)
+    return num_selected_texts
+
+
+def count_selected_texts() -> int:
+    num_selected_texts = 0
+    for key, value in st.session_state.get("texts_to_use", {}).items():
+        if st.session_state.get(f"context_{key.name}.{key.type}", False):
+            num_selected_texts += 1
+    return num_selected_texts
+
+
+def is_extracted_text_present(
+    extracted_text: ExtractedText, extracted_texts: List[ExtractedText]
+) -> bool:
+    return any(et.id == extracted_text.id for et in extracted_texts)
+
+
+def cleanup_texts_to_use(extracted_texts: List[ExtractedText] = []):
+    texts_to_use = st.session_state.get("texts_to_use", {})
+    texts_to_use_keys = set(texts_to_use.keys())
+    for key in texts_to_use_keys:
+        if not any(
+            key.name == et.name and key.type == et.type for et in extracted_texts
+        ):
+            if st.session_state.get(f"context_{key.name}.{key.type}", False):
+                del st.session_state[f"context_{key.name}.{key.type}"]
+
+    for et in extracted_texts:
+        session_key = f"context_{et.name}.{et.type}"
+        if session_key not in texts_to_use_keys:
+            st.session_state[session_key] = True
+
+
+def set_all_texts_to_selected(extracted_texts: List = []):
+    for extracted_text in extracted_texts:
+        st.session_state[f"{extracted_text.name}.{extracted_text.type}"] = True
+        st.session_state[f"context_{extracted_text.name}.{extracted_text.type}"] = True
+
+
+def set_all_texts_to_deselected(extracted_texts: List = []):
+    for extracted_text in extracted_texts:
+        st.session_state[f"{extracted_text.name}.{extracted_text.type}"] = False
+        st.session_state[f"context_{extracted_text.name}.{extracted_text.type}"] = False
 
 
 def select_embedder():

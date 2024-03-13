@@ -152,7 +152,7 @@ def setup_session_state():
             ("context_domain", None),
             ("context_embedder", None),
             ("context_retriever", None),
-            ("use_all_texts", True),
+            ("texts_to_use", {}),
             ("only_chosen_embedder", True),
         ]
     )

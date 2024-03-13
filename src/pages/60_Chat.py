@@ -220,8 +220,8 @@ def setup_session_state():
             ("context_embedder", None),
             ("context_retriever", None),
             ("context_chatter", None),
-            ("use_all_texts", True),
             ("only_chosen_embedder", True),
+            ("texts_to_use", {}),
             ("chat_history", []),
         ]
     )
