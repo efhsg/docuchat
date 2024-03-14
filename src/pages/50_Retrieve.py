@@ -26,7 +26,6 @@ from pages.utils.embedder_retriever import (
     create_retriever,
     display_embedder,
     display_retriever,
-    # extracted_data,
     select_embedder,
     select_retriever,
     setup_texts_to_use,
