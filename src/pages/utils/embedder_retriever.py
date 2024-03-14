@@ -42,7 +42,7 @@ compressor: TextCompressor = get_compressor()
 def extracted_data(selected_domain: Domain = None):
 
     extracted_texts = get_extracted_texts(selected_domain)
-    logger.info(len(extracted_texts))
+    # logger.info(len(extracted_texts))
     num_selected_texts = setup_texts_to_use(selected_domain, extracted_texts)
 
     with st.sidebar.popover(f"Show texts ({num_selected_texts})"):
