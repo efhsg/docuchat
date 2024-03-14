@@ -39,44 +39,27 @@ compressor: TextCompressor = get_compressor()
 
 
 def setup_texts_to_use(selected_domain, extracted_texts):
-    embedder: Embedder = st.session_state.get("context_embedder")
-    if embedder:
-        if (
-            not st.session_state.get("context_text_embedder_config", None)
-            or st.session_state.get("context_text_embedder_config")
-            != embedder.get_configuration()
-        ):
-            st.session_state["context_text_embedder_config"] = (
-                embedder.get_configuration()
-            )
-            cleanup_texts_to_use(extracted_texts)
-            return len(extracted_texts)
-
+    cleanup_texts_to_use(extracted_texts)
     if (
         st.session_state.get("context_text_domain_id", False)
         and st.session_state.get("context_text_domain_id") == selected_domain.id
     ):
         if st.session_state.get("select_all_texts_button", False):
-            num_selected_texts = len(extracted_texts)
-            del st.session_state["select_all_texts_button"]
             set_all_texts_to_selected(extracted_texts)
+            del st.session_state["select_all_texts_button"]
         elif st.session_state.get("deselect_all_texts_button", False):
-            num_selected_texts = 0
             del st.session_state["deselect_all_texts_button"]
             set_all_texts_to_deselected(extracted_texts)
-        else:
-            num_selected_texts = count_selected_texts()
     else:
         st.session_state["context_text_domain_id"] = selected_domain.id
         set_all_texts_to_selected(extracted_texts)
-        num_selected_texts = len(extracted_texts)
-    return num_selected_texts
 
 
-def count_selected_texts() -> int:
+def count_selected_texts(extracted_texts: List[ExtractedText]) -> int:
     num_selected_texts = 0
-    for key, value in st.session_state.get("texts_to_use", {}).items():
-        if st.session_state.get(f"context_{key.name}.{key.type}", False):
+    for extracted_text in extracted_texts:
+        checkbox_key = f"{extracted_text.name}.{extracted_text.type}"
+        if st.session_state.get(f"context_{checkbox_key}", False):
             num_selected_texts += 1
     return num_selected_texts
 
@@ -88,6 +71,11 @@ def is_extracted_text_present(
 
 
 def cleanup_texts_to_use(extracted_texts: List[ExtractedText] = []):
+    remove_deleted_texts_from_texts_to_use(extracted_texts)
+    add_new_texts_to_texts_to_use(extracted_texts)
+
+
+def remove_deleted_texts_from_texts_to_use(extracted_texts: List[ExtractedText] = []):
     texts_to_use = st.session_state.get("texts_to_use", {})
     texts_to_use_keys = set(texts_to_use.keys())
     for key in texts_to_use_keys:
@@ -97,10 +85,17 @@ def cleanup_texts_to_use(extracted_texts: List[ExtractedText] = []):
             if st.session_state.get(f"context_{key.name}.{key.type}", False):
                 del st.session_state[f"context_{key.name}.{key.type}"]
 
+
+def add_new_texts_to_texts_to_use(extracted_texts: List[ExtractedText] = []):
+    texts_to_use_keys = set(
+        f"context_{et.name}.{et.type}"
+        for et in st.session_state.get("texts_to_use", {}).keys()
+    )
+
     for et in extracted_texts:
-        session_key = f"context_{et.name}.{et.type}"
-        if session_key not in texts_to_use_keys:
-            st.session_state[session_key] = True
+        context_session_key = f"context_{et.name}.{et.type}"
+        if context_session_key not in texts_to_use_keys:
+            st.session_state[context_session_key] = True
 
 
 def set_all_texts_to_selected(extracted_texts: List = []):

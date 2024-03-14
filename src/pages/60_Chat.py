@@ -26,6 +26,7 @@ from injector import (
 )
 from pages.utils.embedder_retriever import (
     cleanup_texts_to_use,
+    count_selected_texts,
     create_retriever,
     display_embedder,
     display_retriever,
@@ -79,9 +80,10 @@ def main():
 def extracted_data(selected_domain: Domain = None):
 
     extracted_texts = get_extracted_texts(selected_domain)
-    num_selected_texts = setup_texts_to_use(selected_domain, extracted_texts)
+    setup_texts_to_use(selected_domain, extracted_texts)
+    num_texts = count_selected_texts(extracted_texts)
 
-    with st.sidebar.popover(f"Show texts ({num_selected_texts})"):
+    with st.sidebar.popover(f"Show texts ({num_texts})"):
         with st.container(border=True):
             st.session_state["texts_to_use"] = {}
             for extracted_text in extracted_texts:

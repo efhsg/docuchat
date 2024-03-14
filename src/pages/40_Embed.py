@@ -66,11 +66,11 @@ def text_selector(selected_domain):
 
     with st.container(border=True):
         selected_text = select_texts(text_options)
-        col1, col2 = st.columns([1, 3])
+        col1, col2 = st.columns([1, 4])
 
         with col1:
             st.checkbox(
-                label="Show only without embeddings",
+                label="Without embeddings",
                 key="filter_unembedded",
                 value=st.session_state.get("context_filter_unembedded", False),
                 on_change=lambda: st.session_state.update(
@@ -82,7 +82,7 @@ def text_selector(selected_domain):
 
         with col2:
             st.checkbox(
-                label="Show only with embeddings",
+                label="With embeddings",
                 key="filter_embedded",
                 value=st.session_state.get("context_filter_embedded", False),
                 on_change=lambda: st.session_state.update(

@@ -77,10 +77,10 @@ def text_selector(selected_domain):
 
     with st.container(border=True):
         selected_text = select_texts(text_options)
-        col1, col2 = st.columns([1, 4])
+        col1, col2 = st.columns([1, 6])
         with col1:
             st.checkbox(
-                label="Show only without chunks",
+                label="Without chunks",
                 key="filter_unchunked",
                 value=st.session_state.get("context_filter_unchunked", False),
                 on_change=lambda: st.session_state.update(
@@ -91,7 +91,7 @@ def text_selector(selected_domain):
             )
         with col2:
             st.checkbox(
-                label="Show only with chunks",
+                label="With chunks",
                 key="filter_chunked",
                 value=st.session_state.get("context_filter_chunked", False),
                 on_change=lambda: st.session_state.update(
