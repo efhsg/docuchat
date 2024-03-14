@@ -84,12 +84,12 @@ def get_extracted_texts(selected_domain):
         "context_embedder", False
     ):
         embedder: Embedder = st.session_state["context_embedder"]
-        embedder_model_name = (
+        embedder_config = (
             embedder.get_configuration().get("params", {}).get("model", None)
         )
-        if embedder_model_name:
+        if embedder_config:
             extracted_texts = retriever_repository.list_texts_by_domain_and_embedder(
-                selected_domain.name, embedder_model_name
+                selected_domain.name, embedder_config
             )
             cleanup_texts_to_use(extracted_texts)
         else:
