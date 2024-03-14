@@ -74,7 +74,7 @@ def extracted_data(selected_domain: Domain = None):
     setup_texts_to_use(selected_domain, extracted_texts)
     num_texts = count_selected_texts(extracted_texts)
 
-    with st.sidebar.popover(f"Show texts ({num_texts})"):
+    with st.sidebar.popover(f"Texts ({num_texts})"):
         with st.container(border=True):
             st.session_state["texts_to_use"] = {}
             for extracted_text in extracted_texts:

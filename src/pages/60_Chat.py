@@ -83,7 +83,7 @@ def extracted_data(selected_domain: Domain = None):
     setup_texts_to_use(selected_domain, extracted_texts)
     num_texts = count_selected_texts(extracted_texts)
 
-    with st.sidebar.popover(f"Show texts ({num_texts})"):
+    with st.sidebar.popover(f"Texts ({num_texts})"):
         with st.container(border=True):
             st.session_state["texts_to_use"] = {}
             for extracted_text in extracted_texts:
@@ -148,7 +148,7 @@ def setup_chatter(selected_domain):
         "change_embedder", None
     ):
         embedder: Embedder = st.session_state.get("context_embedder")
-        with st.sidebar.popover("Show embedder"):
+        with st.sidebar.popover("Embedder"):
             display_embedder(embedder)
         if (
             st.session_state.get("context_retriever", None)
@@ -156,7 +156,7 @@ def setup_chatter(selected_domain):
             and not st.session_state.get("change_retriever", None)
         ):
             retriever: Retriever = create_retriever(selected_domain.id, embedder)
-            with st.sidebar.popover("Show retriever"):
+            with st.sidebar.popover("Retriever"):
                 display_retriever(retriever)
             if (
                 st.session_state.get("context_chatter", None)
@@ -166,7 +166,7 @@ def setup_chatter(selected_domain):
                 chatter: Chatter = create_chatter(
                     selected_domain.id, embedder, retriever
                 )
-                with st.sidebar.popover("Show chatter"):
+                with st.sidebar.popover("Chatter"):
                     display_chatter(chatter)
                 chat(selected_domain.id, embedder, retriever, chatter)
             else:
