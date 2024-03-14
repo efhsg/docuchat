@@ -21,7 +21,7 @@ class MySQLConnector(Connector):
         self._db_name = os.getenv("DB_DATABASE")
         self._db_port = os.getenv("DB_PORT", "3306")
         self.engine = create_engine(self._database_uri())
-        self.Session = sessionmaker(bind=self.engine)
+        self.session = sessionmaker(bind=self.engine)
         self.logger = NativeLogger.get_logger()
 
     def get_connection(self):
@@ -41,7 +41,7 @@ class MySQLConnector(Connector):
 
     def get_session(self):
         try:
-            return self.Session()
+            return self.session()
         except Exception as e:
             self.logger.critical(f"Failed to create SQLAlchemy session: {e}")
             raise
