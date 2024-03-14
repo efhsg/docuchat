@@ -10,7 +10,6 @@ class ConfigBasedEmbedderFactory(EmbedderFactory):
         self.model_cache_dir = model_cache_dir
 
     def create_embedder(self, method: str, **kwargs) -> Embedder:
-        self.logger.info(self.model_cache_dir)
         embedder_class = EmbedderConfig.embedder_classes.get(method)
         if not embedder_class:
             raise ValueError(f"Embedder method '{method}' is not supported.")

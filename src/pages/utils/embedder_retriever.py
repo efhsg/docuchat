@@ -1,6 +1,6 @@
 from typing import List
 import streamlit as st
-from components.database.models import Domain, ExtractedText
+from components.database.models import ExtractedText
 from components.embedder.interfaces.embedder import Embedder
 from components.embedder.interfaces.embedder_factory import EmbedderFactory
 from components.embedder.interfaces.embedder_repository import EmbedderRepository
@@ -22,7 +22,6 @@ from injector import (
 )
 from pages.utils.streamlit_form import StreamlitForm
 from pages.utils.utils import (
-    extracted_text_to_label,
     get_index,
     init_form_values,
     save_form_values_to_context,
@@ -37,72 +36,6 @@ retriever_config = get_retriever_config()
 embedder_config = get_embedder_config()
 embedder_factory: EmbedderFactory = get_embedder_factory()
 compressor: TextCompressor = get_compressor()
-
-
-def extracted_data(selected_domain: Domain = None):
-
-    extracted_texts = get_extracted_texts(selected_domain)
-    # logger.info(len(extracted_texts))
-    num_selected_texts = setup_texts_to_use(selected_domain, extracted_texts)
-
-    with st.sidebar.popover(f"Show texts ({num_selected_texts})"):
-        with st.container(border=True):
-            st.session_state["texts_to_use"] = {}
-            for extracted_text in extracted_texts:
-                checkbox_key = f"{extracted_text.name}.{extracted_text.type}"
-                st.session_state["texts_to_use"][extracted_text] = st.checkbox(
-                    label=extracted_text_to_label(extracted_text),
-                    key=checkbox_key,
-                    value=st.session_state.get(f"context_{checkbox_key}", False),
-                    on_change=lambda key=checkbox_key: st.session_state.update(
-                        {f"context_{key}": st.session_state.get(f"{key}", False)}
-                    ),
-                )
-        if len(extracted_texts) > 0:
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                if st.button("Select all", key="select_all_texts_toggle"):
-                    st.session_state["select_all_texts_button"] = True
-                    st.rerun()
-            with col2:
-                if st.button("Deselect all", key="deselect_all_texts_toggle"):
-                    st.session_state["deselect_all_texts_button"] = True
-                    st.rerun()
-
-        st.checkbox(
-            "Only shows texts that match the chosen embedder",
-            key="only_chosen_embedder_toggle",
-            on_change=lambda: st.session_state.update(
-                only_chosen_embedder=not st.session_state["only_chosen_embedder"]
-            ),
-            value=st.session_state["only_chosen_embedder"],
-        )
-
-
-def get_extracted_texts(selected_domain):
-    if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
-        "context_embedder", False
-    ):
-        embedder: Embedder = st.session_state["context_embedder"]
-        embedder_config = (
-            embedder.get_configuration().get("params", {}).get("model", None)
-        )
-        if embedder_config:
-            extracted_texts = retriever_repository.list_texts_by_domain_and_embedder(
-                selected_domain.name, embedder_config
-            )
-            cleanup_texts_to_use(extracted_texts)
-        else:
-            st.warning("Embedder model name not found. Showing all texts.")
-            extracted_texts = embedder_repository.list_embedded_texts_by_domain(
-                selected_domain.name
-            )
-    else:
-        extracted_texts = embedder_repository.list_embedded_texts_by_domain(
-            selected_domain.name
-        )
-
-    return extracted_texts
 
 
 def setup_texts_to_use(selected_domain, extracted_texts):
