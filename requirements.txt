@@ -11,3 +11,4 @@ langchain
 spacy
 sentence_transformers
 faiss-cpu
+openai

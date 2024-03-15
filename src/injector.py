@@ -119,7 +119,9 @@ def get_retriever_config():
 
 
 def get_chatter_config():
-    return ChatterConfig()
+    return ChatterConfig(
+        logger=NativeLogger.get_logger("docuchat"),
+    )
 
 
 def get_chatter_factory() -> ChatterFactory:

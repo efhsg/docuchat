@@ -1,5 +1,6 @@
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
+from components.chatter.chatter_config import ModelOptionsFetchError
 from components.chatter.interfaces.chatter import Chatter
 from components.chatter.interfaces.chatter_factory import ChatterFactory
 from components.database.models import Domain
@@ -163,11 +164,11 @@ def setup_chatter(selected_domain):
                 and st.session_state.get("context_chatter_values", None)
                 and not st.session_state.get("change_chatter", None)
             ):
-                chatter: Chatter = create_chatter(
+                chatter: Chatter = create_chatter_instance(
                     selected_domain.id, embedder, retriever
                 )
                 with st.sidebar.popover("Chatter"):
-                    display_chatter(chatter)
+                    display_chatter_instance(chatter)
                 chat(selected_domain.id, embedder, retriever, chatter)
             else:
                 st.session_state["change_chatter"] = True
@@ -181,8 +182,12 @@ def setup_chatter(selected_domain):
 
 
 def select_chatter():
-
-    chatter_options = chatter_config.chatter_options
+    try:
+        chatter_options = chatter_config.chatter_options
+        # logger.info(chatter_options)
+    except ModelOptionsFetchError as e:
+        st.error(f"Getting options failed: {e}")
+        chatter_options = {}
 
     method = st.selectbox(
         label="Select a chatter:",
@@ -218,7 +223,7 @@ def select_chatter():
             st.rerun()
 
 
-def create_chatter(
+def create_chatter_instance(
     domain_id: int, embedder: Embedder = None, retriever: Retriever = None
 ) -> Chatter:
     kwargs = {
@@ -230,7 +235,7 @@ def create_chatter(
     )
 
 
-def display_chatter(chatter: Chatter):
+def display_chatter_instance(chatter: Chatter):
     with st.container(border=True):
         config = chatter.get_configuration()
         method_display = f"{config['method']}"
