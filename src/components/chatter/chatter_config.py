@@ -1,7 +1,8 @@
 from typing import Any, Dict, List
 import requests
 from utils.env_utils import getenv
-from components.chatter.open_ai_chatter import OpenAIChatter
+from components.chatter.openai_chatter import OpenAIChatter
+from components.chatter.groq_chatter import GroqChatter
 from logging import Logger as StandardLogger
 
 
@@ -10,17 +11,24 @@ class ModelOptionsFetchError(Exception):
 
 
 class ChatterConfig:
-    MIN_TEMPERATURE: float = 0.0
-    MAX_TEMPERATURE: float = 1.0
+    MIN_TEMPERATURE = 0.0
+    MAX_TEMPERATURE = 1.0
     OPEN_API_MODEL_DEFAULT = getenv("OPEN_API_MODEL_DEFAULT", "gpt-4")
+    GROQ_API_MODEL_DEFAULT = getenv("GROQ_API_MODEL_DEFAULT", "llama2-70b-4096")
 
     chatter_classes = {
         "OpenAI": OpenAIChatter,
+        "Groq": GroqChatter,
     }
 
     def __init__(self, logger: StandardLogger = None):
         self.logger = logger
         self.model_options = self.fetch_model_options()
+        self.groq_model_options = [
+            "llama2-70b-4096",
+            "mixtral-8x7b-32768",
+            "gemma-7b-it",
+        ]
         self.base_field_definitions = {
             "temperature": {
                 "label": "Response Generation Temperature",
@@ -35,6 +43,16 @@ class ChatterConfig:
                 "default": (
                     self.OPEN_API_MODEL_DEFAULT
                     if self.OPEN_API_MODEL_DEFAULT in self.model_options
+                    else None
+                ),
+            },
+            "groq_model": {
+                "label": "Groq Model",
+                "type": "select",
+                "options": self.groq_model_options,
+                "default": (
+                    self.GROQ_API_MODEL_DEFAULT
+                    if self.GROQ_API_MODEL_DEFAULT in self.groq_model_options
                     else None
                 ),
             },
@@ -57,7 +75,14 @@ class ChatterConfig:
 
     def _get_fields(self, chatter_class):
         chatter_fields = {
-            OpenAIChatter: self.base_field_definitions,
+            OpenAIChatter: {
+                "open_ai_model": self.base_field_definitions["open_ai_model"],
+                "temperature": self.base_field_definitions["temperature"],
+            },
+            GroqChatter: {
+                "groq_model": self.base_field_definitions["groq_model"],
+                "temperature": self.base_field_definitions["temperature"],
+            },
         }
         return chatter_fields.get(chatter_class, {})
 

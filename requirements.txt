@@ -12,3 +12,4 @@ spacy
 sentence_transformers
 faiss-cpu
 openai
+groq

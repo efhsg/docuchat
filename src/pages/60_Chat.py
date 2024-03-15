@@ -184,10 +184,15 @@ def setup_chatter(selected_domain):
 def select_chatter():
     chatter_options = chatter_config.chatter_options
     for chatter_name, chatter_data in chatter_options.items():
-        if not chatter_data["fields"]["open_ai_model"]["options"]:
-            st.error(
-                f"Getting model options from  {chatter_name} failed. Please check your API_KEY in .env"
-            )
+        model_key = next(
+            (key for key in chatter_data["fields"] if key.endswith("_model")), None
+        )
+        if model_key:
+            model_data = chatter_data["fields"][model_key]
+            if not model_data["options"]:
+                st.error(
+                    f"Getting model options for {chatter_name} failed. Please check your API_KEY in .env"
+                )
 
     method = st.selectbox(
         label="Select a chatter:",
@@ -261,7 +266,15 @@ def chat(
                     HumanMessage(content=user_query)
                 )
                 st.session_state["chat_history"].append(
-                    AIMessage(content=query(user_query))
+                    AIMessage(
+                        content=query(
+                            user_query,
+                            domain_id=domain_id,
+                            embedder=embedder,
+                            retriever=retriever,
+                            chatter=chatter,
+                        )
+                    )
                 )
             except Exception as e:
                 st.error(f"Failed to chat: {e}")
@@ -282,8 +295,22 @@ def display_messages():
                     st.write(message.content)
 
 
-def query(query: str = ""):
-    return "Whitney"
+def query(
+    user_query: str = "",
+    domain_id: int = None,
+    embedder: Embedder = None,
+    retriever: Retriever = None,
+    chatter: Chatter = None,
+) -> str:
+    if chatter is not None:
+        try:
+            return chatter.chat(query=user_query, context={})
+        except Exception as e:
+            if logger:
+                logger.error(f"Error during chat: {e}")
+            return "An error occurred while generating the response."
+    else:
+        return "Chatter instance not configured."
 
 
 def setup_session_state():
