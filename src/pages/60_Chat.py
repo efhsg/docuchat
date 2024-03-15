@@ -149,7 +149,7 @@ def setup_chatter(selected_domain):
         "change_embedder", None
     ):
         embedder: Embedder = st.session_state.get("context_embedder")
-        with st.sidebar.popover("Embedder"):
+        with st.sidebar.popover(f"{embedder.get_configuration()['method']}"):
             display_embedder(embedder)
         if (
             st.session_state.get("context_retriever", None)
@@ -157,7 +157,7 @@ def setup_chatter(selected_domain):
             and not st.session_state.get("change_retriever", None)
         ):
             retriever: Retriever = create_retriever(selected_domain.id, embedder)
-            with st.sidebar.popover("Retriever"):
+            with st.sidebar.popover(f"{retriever.get_configuration()['method']}"):
                 display_retriever(retriever)
             if (
                 st.session_state.get("context_chatter", None)
@@ -167,7 +167,7 @@ def setup_chatter(selected_domain):
                 chatter: Chatter = create_chatter_instance(
                     selected_domain.id, embedder, retriever
                 )
-                with st.sidebar.popover("Chatter"):
+                with st.sidebar.popover(f"{chatter.get_configuration()['method']}"):
                     display_chatter_instance(chatter)
                 chat(selected_domain.id, embedder, retriever, chatter)
             else:
@@ -182,12 +182,12 @@ def setup_chatter(selected_domain):
 
 
 def select_chatter():
-    try:
-        chatter_options = chatter_config.chatter_options
-        # logger.info(chatter_options)
-    except ModelOptionsFetchError as e:
-        st.error(f"Getting options failed: {e}")
-        chatter_options = {}
+    chatter_options = chatter_config.chatter_options
+    for chatter_name, chatter_data in chatter_options.items():
+        if not chatter_data["fields"]["model"]["options"]:
+            st.error(
+                f"Getting model options from  {chatter_name} failed. Please check your API_KEY in .env"
+            )
 
     method = st.selectbox(
         label="Select a chatter:",
