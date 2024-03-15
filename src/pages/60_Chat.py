@@ -184,7 +184,7 @@ def setup_chatter(selected_domain):
 def select_chatter():
     chatter_options = chatter_config.chatter_options
     for chatter_name, chatter_data in chatter_options.items():
-        if not chatter_data["fields"]["model"]["options"]:
+        if not chatter_data["fields"]["open_ai_model"]["options"]:
             st.error(
                 f"Getting model options from  {chatter_name} failed. Please check your API_KEY in .env"
             )

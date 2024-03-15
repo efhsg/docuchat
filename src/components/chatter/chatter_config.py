@@ -12,6 +12,11 @@ class ModelOptionsFetchError(Exception):
 class ChatterConfig:
     MIN_TEMPERATURE: float = 0.0
     MAX_TEMPERATURE: float = 1.0
+    OPEN_API_MODEL_DEFAULT = getenv("OPEN_API_MODEL_DEFAULT", "gpt-4")
+
+    chatter_classes = {
+        "OpenAI": OpenAIChatter,
+    }
 
     def __init__(self, logger: StandardLogger = None):
         self.logger = logger
@@ -23,11 +28,15 @@ class ChatterConfig:
                 "default": float(getenv("CHATTER_TEMPERATURE_DEFAULT", "0.7")),
                 "options": [],
             },
-            "model": {
+            "open_ai_model": {
                 "label": "Model",
                 "type": "select",
                 "options": self.model_options,
-                "default": self.model_options[0] if self.model_options else None,
+                "default": (
+                    self.OPEN_API_MODEL_DEFAULT
+                    if self.OPEN_API_MODEL_DEFAULT in self.model_options
+                    else None
+                ),
             },
         }
 
@@ -45,10 +54,6 @@ class ChatterConfig:
             return []
         except ValueError:
             return []
-
-    chatter_classes = {
-        "OpenAI": OpenAIChatter,
-    }
 
     def _get_fields(self, chatter_class):
         chatter_fields = {

@@ -9,10 +9,10 @@ class OpenAIChatter(Chatter):
     def __init__(
         self,
         logger: StandardLogger = None,
-        model: str = "gpt-4",
+        open_ai_model: str = "gpt-4",
         temperature: float = 0.7,
     ):
-        self.model = model
+        self.model = open_ai_model
         self.temperature = temperature
         self.logger = logger
 
