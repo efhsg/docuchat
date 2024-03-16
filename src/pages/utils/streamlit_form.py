@@ -24,6 +24,7 @@ class StreamlitForm:
         "select": st.selectbox,
         "checkbox": st.checkbox,
         "multi_select": st.multiselect,
+        "boolean": st.checkbox,
     }
     _special_char_mapping: Dict[str, str] = {
         "Double New Line (\\n\\n)": "\n\n",
@@ -112,7 +113,7 @@ class StreamlitForm:
             ]
             widget_args["options"] = options
             widget_args["default"] = default
-        elif details["type"] == "checkbox":
+        elif details["type"] == "checkbox" or details["type"] == "boolean":
             widget_args["value"] = default
         else:
             widget_args["value"] = default
@@ -121,7 +122,7 @@ class StreamlitForm:
     def _get_default(
         self, details: Dict[str, Any], form_values: Dict[str, Any], param: str
     ) -> Any:
-        if details["type"] == "select":
+        if details["type"] == "select" or details["type"] == "boolean":
             default = form_values.get(param, details.get("default", ""))
             if isinstance(default, list):
                 default = default[0]

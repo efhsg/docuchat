@@ -1,9 +1,10 @@
-import os
 from groq import Groq
 from typing import Dict, List, Tuple, Optional
 
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
+
+from utils.env_utils import getenv
 
 
 class GroqChatter(Chatter):
@@ -23,17 +24,16 @@ class GroqChatter(Chatter):
         self.top_p = top_p
         self.stream = stream
         self.stop = stop
+
         self.logger = logger
 
     def chat(self, query: str, context: Dict[str, List[Tuple[str, float]]]) -> str:
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        client = Groq(api_key=getenv("GROQ_API_KEY"))
         try:
-            chat_completion = client.chat.completions.create(
+            stream_response = client.chat.completions.create(
                 messages=[
-                    {
-                        "role": "user",
-                        "content": query,
-                    }
+                    {"role": "system", "content": "you are a helpful assistant."},
+                    {"role": "user", "content": query},
                 ],
                 model=self.model,
                 temperature=self.temperature,
@@ -42,15 +42,21 @@ class GroqChatter(Chatter):
                 stream=self.stream,
                 stop=[self.stop] if self.stop else None,
             )
+
+            response_content = ""
+            for chunk in stream_response:
+                if chunk.choices[0].delta.content is not None:
+                    response_content += chunk.choices[0].delta.content
+
             if self.logger:
                 self.logger.info(
                     f"Chatting with Groq model {self.model} at temperature {self.temperature}, max tokens {self.max_tokens}, top_p {self.top_p}, stream {str(self.stream)}, stop '{self.stop}'"
                 )
-            return chat_completion.choices[0].message.content
+            return response_content
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Error during chat with Groq model: {e}")
-            return "An error occurred while generating the response."
+            return f"An error occurred while generating the response: {e}"
 
     def get_params(self) -> Dict:
         return {
