@@ -13,6 +13,10 @@ class ModelOptionsFetchError(Exception):
 class ChatterConfig:
     MIN_TEMPERATURE = 0.0
     MAX_TEMPERATURE = 1.0
+    MIN_MAX_TOKENS = 1
+    MAX_MAX_TOKENS = 4096
+    MIN_TOP_P = 0.0
+    MAX_TOP_P = 1.0
     OPEN_API_MODEL_DEFAULT = getenv("OPEN_API_MODEL_DEFAULT", "gpt-4")
     GROQ_API_MODEL_DEFAULT = getenv("GROQ_API_MODEL_DEFAULT", "llama2-70b-4096")
 
@@ -56,6 +60,26 @@ class ChatterConfig:
                     else None
                 ),
             },
+            "max_tokens": {
+                "label": "Max Tokens",
+                "type": "number",
+                "default": 1024,
+            },
+            "top_p": {
+                "label": "Top P",
+                "type": "number",
+                "default": 1.0,
+            },
+            "stream": {
+                "label": "Stream",
+                "type": "boolean",
+                "default": True,
+            },
+            "stop": {
+                "label": "Stop Sequence",
+                "type": "text",
+                "default": None,
+            },
         }
 
     def fetch_model_options(self) -> List[str]:
@@ -74,17 +98,25 @@ class ChatterConfig:
             return []
 
     def _get_fields(self, chatter_class):
-        chatter_fields = {
-            OpenAIChatter: {
-                "open_ai_model": self.base_field_definitions["open_ai_model"],
-                "temperature": self.base_field_definitions["temperature"],
-            },
-            GroqChatter: {
-                "groq_model": self.base_field_definitions["groq_model"],
-                "temperature": self.base_field_definitions["temperature"],
-            },
-        }
-        return chatter_fields.get(chatter_class, {})
+        field_keys = {
+            OpenAIChatter: [
+                "open_ai_model",
+                "temperature",
+                "max_tokens",
+                "top_p",
+                "stream",
+                "stop",
+            ],
+            GroqChatter: [
+                "groq_model",
+                "temperature",
+                "max_tokens",
+                "top_p",
+                "stream",
+                "stop",
+            ],
+        }.get(chatter_class, [])
+        return {key: self.base_field_definitions[key] for key in field_keys}
 
     def _validations(self, chatter_class):
         validations = []
@@ -99,6 +131,32 @@ class ChatterConfig:
                     {
                         "rule": ("temperature", "le", self.MAX_TEMPERATURE),
                         "message": f"Temperature must not exceed {self.MAX_TEMPERATURE}.",
+                    },
+                ]
+            )
+        if "max_tokens" in fields:
+            validations.extend(
+                [
+                    {
+                        "rule": ("max_tokens", "ge", self.MIN_MAX_TOKENS),
+                        "message": f"Max tokens must be at least {self.MIN_MAX_TOKENS}.",
+                    },
+                    {
+                        "rule": ("max_tokens", "le", self.MAX_MAX_TOKENS),
+                        "message": f"Max tokens must not exceed {self.MAX_MAX_TOKENS}.",
+                    },
+                ]
+            )
+        if "top_p" in fields:
+            validations.extend(
+                [
+                    {
+                        "rule": ("top_p", "ge", self.MIN_TOP_P),
+                        "message": f"Top P must be at least {self.MIN_TOP_P}.",
+                    },
+                    {
+                        "rule": ("top_p", "le", self.MAX_TOP_P),
+                        "message": f"Top P must not exceed {self.MAX_TOP_P}.",
                     },
                 ]
             )
