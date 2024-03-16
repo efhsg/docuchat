@@ -1,9 +1,7 @@
 from groq import Groq
 from typing import Dict, List, Tuple, Optional
-
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
-
 from utils.env_utils import getenv
 
 
@@ -24,7 +22,6 @@ class GroqChatter(Chatter):
         self.top_p = top_p
         self.stream = stream
         self.stop = stop
-
         self.logger = logger
 
     def chat(self, query: str, context: Dict[str, List[Tuple[str, float]]]) -> str:
@@ -43,10 +40,13 @@ class GroqChatter(Chatter):
                 stop=[self.stop] if self.stop else None,
             )
 
-            response_content = ""
-            for chunk in stream_response:
-                if chunk.choices[0].delta.content is not None:
-                    response_content += chunk.choices[0].delta.content
+            if not self.stream:
+                response_content = stream_response.choices[0].message.content
+            else:
+                response_content = ""
+                for chunk in stream_response:
+                    if chunk.choices[0].delta.content is not None:
+                        response_content += chunk.choices[0].delta.content
 
             if self.logger:
                 self.logger.info(
