@@ -29,7 +29,7 @@ class GroqChatter(Chatter):
         query: str,
         context: Dict[str, List[Tuple[str, float]]],
     ) -> Union[str, Generator[str, None, None]]:
-        client = Groq(api_key=getenv("GROQ_API_KEY"))
+        client = Groq()
         stream_response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "you are a helpful assistant."},
