@@ -1,3 +1,4 @@
+from typing import Any, Tuple
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from components.chatter.chatter_config import ModelOptionsFetchError
@@ -45,6 +46,7 @@ from pages.utils.utils import (
     select_domain_instance,
     setup_page,
 )
+from utils.env_utils import getenv
 
 config = get_config()
 logger: Logger = get_logger()
@@ -194,11 +196,20 @@ def select_chatter():
                     f"Getting model options for {chatter_name} failed. Please check your API_KEY in .env"
                 )
 
+    method_options = list(chatter_options.keys())
     method = st.selectbox(
         label="Select a chatter:",
-        options=list(chatter_options.keys()),
+        options=method_options,
         key="chatter_method",
-        index=get_index(list(chatter_options.keys()), "context_chatter"),
+        index=get_index(
+            method_options,
+            "context_chatter",
+            default=(
+                method_options.index(getenv("CHATTER_DEFAULT"))
+                if getenv("CHATTER_DEFAULT") in method_options
+                else 0
+            ),
+        ),
         on_change=lambda: st.session_state.update(
             context_chatter=st.session_state["chatter_method"]
         ),
@@ -254,45 +265,129 @@ def display_chatter_instance(chatter: Chatter):
 
 def chat(
     domain_id: int,
-    embedder: Embedder = None,
-    retriever: Retriever = None,
-    chatter: Chatter = None,
+    embedder: Embedder,
+    retriever: Retriever,
+    chatter: Chatter,
 ):
+    stream = chatter.get_params().get("stream", False)
     with st.container(border=True):
         user_query = st.chat_input("Start chatting here...")
-        if user_query:
-            try:
-                st.session_state["chat_history"].append(
-                    HumanMessage(content=user_query)
-                )
-                st.session_state["chat_history"].append(
-                    AIMessage(
-                        content=query(
-                            user_query,
-                            domain_id=domain_id,
-                            embedder=embedder,
-                            retriever=retriever,
-                            chatter=chatter,
-                        )
-                    )
-                )
-            except Exception as e:
-                st.error(f"Failed to chat: {e}")
-        if st.button("Clear history"):
+        current_chat_placeholder = display_messages()
+    if user_query:
+        with current_chat_placeholder.container(border=True):
+            with st.chat_message("AI"):
+                ai_placeholder = st.empty()
+            with st.chat_message("User"):
+                st.write(user_query)
+
+        st.session_state.setdefault("chat_history", []).append(
+            HumanMessage(content=user_query)
+        )
+        if stream:
+            chat_with_streaming_on(
+                domain_id,
+                embedder,
+                retriever,
+                chatter,
+                user_query,
+                ai_placeholder=ai_placeholder,
+            )
+        else:
+            chat_with_streaming_off(
+                domain_id,
+                embedder,
+                retriever,
+                chatter,
+                user_query,
+                ai_placeholder=ai_placeholder,
+            )
+
+
+def chat_with_streaming_on(
+    domain_id,
+    embedder,
+    retriever,
+    chatter: Chatter,
+    user_query,
+    ai_placeholder,
+):
+    try:
+        original_generator = chatter.chat_stream(user_query, {})
+        wrapped_generator = generator_wrapper(original_generator)
+        with ai_placeholder:
+            st.write_stream(wrapped_generator)
+    except Exception as e:
+        st.error(f"Failed to chat: {e}")
+
+
+def generator_wrapper(chat_stream_generator):
+    streamed_responses = ""
+    for response_part in chat_stream_generator:
+
+        streamed_responses += response_part
+        yield response_part
+
+    st.session_state["chat_history"].append(AIMessage(content=streamed_responses))
+
+
+def chat_with_streaming_off(
+    domain_id,
+    embedder,
+    retriever,
+    chatter,
+    user_query,
+    ai_placeholder,
+):
+    try:
+        response = query(
+            user_query,
+            domain_id=domain_id,
+            embedder=embedder,
+            retriever=retriever,
+            chatter=chatter,
+        )
+        with ai_placeholder:
+            st.write(response)
+        st.session_state["chat_history"].append(AIMessage(content=response))
+    except Exception as e:
+        st.error(f"Failed to chat: {e}")
+
+
+def clear_history_button():
+    if st.session_state["chat_history"]:
+        if st.sidebar.button("Clear history"):
             st.session_state["chat_history"] = []
-        display_messages()
 
 
 def display_messages():
-    for message in reversed(st.session_state["chat_history"]):
-        if isinstance(message, AIMessage):
-            with st.container(border=True):
-                with st.chat_message("AI"):
-                    st.write(message.content)
-        elif isinstance(message, HumanMessage):
-            with st.container(border=True):
+    clear_history_button()
+    current_chat_placeholder = st.empty()
+    with st.container(border=True):
+        for message in reversed(st.session_state["chat_history"]):
+            if isinstance(message, HumanMessage):
                 with st.chat_message("User"):
                     st.write(message.content)
+            elif isinstance(message, AIMessage):
+                with st.chat_message("AI"):
+                    st.write(message.content)
+    return current_chat_placeholder
+
+
+import time
+import numpy as np
+import pandas as pd
+
+_LOREM_IPSUM = """
+Lorem ipsum dolor sit amet, **consectetur adipiscing** elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+"""
+
+
+def stream_data():
+    for word in _LOREM_IPSUM.split(" "):
+        yield word + " "
+        time.sleep(0.05)
 
 
 def query(

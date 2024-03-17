@@ -84,9 +84,9 @@ def set_default_state(
         st.session_state[key] = default
 
 
-def get_index(options: List[str], context: str) -> int:
+def get_index(options: List[str], context: str, default: int = 0) -> int:
     return (
-        0
+        default
         if st.session_state[context] not in options
         else options.index(st.session_state[context])
     )
