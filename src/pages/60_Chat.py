@@ -312,7 +312,7 @@ def chat_with_streaming_on(
     ai_placeholder,
 ):
     try:
-        original_generator = chatter.chat_stream(user_query, {})
+        original_generator = chatter.chat(user_query, {})
         wrapped_generator = generator_wrapper(original_generator)
         with ai_placeholder:
             st.write_stream(wrapped_generator)
@@ -334,18 +334,12 @@ def chat_with_streaming_off(
     domain_id,
     embedder,
     retriever,
-    chatter,
+    chatter: Chatter,
     user_query,
     ai_placeholder,
 ):
     try:
-        response = query(
-            user_query,
-            domain_id=domain_id,
-            embedder=embedder,
-            retriever=retriever,
-            chatter=chatter,
-        )
+        response = chatter.chat(user_query, {})
         with ai_placeholder:
             st.write(response)
         st.session_state["chat_history"].append(AIMessage(content=response))
@@ -371,41 +365,6 @@ def display_messages():
                 with st.chat_message("AI"):
                     st.write(message.content)
     return current_chat_placeholder
-
-
-import time
-import numpy as np
-import pandas as pd
-
-_LOREM_IPSUM = """
-Lorem ipsum dolor sit amet, **consectetur adipiscing** elit, sed do eiusmod tempor
-incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-"""
-
-
-def stream_data():
-    for word in _LOREM_IPSUM.split(" "):
-        yield word + " "
-        time.sleep(0.05)
-
-
-def query(
-    user_query: str = "",
-    domain_id: int = None,
-    embedder: Embedder = None,
-    retriever: Retriever = None,
-    chatter: Chatter = None,
-) -> str:
-    if chatter is not None:
-        try:
-            return chatter.chat(query=user_query, context={})
-        except Exception as e:
-            if logger:
-                logger.error(f"Error during chat: {e}")
-            return "An error occurred while generating the response."
-    else:
-        return "Chatter instance not configured."
 
 
 def setup_session_state():

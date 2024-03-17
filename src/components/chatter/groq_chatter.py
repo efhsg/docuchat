@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Optional, Generator
+from typing import Dict, Generator, List, Tuple, Optional, Union
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
 from utils.env_utils import getenv
@@ -25,7 +24,11 @@ class GroqChatter(Chatter):
         self.stop = stop
         self.logger = logger
 
-    def chat(self, query: str, context: Dict[str, List[Tuple[str, float]]]):
+    def chat(
+        self,
+        query: str,
+        context: Dict[str, List[Tuple[str, float]]],
+    ) -> Union[str, Generator[str, None, None]]:
         client = Groq(api_key=getenv("GROQ_API_KEY"))
         stream_response = client.chat.completions.create(
             messages=[
@@ -43,29 +46,9 @@ class GroqChatter(Chatter):
         if not self.stream:
             return stream_response.choices[0].message.content
         else:
-            response_content = ""
-            for chunk in stream_response:
-                if chunk.choices[0].delta.content is not None:
-                    response_content += chunk.choices[0].delta.content
-            return response_content
+            return self._generate_response(stream_response)
 
-    def chat_stream(
-        self, query: str, context: Dict[str, List[Tuple[str, float]]]
-    ) -> Generator[str, None, None]:
-        client = Groq(api_key=getenv("GROQ_API_KEY"))
-        stream_response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "you are a helpful assistant."},
-                {"role": "user", "content": query},
-            ],
-            model=self.model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
-            stream=True,
-            stop=[self.stop] if self.stop else None,
-        )
-
+    def _generate_response(self, stream_response) -> Generator[str, None, None]:
         for chunk in stream_response:
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
