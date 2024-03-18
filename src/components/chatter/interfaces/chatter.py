@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Generator, Union
+from typing import Dict, List, Optional, Tuple, Generator, Union
 
 
 class Chatter(ABC):
@@ -7,8 +7,9 @@ class Chatter(ABC):
     @abstractmethod
     def chat(
         self,
-        query: str,
+        query: Optional[str],
         context: Dict[str, List[Tuple[str, float]]],
+        history: Optional[List[Dict[str, str]]] = None,
     ) -> Union[str, Generator[str, None, None]]: ...
 
     def get_configuration(self) -> Dict:
@@ -16,4 +17,8 @@ class Chatter(ABC):
 
     @abstractmethod
     def get_params(self) -> Dict:
+        pass
+
+    @abstractmethod
+    def get_num_tokens(self) -> int:
         pass

@@ -26,15 +26,13 @@ class GroqChatter(Chatter):
 
     def chat(
         self,
-        query: str,
-        context: Dict[str, List[Tuple[str, float]]],
+        messages: List[Dict[str, str]] = None,
+        context: Dict[str, List[Tuple[str, float]]] = None,
     ) -> Union[str, Generator[str, None, None]]:
+
         client = Groq()
         stream_response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "you are a helpful assistant."},
-                {"role": "user", "content": query},
-            ],
+            messages=messages,
             model=self.model,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
@@ -47,6 +45,9 @@ class GroqChatter(Chatter):
             return stream_response.choices[0].message.content
         else:
             return self._generate_response(stream_response)
+
+    def get_num_tokens(self) -> int:
+        return 0
 
     def _generate_response(self, stream_response) -> Generator[str, None, None]:
         for chunk in stream_response:

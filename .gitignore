@@ -3,6 +3,5 @@
 .vscode/
 __pycache__/
 .pytest_cache/
-*.ipynb
-scratch.json
+scratch/
 logging.ini

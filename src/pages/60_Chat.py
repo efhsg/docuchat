@@ -280,16 +280,13 @@ def chat(
             with st.chat_message("User"):
                 st.write(user_query)
 
-        st.session_state.setdefault("chat_history", []).append(
-            HumanMessage(content=user_query)
-        )
+        st.session_state["chat_history"].append(HumanMessage(content=user_query))
         if stream:
             chat_with_streaming_on(
                 domain_id,
                 embedder,
                 retriever,
                 chatter,
-                user_query,
                 ai_placeholder=ai_placeholder,
             )
         else:
@@ -298,9 +295,9 @@ def chat(
                 embedder,
                 retriever,
                 chatter,
-                user_query,
                 ai_placeholder=ai_placeholder,
             )
+    manage_history()
 
 
 def chat_with_streaming_on(
@@ -308,11 +305,10 @@ def chat_with_streaming_on(
     embedder,
     retriever,
     chatter: Chatter,
-    user_query,
     ai_placeholder,
 ):
     try:
-        original_generator = chatter.chat(user_query, {})
+        original_generator = chatter.chat(parse_chat_history_for_LLM(), {})
         wrapped_generator = generator_wrapper(original_generator)
         with ai_placeholder:
             st.write_stream(wrapped_generator)
@@ -335,11 +331,10 @@ def chat_with_streaming_off(
     embedder,
     retriever,
     chatter: Chatter,
-    user_query,
     ai_placeholder,
 ):
     try:
-        response = chatter.chat(user_query, {})
+        response = chatter.chat(parse_chat_history_for_LLM(), {})
         with ai_placeholder:
             st.write(response)
         st.session_state["chat_history"].append(AIMessage(content=response))
@@ -347,14 +342,25 @@ def chat_with_streaming_off(
         st.error(f"Failed to chat: {e}")
 
 
-def clear_history_button():
-    if st.session_state["chat_history"]:
-        if st.sidebar.button("Clear history"):
-            st.session_state["chat_history"] = []
+def parse_chat_history_for_LLM():
+    history = [
+        {
+            "role": "user" if isinstance(message, HumanMessage) else "system",
+            "content": message.content,
+        }
+        for message in st.session_state.get("chat_history", [])
+    ]
+
+    if st.session_state.get("use_history", False):
+        return history
+    else:
+        recent_user_message = next(
+            (msg for msg in reversed(history) if msg["role"] == "user"), None
+        )
+        return [recent_user_message] if recent_user_message else []
 
 
 def display_messages():
-    clear_history_button()
     current_chat_placeholder = st.empty()
     with st.container(border=True):
         for message in reversed(st.session_state["chat_history"]):
@@ -367,6 +373,22 @@ def display_messages():
     return current_chat_placeholder
 
 
+def manage_history():
+    with st.sidebar.container(border=True):
+        st.checkbox(
+            "Use history",
+            key="use_history",
+            on_change=lambda: st.session_state.update(
+                context_use_history=st.session_state["use_history"]
+            ),
+            value=st.session_state["context_use_history"],
+        )
+        if st.session_state.get("use_history") and st.session_state["chat_history"]:
+            if st.button("Clear history"):
+                st.session_state["chat_history"] = []
+                st.rerun()
+
+
 def setup_session_state():
     setup_session_state_vars(
         [
@@ -376,6 +398,7 @@ def setup_session_state():
             ("context_chatter", None),
             ("only_chosen_embedder", True),
             ("texts_to_use", {}),
+            ("context_use_history", True),
             ("chat_history", []),
         ]
     )

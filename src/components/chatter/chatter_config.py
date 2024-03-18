@@ -27,8 +27,8 @@ class ChatterConfig:
 
     def __init__(self, logger: StandardLogger = None):
         self.logger = logger
-        self.openai_model_options = self.fetch_openai_model_options()
-        self.groq_model_options = self.fetch_groq_model_options()
+        self.openai_model_options = self._fetch_openai_model_options()
+        self.groq_model_options = self._fetch_groq_model_options()
         self.base_field_definitions = {
             "temperature": {
                 "label": "Response Generation Temperature",
@@ -77,49 +77,6 @@ class ChatterConfig:
                 "default": None,
             },
         }
-
-    def fetch_groq_model_options(self) -> List[str]:
-        api_key = getenv("GROQ_API_KEY")
-        default_model_options = [
-            "llama2-70b-4096",
-            "mixtral-8x7b-32768",
-            "gemma-7b-it",
-        ]
-        if not api_key:
-            return default_model_options
-
-        try:
-            response = requests.get(
-                "https://api.groq.com/openai/v1/models",
-                headers={"Authorization": f"Bearer {api_key}"},
-            )
-            response.raise_for_status()
-            data = response.json().get("data", [])
-            model_ids = [model["id"] for model in data]
-            return model_ids
-        except requests.exceptions.RequestException as e:
-            return default_model_options
-        except ValueError as e:
-            return default_model_options
-
-    def fetch_openai_model_options(self) -> List[str]:
-        api_key = getenv("OPENAI_API_KEY")
-        default_model_options = [
-            "gpt-4",
-            "gpt-3.5-turbo-16k",
-        ]
-        try:
-            response = requests.get(
-                "https://api.openai.com/v1/models",
-                headers={"Authorization": f"Bearer {api_key}"},
-            )
-            response.raise_for_status()
-            data = response.json().get("data", [])
-            return [model["id"] for model in data]
-        except requests.exceptions.RequestException:
-            return default_model_options
-        except ValueError:
-            return default_model_options
 
     def _get_fields(self, chatter_class):
         field_keys = {
@@ -207,3 +164,46 @@ class ChatterConfig:
             }
             for name, cls in self.chatter_classes.items()
         }
+
+    def _fetch_groq_model_options(self) -> List[str]:
+        api_key = getenv("GROQ_API_KEY")
+        default_model_options = [
+            "llama2-70b-4096",
+            "mixtral-8x7b-32768",
+            "gemma-7b-it",
+        ]
+        if not api_key:
+            return default_model_options
+
+        try:
+            response = requests.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            response.raise_for_status()
+            data = response.json().get("data", [])
+            model_ids = [model["id"] for model in data]
+            return model_ids
+        except requests.exceptions.RequestException as e:
+            return default_model_options
+        except ValueError as e:
+            return default_model_options
+
+    def _fetch_openai_model_options(self) -> List[str]:
+        api_key = getenv("OPENAI_API_KEY")
+        default_model_options = [
+            "gpt-4",
+            "gpt-3.5-turbo-16k",
+        ]
+        try:
+            response = requests.get(
+                "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            response.raise_for_status()
+            data = response.json().get("data", [])
+            return [model["id"] for model in data]
+        except requests.exceptions.RequestException:
+            return default_model_options
+        except ValueError:
+            return default_model_options
