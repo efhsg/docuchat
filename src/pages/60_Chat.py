@@ -413,6 +413,8 @@ def display_messages():
 
 def manage_history():
     with st.sidebar.container(border=True):
+        history = parse_chat_history_for_LLM()
+        st.write(f"Messages: {len(history)}")
         st.checkbox(
             "Use history",
             key="use_history",
