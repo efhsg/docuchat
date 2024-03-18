@@ -147,40 +147,58 @@ def get_extracted_texts(selected_domain):
 
 
 def setup_chatter(selected_domain):
-    if st.session_state.get("context_embedder", False) and not st.session_state.get(
-        "change_embedder", None
-    ):
+    if edit_embedder_condition():
+        st.session_state["change_embedder"] = True
+        select_embedder()
+    else:
         embedder: Embedder = st.session_state.get("context_embedder")
         with st.sidebar.popover(f"{embedder.get_configuration()['method']}"):
             display_embedder(embedder)
+
+    if not edit_embedder_condition() and edit_retriever_condition():
+        st.session_state["change_retriever"] = True
+        select_retriever()
+    elif not edit_embedder_condition():
+        retriever: Retriever = create_retriever(selected_domain.id, embedder)
+        with st.sidebar.popover(f"{retriever.get_configuration()['method']}"):
+            display_retriever(retriever)
+
         if (
-            st.session_state.get("context_retriever", None)
-            and st.session_state.get("context_retriever_values", None)
-            and not st.session_state.get("change_retriever", None)
+            not edit_embedder_condition()
+            and not edit_retriever_condition()
+            and edit_chatter_condition()
         ):
-            retriever: Retriever = create_retriever(selected_domain.id, embedder)
-            with st.sidebar.popover(f"{retriever.get_configuration()['method']}"):
-                display_retriever(retriever)
-            if (
-                st.session_state.get("context_chatter", None)
-                and st.session_state.get("context_chatter_values", None)
-                and not st.session_state.get("change_chatter", None)
-            ):
-                chatter: Chatter = create_chatter_instance(
-                    selected_domain.id, embedder, retriever
-                )
-                with st.sidebar.popover(f"{chatter.get_configuration()['method']}"):
-                    display_chatter_instance(chatter)
-                chat(selected_domain.id, embedder, retriever, chatter)
-            else:
-                st.session_state["change_chatter"] = True
-                select_chatter()
+            st.session_state["change_chatter"] = True
+            select_chatter()
         else:
-            st.session_state["change_retriever"] = True
-            select_retriever()
-    else:
-        st.session_state["change_embedder"] = True
-        select_embedder()
+            chatter: Chatter = create_chatter_instance(
+                selected_domain.id, embedder, retriever
+            )
+            with st.sidebar.popover(f"{chatter.get_configuration()['method']}"):
+                display_chatter_instance(chatter)
+            chat(selected_domain.id, embedder, retriever, chatter)
+
+
+def edit_embedder_condition():
+    return not st.session_state.get("context_embedder", False) or st.session_state.get(
+        "change_embedder", None
+    )
+
+
+def edit_retriever_condition():
+    return (
+        not st.session_state.get("context_retriever", None)
+        or not st.session_state.get("context_retriever_values", None)
+        or st.session_state.get("change_retriever", None)
+    )
+
+
+def edit_chatter_condition():
+    return (
+        not st.session_state.get("context_chatter", None)
+        and not st.session_state.get("context_chatter_values", None)
+        or st.session_state.get("change_chatter", None)
+    )
 
 
 def select_chatter():
