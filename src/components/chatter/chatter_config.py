@@ -1,9 +1,15 @@
+from datetime import datetime, timedelta, timezone
+import json
+import os
 from typing import Any, Dict, List
+import pytz
 import requests
+from components.chatter.interfaces.chatter_repository import ChatterRepository
 from utils.env_utils import getenv
 from components.chatter.openai_chatter import OpenAIChatter
 from components.chatter.groq_chatter import GroqChatter
 from logging import Logger as StandardLogger
+from components.database.models import ModelSource
 
 
 class ModelOptionsFetchError(Exception):
@@ -19,14 +25,19 @@ class ChatterConfig:
     MAX_TOP_P = 1.0
     OPEN_API_MODEL_DEFAULT = getenv("OPEN_API_MODEL_DEFAULT", "gpt-4")
     GROQ_API_MODEL_DEFAULT = getenv("GROQ_API_MODEL_DEFAULT", "llama2-70b-4096")
-
+    GROQ_MODELS_API_URL = "https://api.groq.com/openai/v1/models"
     chatter_classes = {
         "OpenAI": OpenAIChatter,
         "Groq": GroqChatter,
     }
 
-    def __init__(self, logger: StandardLogger = None):
+    def __init__(
+        self,
+        model_cache_repository: ChatterRepository,
+        logger: StandardLogger = None,
+    ):
         self.logger = logger
+        self.model_cache_repository = model_cache_repository
         self.openai_model_options = self._fetch_openai_model_options()
         self.groq_model_options = self._fetch_groq_model_options()
         self.base_field_definitions = {
@@ -167,34 +178,67 @@ class ChatterConfig:
 
     def _fetch_groq_model_options(self) -> List[str]:
         api_key = getenv("GROQ_API_KEY")
-        default_model_options = [
-            "llama2-70b-4096",
-            "mixtral-8x7b-32768",
-            "gemma-7b-it",
-        ]
+        cached_models = self.model_cache_repository.list_model_caches_by_source(
+            ModelSource.Groq
+        )
+
+        if cached_models and all(
+            datetime.now(pytz.utc) - model.updated_at.replace(tzinfo=pytz.utc)
+            < timedelta(days=1)
+            for model in cached_models
+        ):
+            return [model.model_id for model in cached_models]
+
         if not api_key:
-            return default_model_options
+            return []
+
+        enrichment_data = self._load_enrichment_data(
+            "enrichments/groq_models_enrichment.json"
+        )
+        enrichment_map = {item["id"]: item for item in enrichment_data}
 
         try:
             response = requests.get(
-                "https://api.groq.com/openai/v1/models",
+                self.GROQ_MODELS_API_URL,
                 headers={"Authorization": f"Bearer {api_key}"},
             )
             response.raise_for_status()
             data = response.json().get("data", [])
-            model_ids = [model["id"] for model in data]
-            return model_ids
+            fetched_model_ids = {model["id"] for model in data}
+
+            for model in data:
+                model_id = model["id"]
+                if model_id in enrichment_map:
+                    model.update(enrichment_map[model_id])
+                self.model_cache_repository.save_model_cache(
+                    ModelSource.Groq, model_id, model
+                )
+
+            dropped_models = {
+                model.model_id for model in cached_models
+            } - fetched_model_ids
+            for model_id in dropped_models:
+                self.model_cache_repository.delete_model_cache(
+                    ModelSource.Groq, model_id
+                )
+
+            return list(fetched_model_ids)
         except requests.exceptions.RequestException as e:
-            return default_model_options
+            self.logger.error(f"Request to Groq API failed: {e}")
         except ValueError as e:
-            return default_model_options
+            self.logger.error(f"Error processing Groq API response: {e}")
+
+        return [model.model_id for model in cached_models]
 
     def _fetch_openai_model_options(self) -> List[str]:
         api_key = getenv("OPENAI_API_KEY")
-        default_model_options = [
-            "gpt-4",
-            "gpt-3.5-turbo-16k",
-        ]
+        default_model_options = ["gpt-4", "gpt-3.5-turbo-16k"]
+        if not api_key:
+            self.model_cache_repository.save_model_cache(
+                ModelSource.OpenAI, "default", {"models": default_model_options}
+            )
+            return default_model_options
+
         try:
             response = requests.get(
                 "https://api.openai.com/v1/models",
@@ -202,8 +246,23 @@ class ChatterConfig:
             )
             response.raise_for_status()
             data = response.json().get("data", [])
-            return [model["id"] for model in data]
+            model_ids = [model["id"] for model in data]
+            self.model_cache_repository.save_model_cache(
+                ModelSource.OpenAI, "default", {"models": model_ids}
+            )
+            return model_ids
         except requests.exceptions.RequestException:
             return default_model_options
         except ValueError:
             return default_model_options
+
+    def _load_enrichment_data(self, filename: str):
+        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+
+        try:
+            with open(filepath, "r") as file:
+                data = json.load(file)
+                return data
+        except Exception as e:
+            self.logger.error(f"Failed to load enrichment data from {filename}: {e}")
+            return []

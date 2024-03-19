@@ -1,6 +1,8 @@
 from components.chatter.chatter_config import ChatterConfig
 from components.chatter.config_based_chatter_factory import ConfigBasedChatterFactory
 from components.chatter.interfaces.chatter_factory import ChatterFactory
+from components.chatter.interfaces.chatter_repository import ChatterRepository
+from components.chatter.sqlAlchemy_chatter_repository import SqlalchemyChatterRepository
 from components.chunker.chunker_config import ChunkerConfig
 from components.chunker.config_based_chunker_factory import ConfigBasedChunkerFactory
 from components.chunker.interfaces.chunker_factory import ChunkerFactory
@@ -121,10 +123,18 @@ def get_retriever_config():
 def get_chatter_config():
     return ChatterConfig(
         logger=NativeLogger.get_logger("docuchat"),
+        model_cache_repository=get_chatter_repository(),
     )
 
 
 def get_chatter_factory() -> ChatterFactory:
     return ConfigBasedChatterFactory(
+        logger=NativeLogger.get_logger("docuchat"),
+    )
+
+
+def get_chatter_repository() -> ChatterRepository:
+    return SqlalchemyChatterRepository(
+        connector=MySQLConnector(),
         logger=NativeLogger.get_logger("docuchat"),
     )

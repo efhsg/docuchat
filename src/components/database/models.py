@@ -1,7 +1,18 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    String,
+    ForeignKey,
+    UniqueConstraint,
+    Index,
+    Enum,
+    func,
+)
 from sqlalchemy.dialects.mysql import LONGBLOB, JSON
 from sqlalchemy.orm import declarative_base, relationship, validates, deferred
 from sqlalchemy.ext.mutable import MutableDict
+import enum
 import re
 
 Base = declarative_base()
@@ -101,4 +112,25 @@ class Embedding(Base):
         UniqueConstraint(
             "chunk_id", "embedding_process_id", name="uix_chunk_id_embedding_process_id"
         ),
+    )
+
+
+class ModelSource(enum.Enum):
+    Groq = "Groq"
+    OpenAI = "OpenAI"
+
+
+class ModelCache(Base):
+    __tablename__ = "model_cache"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source = Column(Enum(ModelSource), nullable=False)
+    model_id = Column(String(255), nullable=False)
+    attributes = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), onupdate=func.now(), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("source", "model_id", name="_source_model_id_uc"),
     )

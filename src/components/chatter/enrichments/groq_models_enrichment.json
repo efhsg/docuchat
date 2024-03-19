@@ -1,0 +1,14 @@
+[
+    {
+        "id": "gemma-7b-it",
+        "huggingface_identifier": "google/gemma-7b-it"
+    },
+    {
+        "id": "llama2-70b-4096",
+        "huggingface_identifier": "h2oai/h2ogpt-4096-llama2-70b-chat"
+    },
+    {
+        "id": "mixtral-8x7b-32768",
+        "huggingface_identifier": "mistralai/Mistral-7B-Instruct-v0.2"
+    }
+]
