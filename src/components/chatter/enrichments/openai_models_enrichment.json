@@ -1,0 +1,70 @@
+[
+    {
+        "id": "gpt-4-0125-preview",
+        "context_window": 128000
+    },
+    {
+        "id": "gpt-4-turbo-preview",
+        "context_window": 128000
+    },
+    {
+        "id": "gpt-4-1106-preview",
+        "context_window": 128000
+    },
+    {
+        "id": "gpt-4-vision-preview",
+        "context_window": 128000
+    },
+    {
+        "id": "gpt-4-1106-vision-preview",
+        "context_window": 128000
+    },
+    {
+        "id": "gpt-4",
+        "context_window": 8192
+    },
+    {
+        "id": "gpt-4-0613",
+        "context_window": 8192
+    },
+    {
+        "id": "gpt-4-32k",
+        "context_window": 32768
+    },
+    {
+        "id": "gpt-4-32k-0613",
+        "context_window": 32768
+    },
+    {
+        "id": "gpt-3.5-turbo-0125",
+        "context_window": 16385
+    },
+    {
+        "id": "gpt-3.5-turbo",
+        "context_window": 16385
+    },
+    {
+        "id": "gpt-3.5-turbo-1106",
+        "context_window": 16385
+    },
+    {
+        "id": "gpt-3.5-turbo-instruct",
+        "context_window": 4096
+    },
+    {
+        "id": "gpt-3.5-turbo-16k",
+        "context_window": 16385
+    },
+    {
+        "id": "gpt-3.5-turbo-0613",
+        "context_window": 4096
+    },
+    {
+        "id": "gpt-3.5-turbo-16k-0613",
+        "context_window": 16385
+    },
+    {
+        "id": "davinci-002",
+        "context_window": 16384
+    }
+]
