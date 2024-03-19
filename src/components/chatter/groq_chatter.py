@@ -1,6 +1,8 @@
 from typing import Dict, Generator, List, Tuple, Optional, Union
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
+from components.chatter.interfaces.chatter_repository import ChatterRepository
+from components.database.models import ModelSource
 from utils.env_utils import getenv
 from groq import Groq
 
@@ -9,6 +11,7 @@ class GroqChatter(Chatter):
     def __init__(
         self,
         logger: Optional[StandardLogger] = None,
+        chatter_repository: ChatterRepository = None,
         groq_model: str = "llama2-70b-4096",
         temperature: float = 0.5,
         max_tokens: int = 1024,
@@ -23,6 +26,7 @@ class GroqChatter(Chatter):
         self.stream = stream
         self.stop = stop
         self.logger = logger
+        self.chatter_repository = chatter_repository
 
     def chat(
         self,
@@ -55,6 +59,12 @@ class GroqChatter(Chatter):
                 yield chunk.choices[0].delta.content
 
     def get_params(self) -> Dict:
+        model_cache = self.chatter_repository.read_model_cache(
+            ModelSource.Groq, self.model
+        )
+        context_window = (
+            model_cache.attributes.get("context_window") if model_cache else None
+        )
         return {
             "model": self.model,
             "temperature": self.temperature,
@@ -62,4 +72,5 @@ class GroqChatter(Chatter):
             "top_p": self.top_p,
             "stream": self.stream,
             "stop": self.stop,
+            "context_window": context_window,
         }

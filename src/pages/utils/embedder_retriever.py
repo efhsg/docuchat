@@ -146,15 +146,18 @@ def select_embedder():
 
 
 def display_embedder(embedder):
-    with st.container(border=True):
-        config = embedder.get_configuration()
-        method_display = f"{config['method']}"
-        params = config.get("params", {})
-        fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
-        st.markdown(f"**{method_display}**, {fields_display}")
-        if st.button("Change embedder"):
-            st.session_state["change_embedder"] = True
-            st.rerun()
+    params = embedder.get_configuration().get("params", {})
+
+    with st.expander("Parameters", expanded=True):
+        markdown_table = "Parameter | Value\n:- | -\n"
+        for key, value in params.items():
+            markdown_table += f"{key} | {value}\n"
+        st.markdown(markdown_table, unsafe_allow_html=True)
+        st.write("")
+
+    if st.button("🔄 Change embedder"):
+        st.session_state["change_embedder"] = True
+        st.rerun()
 
 
 def select_retriever():
@@ -230,15 +233,18 @@ def create_retriever(domain_id: int, embedder: Embedder = None) -> Retriever:
 
 
 def display_retriever(retriever):
-    with st.container(border=True):
-        config = retriever.get_configuration()
-        method_display = f"{config['method']}"
-        params = config.get("params", {})
-        fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
-        st.markdown(f"**{method_display}**, {fields_display}")
-        if st.button("Change retriever"):
-            st.session_state["change_retriever"] = True
-            st.rerun()
+    params = retriever.get_configuration().get("params", {})
+
+    with st.expander("Parameters", expanded=True):
+        markdown_table = "Parameter | Value\n:- | -\n"
+        for key, value in params.items():
+            markdown_table += f"{key} | {value}\n"
+        st.markdown(markdown_table, unsafe_allow_html=True)
+        st.write("")
+
+    if st.button("🔄 Change retriever"):
+        st.session_state["change_retriever"] = True
+        st.rerun()
 
 
 def convert_query_to_vector(query: str, embedder: Embedder) -> list:

@@ -130,6 +130,7 @@ def get_chatter_config():
 def get_chatter_factory() -> ChatterFactory:
     return ConfigBasedChatterFactory(
         logger=NativeLogger.get_logger("docuchat"),
+        chatter_repository=get_chatter_repository(),
     )
 
 

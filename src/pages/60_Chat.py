@@ -289,16 +289,19 @@ def create_chatter_instance(
     )
 
 
-def display_chatter_instance(chatter: Chatter):
-    with st.container(border=True):
-        config = chatter.get_configuration()
-        method_display = f"{config['method']}"
-        params = config.get("params", {})
-        fields_display = ", ".join([f"{key}: {value}" for key, value in params.items()])
-        st.markdown(f"**{method_display}**, {fields_display}")
-        if st.button("Change chatter"):
-            st.session_state["change_chatter"] = True
-            st.rerun()
+def display_chatter_instance(chatter):
+    params = chatter.get_configuration().get("params", {})
+
+    with st.expander("Parameters", expanded=True):
+        markdown_table = "Parameter | Value\n:- | -\n"
+        for key, value in params.items():
+            markdown_table += f"{key} | {value}\n"
+        st.markdown(markdown_table, unsafe_allow_html=True)
+        st.write("")
+
+    if st.button("🔄 Change chatter"):
+        st.session_state["change_chatter"] = True
+        st.rerun()
 
 
 def chat(
