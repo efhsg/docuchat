@@ -20,5 +20,10 @@ class Chatter(ABC):
         pass
 
     @abstractmethod
-    def get_num_tokens(self) -> int:
+    def get_num_tokens(self, text: str) -> int:
+        pass
+
+    @abstractmethod
+    def was_history_truncated(self) -> bool:
+        """Returns True if the chat history was truncated in the last operation."""
         pass

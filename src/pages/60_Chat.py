@@ -338,7 +338,7 @@ def chat(
                 chatter,
                 ai_placeholder=ai_placeholder,
             )
-    manage_history()
+    manage_history(chatter)
 
 
 def chat_with_streaming_on(
@@ -414,10 +414,33 @@ def display_messages():
     return current_chat_placeholder
 
 
-def manage_history():
+def manage_history(chatter: Chatter):
     with st.sidebar.container(border=True):
-        history = parse_chat_history_for_LLM()
-        st.write(f"Messages: {len(history)}")
+        if st.session_state.get("context_use_history", False):
+            history = parse_chat_history_for_LLM()
+            st.write(f"Messages: {len(history)}")
+            tokens = (
+                chatter.get_num_tokens("\n".join(str(message) for message in history))
+                if history
+                else 0
+            )
+            try:
+                context_window = chatter.get_params().get("context_window", 0)
+                tokens_left = context_window - tokens
+
+                if context_window:
+                    st.write(
+                        f"Tokens left: {tokens_left} ({context_window} - {tokens})"
+                    )
+                else:
+                    st.write(
+                        "Tokens left: not available due to undefined context window"
+                    )
+            except Exception as e:
+                logger.error(e)
+                st.write("Tokens left: not available due to an error")
+            st.write(f"Chat history truncated: {chatter.was_history_truncated()}")
+
         st.checkbox(
             "Use history",
             key="use_history",
