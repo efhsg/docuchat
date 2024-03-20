@@ -417,37 +417,11 @@ def display_messages():
 def manage_history(chatter: Chatter):
     with st.sidebar.container(border=True):
         if st.session_state.get("context_use_history", False):
-            history = parse_chat_history_for_LLM()
-            num_messages = len(history)
-            truncation_count = chatter.history_truncated_by()
-            if truncation_count > 0:
-                truncation_message = f":red[Messages: {num_messages - truncation_count} ({truncation_count} of {num_messages} truncated)]"
-            else:
-                truncation_message = f"Messages: {num_messages}"
-
-            st.write(truncation_message)
-
-            tokens = (
-                chatter.get_num_tokens("\n".join(str(message) for message in history))
-                if history
-                else 0
-            )
             try:
-                context_window = chatter.get_params().get("context_window", 0)
-                tokens_left = context_window - tokens
-
-                if context_window:
-                    st.write(
-                        f"Tokens left: {tokens_left} ({context_window} - {tokens})"
-                    )
-                else:
-                    st.write(
-                        "Tokens left: not available due to undefined context window"
-                    )
+                display_context_info(chatter)
             except Exception as e:
                 logger.error(e)
-                st.write("Tokens left: not available due to an error")
-
+                st.error("Tokens left: not available due to an error")
         st.checkbox(
             "Use history",
             key="use_history",
@@ -460,6 +434,36 @@ def manage_history(chatter: Chatter):
             if st.button("Clear history"):
                 st.session_state["chat_history"] = []
                 st.rerun()
+
+
+def display_context_info(chatter):
+    history = (
+        parse_chat_history_for_LLM()
+        if st.session_state.get("context_use_history", False)
+        else []
+    )
+    num_messages = len(history)
+
+    if history:
+        truncation_count = chatter.history_truncated_by()
+        messages_info = f"Messages: {num_messages - truncation_count}" + (
+            f" ({truncation_count} of {num_messages} truncated)"
+            if truncation_count > 0
+            else ""
+        )
+        tokens = chatter.get_num_tokens("\n".join(str(message) for message in history))
+        context_window = chatter.get_params().get("context_window", 0)
+        tokens_left = (
+            max(context_window - tokens, 0)
+            if context_window
+            else "not available due to undefined context window"
+        )
+
+    st.write(messages_info)
+    if isinstance(tokens_left, int):
+        st.write(f"Tokens left: {tokens_left} ({context_window} - {tokens})")
+    else:
+        st.write(f"Tokens left: {tokens_left}")
 
 
 def setup_session_state():
