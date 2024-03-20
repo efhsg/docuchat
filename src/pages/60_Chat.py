@@ -436,34 +436,63 @@ def manage_history(chatter: Chatter):
                 st.rerun()
 
 
-def display_context_info(chatter):
-    history = (
-        parse_chat_history_for_LLM()
-        if st.session_state.get("context_use_history", False)
-        else []
-    )
-    num_messages = len(history)
-
-    if history:
-        truncation_count = chatter.history_truncated_by()
-        messages_info = f"Messages: {num_messages - truncation_count}" + (
-            f" ({truncation_count} of {num_messages} truncated)"
-            if truncation_count > 0
-            else ""
+def display_context_info(chatter: Chatter):
+    try:
+        history = (
+            parse_chat_history_for_LLM()
+            if st.session_state.get("context_use_history", False)
+            else []
         )
-        tokens = chatter.get_num_tokens("\n".join(str(message) for message in history))
-        context_window = chatter.get_params().get("context_window", 0)
-        tokens_left = (
-            max(context_window - tokens, 0)
-            if context_window
-            else "not available due to undefined context window"
+        num_messages = len(history)
+        tokens_left_info = "Tokens left: Not available due to an error"
+
+        if history:
+            truncation_count = chatter.history_truncated_by()
+            messages_info = f"History: {num_messages - truncation_count} messages" + (
+                f" ({truncation_count} truncated)" if truncation_count > 0 else ""
+            )
+            context_window = chatter.get_params().get("context_window", 0)
+            tokens_left = chatter.get_num_tokens_left(parse_chat_history_for_LLM())
+
+            st.info(messages_info)
+            if isinstance(tokens_left, int):
+                st.metric(
+                    label="Tokens Left",
+                    value=tokens_left,
+                    delta=f"Out of {context_window}",
+                )
+            else:
+                st.warning(tokens_left_info)
+        else:
+            st.info("No chat history to display.")
+
+    except Exception as e:
+        logger.error(f"Error calculating tokens left: {e}")
+        st.error(
+            "Sorry, we encountered an issue calculating tokens left. Please try refreshing or contact support for assistance."
         )
 
-    st.write(messages_info)
-    if isinstance(tokens_left, int):
-        st.write(f"Tokens left: {tokens_left} ({context_window} - {tokens})")
+
+def log_last_two_messages():
+
+    last_two_messages = st.session_state.get("chat_history")[-2:]
+
+    readable_messages = []
+    for message in last_two_messages:
+        if isinstance(message, HumanMessage):
+            prefix = "User: "
+        elif isinstance(message, AIMessage):
+            prefix = "AI: "
+        else:
+            prefix = "Unknown: "
+        readable_messages.append(f"{prefix}{message.content}")
+
+    readable_last_2_messages = "\n".join(readable_messages)
+
+    if readable_last_2_messages:
+        logger.info(f"Last 2 messages:\n{readable_last_2_messages}")
     else:
-        st.write(f"Tokens left: {tokens_left}")
+        logger.info("No messages to display.")
 
 
 def setup_session_state():

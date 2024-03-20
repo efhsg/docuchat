@@ -11,7 +11,8 @@ from groq import Groq
 
 class TokenizerLoader:
     @lru_cache(maxsize=128)
-    def load(self, model_identifier: str, api_token: str) -> AutoTokenizer:
+    def load(self, model_identifier: str) -> AutoTokenizer:
+        api_token = getenv("HUGGINGFACEHUB_API_TOKEN")
         return AutoTokenizer.from_pretrained(model_identifier, use_auth_token=api_token)
 
 
@@ -41,6 +42,7 @@ class GroqChatter(Chatter):
             ModelSource.Groq, self.model
         )
         self.history_truncated: int = 0
+        self.context_window = self.get_params().get("context_window", 4096)
 
     def chat(
         self,
@@ -48,7 +50,9 @@ class GroqChatter(Chatter):
         context: Dict[str, List[Tuple[str, float]]] = None,
     ) -> Union[str, Generator[str, None, None]]:
 
-        windowed_messages = self._sliding_window_messages(messages if messages else [])
+        windowed_messages, total_tokens = self._sliding_window_messages(
+            messages if messages else []
+        )
         client = Groq()
         try:
             stream_response = client.chat.completions.create(
@@ -72,10 +76,14 @@ class GroqChatter(Chatter):
             raise
 
     def get_num_tokens(self, text: str) -> int:
-        api_token = getenv("HUGGINGFACEHUB_API_TOKEN")
-        model_identifier = self.model_cache.attributes.get("huggingface_identifier")
-        tokenizer = self.tokenizer_loader.load(model_identifier, api_token)
+        tokenizer = self.tokenizer_loader.load(
+            self.model_cache.attributes.get("huggingface_identifier")
+        )
         return len(tokenizer.encode(text))
+
+    def get_num_tokens_left(self, messages: List[Dict[str, str]]) -> int:
+        _, total_used_tokens = self._sliding_window_messages(messages)
+        return self.context_window - total_used_tokens
 
     def history_truncated_by(self) -> int:
         return self.history_truncated
@@ -88,9 +96,8 @@ class GroqChatter(Chatter):
     def _sliding_window_messages(
         self, messages: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:
-        context_window = self.get_params().get("context_window", 4096)
         response_buffer = 512
-        effective_context_window = context_window - response_buffer
+        effective_context_window = self.context_window - response_buffer
 
         total_tokens = 0
         windowed_messages = []
@@ -105,12 +112,7 @@ class GroqChatter(Chatter):
 
         self.history_truncated = len(messages) - len(windowed_messages)
 
-        if self.logger:
-            self.logger.debug(
-                f"Total token size of windowed_messages: {total_tokens} / {effective_context_window}"
-            )
-
-        return windowed_messages
+        return windowed_messages, total_tokens
 
     def get_params(self) -> Dict:
 
