@@ -41,12 +41,17 @@ class SentenceTransformerEmbedder(Embedder):
                 f"Failed to download or load the SentenceTransformer model '{model}'. Error: {error}"
             )
 
-    def embed(self, chunks: List[Tuple[int, str]]) -> List[Tuple[int, bytes]]:
+    def embed_chunks(self, chunks: List[Tuple[int, str]]) -> List[Tuple[int, bytes]]:
         chunk_ids, texts = zip(*chunks)
         embeddings = self.model.encode(texts, convert_to_tensor=True)
         embeddings_np = embeddings.cpu().numpy().astype(np.float32)
         serialized_embeddings = [pickle.dumps(embedding) for embedding in embeddings_np]
         return list(zip(chunk_ids, serialized_embeddings))
+
+    def embed_text(self, text: str) -> np.ndarray:
+        embeddings = self.model.encode([text], convert_to_tensor=True)
+        embeddings_np = embeddings.cpu().numpy().astype(np.float32)
+        return embeddings_np[0]
 
     def get_params(self) -> Dict:
         return {

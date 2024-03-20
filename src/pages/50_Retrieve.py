@@ -139,14 +139,18 @@ def setup_retriever(selected_domain):
         "change_embedder", None
     ):
         embedder: Embedder = st.session_state.get("context_embedder")
-        display_embedder(embedder)
+        with st.container(border=True):
+            st.subheader(f"{embedder.get_configuration()['method']}")
+            display_embedder(embedder, False)
         if (
             st.session_state.get("context_retriever", None)
             and st.session_state.get("context_retriever_values", None)
             and not st.session_state.get("change_retriever", None)
         ):
             retriever: Retriever = create_retriever(selected_domain.id, embedder)
-            display_retriever(retriever)
+            with st.container(border=True):
+                st.subheader(f"{retriever.get_configuration()['method']}")
+                display_retriever(retriever, False)
             query(embedder, retriever)
         else:
             st.session_state["change_retriever"] = True
@@ -169,7 +173,7 @@ def query(embedder: Embedder, retriever: Retriever):
         _run_query(query_text, embedder, retriever)
 
 
-def _run_query(query_text, embedder, retriever):
+def _run_query(query_text: str, embedder: Embedder, retriever: Retriever) -> None:
     if query_text:
         kwargs = {
             "query_vector": pickle.loads(

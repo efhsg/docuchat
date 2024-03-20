@@ -207,7 +207,7 @@ def process_chunks_to_embed(selected_chunk_process_id, method, values):
     try:
         for i, chunk in enumerate(chunks):
             text = compressor.decompress(chunk.chunk)
-            embedding = embedder.embed([(chunk.id, text)])[0][1]
+            embedding = embedder.embed_chunks([(chunk.id, text)])[0][1]
             embedder_repository.save_embedding(
                 embedding_process_id, chunk.id, embedding
             )

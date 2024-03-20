@@ -1,3 +1,4 @@
+import pickle
 from typing import Any, Tuple
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
@@ -75,75 +76,7 @@ def main():
     else:
         extracted_data(selected_domain)
 
-    st.title(f"{selected_domain.name}")
-
     setup_chatter(selected_domain)
-
-
-def extracted_data(selected_domain: Domain = None):
-
-    extracted_texts = get_extracted_texts(selected_domain)
-    setup_texts_to_use(selected_domain, extracted_texts)
-    num_texts = count_selected_texts(extracted_texts)
-
-    with st.sidebar.popover(f"Texts ({num_texts})"):
-        with st.container(border=True):
-            st.session_state["texts_to_use"] = {}
-            for extracted_text in extracted_texts:
-                checkbox_key = f"{extracted_text.name}.{extracted_text.type}"
-                st.session_state["texts_to_use"][extracted_text] = st.checkbox(
-                    label=extracted_text_to_label(extracted_text),
-                    key=checkbox_key,
-                    value=st.session_state.get(f"context_{checkbox_key}", False),
-                    on_change=lambda key=checkbox_key: st.session_state.update(
-                        {f"context_{key}": st.session_state.get(f"{key}", False)}
-                    ),
-                )
-        if len(extracted_texts) > 0:
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                if st.button("Select all", key="select_all_texts_toggle"):
-                    st.session_state["select_all_texts_button"] = True
-                    st.rerun()
-            with col2:
-                if st.button("Deselect all", key="deselect_all_texts_toggle"):
-                    st.session_state["deselect_all_texts_button"] = True
-                    st.rerun()
-
-        st.checkbox(
-            "Only shows texts that match the chosen embedder",
-            key="only_chosen_embedder_toggle",
-            on_change=lambda: st.session_state.update(
-                only_chosen_embedder=not st.session_state["only_chosen_embedder"]
-            ),
-            value=st.session_state["only_chosen_embedder"],
-        )
-
-
-def get_extracted_texts(selected_domain):
-    if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
-        "context_embedder", False
-    ):
-        embedder: Embedder = st.session_state["context_embedder"]
-        embedder_config = (
-            embedder.get_configuration().get("params", {}).get("model", None)
-        )
-        if embedder_config:
-            extracted_texts = retriever_repository.list_texts_by_domain_and_embedder(
-                selected_domain.name, embedder_config
-            )
-            cleanup_texts_to_use(extracted_texts)
-        else:
-            st.warning("Embedder model name not found. Showing all texts.")
-            extracted_texts = embedder_repository.list_embedded_texts_by_domain(
-                selected_domain.name
-            )
-    else:
-        extracted_texts = embedder_repository.list_embedded_texts_by_domain(
-            selected_domain.name
-        )
-
-    return extracted_texts
 
 
 def setup_chatter(selected_domain):
@@ -315,6 +248,12 @@ def chat(
         user_query = st.chat_input("Start chatting here...")
         current_chat_placeholder = display_messages()
     if user_query:
+        if st.session_state.get("use_domain_context", False):
+            domain_context_embeddings = retriever.retrieve(
+                query_vector=embedder.embed_text(user_query)
+            )
+            logger.info(domain_context_embeddings)
+
         with current_chat_placeholder.container(border=True):
             with st.chat_message("AI"):
                 ai_placeholder = st.empty()
@@ -339,6 +278,7 @@ def chat(
                 ai_placeholder=ai_placeholder,
             )
     manage_history(chatter)
+    manage_domain_context()
 
 
 def chat_with_streaming_on(
@@ -495,6 +435,84 @@ def log_last_two_messages():
         logger.info("No messages to display.")
 
 
+def manage_domain_context():
+    with st.sidebar.container(border=True):
+        st.checkbox(
+            "Use domain context",
+            key="use_domain_context",
+            on_change=lambda: st.session_state.update(
+                context_use_domain_context=st.session_state["use_domain_context"]
+            ),
+            value=st.session_state["context_use_domain_context"],
+        )
+
+
+def extracted_data(selected_domain: Domain = None):
+
+    extracted_texts = get_extracted_texts(selected_domain)
+    setup_texts_to_use(selected_domain, extracted_texts)
+    num_texts = count_selected_texts(extracted_texts)
+
+    with st.sidebar.popover(f"Texts ({num_texts})"):
+        with st.container(border=True):
+            st.session_state["texts_to_use"] = {}
+            for extracted_text in extracted_texts:
+                checkbox_key = f"{extracted_text.name}.{extracted_text.type}"
+                st.session_state["texts_to_use"][extracted_text] = st.checkbox(
+                    label=extracted_text_to_label(extracted_text),
+                    key=checkbox_key,
+                    value=st.session_state.get(f"context_{checkbox_key}", False),
+                    on_change=lambda key=checkbox_key: st.session_state.update(
+                        {f"context_{key}": st.session_state.get(f"{key}", False)}
+                    ),
+                )
+        if len(extracted_texts) > 0:
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if st.button("Select all", key="select_all_texts_toggle"):
+                    st.session_state["select_all_texts_button"] = True
+                    st.rerun()
+            with col2:
+                if st.button("Deselect all", key="deselect_all_texts_toggle"):
+                    st.session_state["deselect_all_texts_button"] = True
+                    st.rerun()
+
+        st.checkbox(
+            "Only shows texts that match the chosen embedder",
+            key="only_chosen_embedder_toggle",
+            on_change=lambda: st.session_state.update(
+                only_chosen_embedder=not st.session_state["only_chosen_embedder"]
+            ),
+            value=st.session_state["only_chosen_embedder"],
+        )
+
+
+def get_extracted_texts(selected_domain):
+    if st.session_state.get("only_chosen_embedder", False) and st.session_state.get(
+        "context_embedder", False
+    ):
+        embedder: Embedder = st.session_state["context_embedder"]
+        embedder_config = (
+            embedder.get_configuration().get("params", {}).get("model", None)
+        )
+        if embedder_config:
+            extracted_texts = retriever_repository.list_texts_by_domain_and_embedder(
+                selected_domain.name, embedder_config
+            )
+            cleanup_texts_to_use(extracted_texts)
+        else:
+            st.warning("Embedder model name not found. Showing all texts.")
+            extracted_texts = embedder_repository.list_embedded_texts_by_domain(
+                selected_domain.name
+            )
+    else:
+        extracted_texts = embedder_repository.list_embedded_texts_by_domain(
+            selected_domain.name
+        )
+
+    return extracted_texts
+
+
 def setup_session_state():
     setup_session_state_vars(
         [
@@ -506,6 +524,7 @@ def setup_session_state():
             ("texts_to_use", {}),
             ("context_use_history", True),
             ("chat_history", []),
+            ("context_use_domain_context", True),
         ]
     )
 

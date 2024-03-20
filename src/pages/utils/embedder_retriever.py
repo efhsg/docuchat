@@ -145,10 +145,10 @@ def select_embedder():
             st.rerun()
 
 
-def display_embedder(embedder):
+def display_embedder(embedder: Embedder = None, expanded: bool = True):
     params = embedder.get_configuration().get("params", {})
 
-    with st.expander("Parameters", expanded=True):
+    with st.expander("Parameters", expanded=expanded):
         markdown_table = "Parameter | Value\n:- | -\n"
         for key, value in params.items():
             markdown_table += f"{key} | {value}\n"
@@ -232,10 +232,10 @@ def create_retriever(domain_id: int, embedder: Embedder = None) -> Retriever:
     )
 
 
-def display_retriever(retriever):
+def display_retriever(retriever, expanded: bool = True):
     params = retriever.get_configuration().get("params", {})
 
-    with st.expander("Parameters", expanded=True):
+    with st.expander("Parameters", expanded=expanded):
         markdown_table = "Parameter | Value\n:- | -\n"
         for key, value in params.items():
             markdown_table += f"{key} | {value}\n"
@@ -248,4 +248,4 @@ def display_retriever(retriever):
 
 
 def convert_query_to_vector(query: str, embedder: Embedder) -> list:
-    return embedder.embed([(0, query)])
+    return embedder.embed_chunks([(0, query)])
