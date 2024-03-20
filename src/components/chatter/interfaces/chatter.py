@@ -24,6 +24,6 @@ class Chatter(ABC):
         pass
 
     @abstractmethod
-    def was_history_truncated(self) -> bool:
+    def history_truncated_by(self) -> int:
         """Returns True if the chat history was truncated in the last operation."""
         pass

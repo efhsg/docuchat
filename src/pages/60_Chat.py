@@ -439,7 +439,7 @@ def manage_history(chatter: Chatter):
             except Exception as e:
                 logger.error(e)
                 st.write("Tokens left: not available due to an error")
-            st.write(f"Chat history truncated: {chatter.was_history_truncated()}")
+            st.write(f"Chat history truncated by: {chatter.history_truncated_by()}")
 
         st.checkbox(
             "Use history",

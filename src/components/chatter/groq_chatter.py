@@ -11,7 +11,7 @@ from groq import Groq
 
 class TokenizerLoader:
     @lru_cache(maxsize=128)
-    def load(self, model_identifier: str, api_token: str):
+    def load(self, model_identifier: str, api_token: str) -> AutoTokenizer:
         return AutoTokenizer.from_pretrained(model_identifier, use_auth_token=api_token)
 
 
@@ -40,58 +40,36 @@ class GroqChatter(Chatter):
         self.model_cache = self.chatter_repository.read_model_cache(
             ModelSource.Groq, self.model
         )
-        self.history_truncated = False
+        self.history_truncated: int = 0
 
     def chat(
         self,
         messages: List[Dict[str, str]] = None,
         context: Dict[str, List[Tuple[str, float]]] = None,
     ) -> Union[str, Generator[str, None, None]]:
+
         windowed_messages = self._sliding_window_messages(messages if messages else [])
+        client = Groq()
         try:
-            stream_response = self._attempt_chat(windowed_messages)
-            if self.stream:
-                response = (
-                    self._generate_response(stream_response)
-                    if stream_response
-                    else iter(["Unable to generate response."])
-                )
+            stream_response = client.chat.completions.create(
+                messages=windowed_messages,
+                model=self.model,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p,
+                stream=self.stream,
+                stop=[self.stop] if self.stop else None,
+            )
+
+            if not self.stream:
+                return stream_response.choices[0].message.content
             else:
-                if not stream_response or (
-                    hasattr(stream_response, "choices") and not stream_response.choices
-                ):
-                    if self.history_truncated and len(windowed_messages) > 1:
-                        self.logger.info(
-                            "Received empty response, attempting with one less message."
-                        )
-                        windowed_messages, _ = self._sliding_window_messages(
-                            messages[:-1]
-                        )
-                        stream_response = self._attempt_chat(windowed_messages)
-                response = (
-                    stream_response.choices[0].message.content
-                    if stream_response
-                    and hasattr(stream_response, "choices")
-                    and stream_response.choices
-                    else "Unable to generate response."
-                )
-            return response
+                return self._generate_response(stream_response)
+
         except Exception as e:
             if self.logger:
                 self.logger.error(f"An error occurred during chat completion: {str(e)}")
             raise
-
-    def _attempt_chat(self, windowed_messages: List[Dict[str, str]]):
-        client = Groq()
-        return client.chat.completions.create(
-            messages=windowed_messages,
-            model=self.model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
-            stream=self.stream,
-            stop=[self.stop] if self.stop else None,
-        )
 
     def get_num_tokens(self, text: str) -> int:
         api_token = getenv("HUGGINGFACEHUB_API_TOKEN")
@@ -99,8 +77,7 @@ class GroqChatter(Chatter):
         tokenizer = self.tokenizer_loader.load(model_identifier, api_token)
         return len(tokenizer.encode(text))
 
-    def was_history_truncated(self) -> bool:
-        """Returns True if the chat history was truncated in the last operation."""
+    def history_truncated_by(self) -> int:
         return self.history_truncated
 
     def _generate_response(self, stream_response) -> Generator[str, None, None]:
@@ -112,7 +89,7 @@ class GroqChatter(Chatter):
         self, messages: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:
         context_window = self.get_params().get("context_window", 4096)
-        response_buffer = 256
+        response_buffer = 512
         effective_context_window = context_window - response_buffer
 
         total_tokens = 0
@@ -126,10 +103,10 @@ class GroqChatter(Chatter):
             windowed_messages.insert(0, message)
             total_tokens += message_tokens
 
-        self.history_truncated = len(windowed_messages) < len(messages)
+        self.history_truncated = len(messages) - len(windowed_messages)
 
         if self.logger:
-            self.logger.info(
+            self.logger.debug(
                 f"Total token size of windowed_messages: {total_tokens} / {effective_context_window}"
             )
 
