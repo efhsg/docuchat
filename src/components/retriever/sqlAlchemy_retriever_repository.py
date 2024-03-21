@@ -44,11 +44,11 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
                 self.logger.error(f"SQLAlchemy error occurred: {e}")
             raise
 
-    def get_chunk_by_embedding_id_with_filename(
+    def get_chunk_by_embedding_id_with_text(
         self, id: int
     ) -> Tuple[Chunk, ExtractedText]:
         try:
-            chunk_with_filename = (
+            chunk_with_text = (
                 self.session.query(Chunk, ExtractedText)
                 .join(ChunkProcess, Chunk.chunk_process_id == ChunkProcess.id)
                 .join(ExtractedText, ChunkProcess.extracted_text_id == ExtractedText.id)
@@ -56,7 +56,7 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
                 .filter(Embedding.id == id)
                 .one()
             )
-            return chunk_with_filename
+            return chunk_with_text
         except SQLAlchemyError as e:
             self.logger.error(
                 f"Failed to retrieve chunk and filename for embedding ID {id}: {e}"
@@ -85,5 +85,24 @@ class SqlAlchemyRetrieverRepository(RetrieverRepository):
         except Exception as e:
             self.logger.error(
                 f"Failed to list texts for domain '{domain_name}'. Error: {e}"
+            )
+            raise
+
+    def get_chunks_by_embedding_ids_with_texts(
+        self, ids: List[int]
+    ) -> List[Tuple[Chunk, ExtractedText]]:
+        try:
+            chunks_with_texts = (
+                self.session.query(Chunk, ExtractedText)
+                .join(ChunkProcess, Chunk.chunk_process_id == ChunkProcess.id)
+                .join(ExtractedText, ChunkProcess.extracted_text_id == ExtractedText.id)
+                .join(Embedding, Embedding.chunk_id == Chunk.id)
+                .filter(Embedding.id.in_(ids))
+                .all()
+            )
+            return chunks_with_texts
+        except SQLAlchemyError as e:
+            self.logger.error(
+                f"Failed to retrieve chunks and filenames for embedding IDs: {e}"
             )
             raise
