@@ -193,7 +193,7 @@ def display_embeddings(embeddings: list):
         for embedding_id, score in embeddings:
             with st.container(border=True):
                 chunk_with_filename = (
-                    retriever_repository.get_chunk_by_embedding_id_with_filename(
+                    retriever_repository.get_chunk_by_embedding_id_with_text(
                         embedding_id
                     )
                 )
