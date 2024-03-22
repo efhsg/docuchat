@@ -43,7 +43,6 @@ class GroqChatter(Chatter):
 
         reduced_messages, _, _ = self.chat_text_processor.reduce_texts(
             messages=(messages if messages else []),
-            identifier=self.huggingface_identifier,
         )
         self.history_truncated = len(messages) - len(reduced_messages)
 
@@ -72,14 +71,11 @@ class GroqChatter(Chatter):
     def get_num_tokens(self, text: str) -> int:
         self.chat_text_processor.get_num_tokens(
             text=text,
-            identifier=self.huggingface_identifier,
         )
 
     def get_num_tokens_left(self, messages: List[Dict[str, str]]) -> int:
         _, _, total_used_tokens = self.chat_text_processor.reduce_texts(
             messages=messages,
-            context_window=self.context_window,
-            identifier=self.huggingface_identifier,
         )
         return self.context_window - total_used_tokens
 

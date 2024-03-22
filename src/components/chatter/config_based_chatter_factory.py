@@ -1,4 +1,6 @@
 import json
+from components.chatter.groq_chat_text_processor import GroqChatTextProcessor
+from components.chatter.huggingface_tokenizer_loader import HuggingfaceTokenizerLoader
 from components.chatter.interfaces.chatter import Chatter
 from components.chatter.chatter_config import ChatterConfig
 from logging import Logger as StandardLogger
@@ -30,7 +32,6 @@ class ConfigBasedChatterFactory(ChatterFactory):
 
         try:
             chatter_class = chatter_config["class"]
-            chat_text_processor = chatter_config.get("chat_text_processor")
             model = next((v for k, v in kwargs.items() if k.endswith("_model")), None)
 
             additional_params = {}
@@ -40,7 +41,6 @@ class ConfigBasedChatterFactory(ChatterFactory):
             return chatter_class(
                 logger=self.logger,
                 chatter_repository=self.chatter_repository,
-                chat_text_processor=chat_text_processor,
                 **kwargs,
                 **additional_params,
             )
@@ -59,10 +59,14 @@ class ConfigBasedChatterFactory(ChatterFactory):
                 "huggingface_identifier"
             )
             context_window = model_cache.attributes.get("context_window")
-            if huggingface_identifier is not None:
-                additional_params["huggingface_identifier"] = huggingface_identifier
-            if context_window is not None:
-                additional_params["context_window"] = context_window
+            additional_params["huggingface_identifier"] = huggingface_identifier
+            additional_params["context_window"] = context_window
+            additional_params["chat_text_processor"] = GroqChatTextProcessor(
+                HuggingfaceTokenizerLoader(identifier=huggingface_identifier),
+                identifier=huggingface_identifier,
+                context_window=context_window,
+            )
+
         except Exception as e:
             log_msg = f"Failed to read model cache for {model} due to: {str(e)}"
             if self.logger:

@@ -6,7 +6,15 @@ from utils.env_utils import getenv
 
 
 class HuggingfaceTokenizerLoader(TokenizerLoader):
+
+    def __init__(
+        self,
+        identifier: str = None,
+    ):
+        self.identifier = identifier
+
     @lru_cache(maxsize=128)
-    def load(self, model_identifier: str) -> AutoTokenizer:
-        api_token = getenv("HUGGINGFACEHUB_API_TOKEN")
-        return AutoTokenizer.from_pretrained(model_identifier, use_auth_token=api_token)
+    def load(self) -> AutoTokenizer:
+        return AutoTokenizer.from_pretrained(
+            self.identifier, use_auth_token=getenv("HUGGINGFACEHUB_API_TOKEN")
+        )

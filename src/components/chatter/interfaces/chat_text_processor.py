@@ -9,9 +9,7 @@ class ChatTextProcessor(ABC):
         self,
         messages: List[Dict[str, str]],
         context_texts: List[str],
-        context_window: int,
         response_buffer: int,
-        identifier: str,
     ) -> Tuple[List[Dict[str, str]], List[str], int]:
         """
         Reduce texts and messages to fit within a specified context window, considering a response buffer.
@@ -23,7 +21,6 @@ class ChatTextProcessor(ABC):
     def get_num_tokens(
         self,
         text: str,
-        identifier: str,
     ) -> int:
         """
         Calculate the number of tokens in a given text.
