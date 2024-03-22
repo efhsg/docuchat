@@ -179,12 +179,12 @@ class ChatterConfig:
     def chatter_options(self) -> Dict[str, Dict[str, Any]]:
         return {
             name: {
-                "class": cls,
-                "fields": self._get_fields(cls),
-                "validations": self._validations(cls),
-                "constants": self._constants(cls),
+                "class": class_info["class"],
+                "fields": self._get_fields(class_info["class"]),
+                "validations": self._validations(class_info["class"]),
+                "constants": self._constants(class_info["class"]),
             }
-            for name, cls in self.chatter_classes.items()
+            for name, class_info in self.chatter_classes.items()
         }
 
     def _fetch_groq_model_options(self) -> List[str]:
