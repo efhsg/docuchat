@@ -4,6 +4,7 @@ import os
 from typing import Any, Dict, List
 import pytz
 import requests
+from components.chatter.huggingface_tokenizer_loader import HuggingfaceTokenizerLoader
 from components.chatter.interfaces.chatter_repository import ChatterRepository
 from utils.env_utils import getenv
 from components.chatter.openai_chatter import OpenAIChatter
@@ -28,8 +29,14 @@ class ChatterConfig:
     GROQ_MODELS_API_URL = "https://api.groq.com/openai/v1/models"
     OPENAI_MODELS_API_URL = "https://api.openai.com/v1/models"
     chatter_classes = {
-        "OpenAI": OpenAIChatter,
-        "Groq": GroqChatter,
+        "OpenAI": {
+            "class": OpenAIChatter,
+            "tokenizer_loader": None,
+        },
+        "Groq": {
+            "class": GroqChatter,
+            "tokenizer_loader": HuggingfaceTokenizerLoader(),
+        },
     }
 
     def __init__(

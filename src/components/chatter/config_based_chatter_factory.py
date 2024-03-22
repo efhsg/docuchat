@@ -3,7 +3,6 @@ from components.chatter.chatter_config import ChatterConfig
 from logging import Logger as StandardLogger
 
 from components.chatter.interfaces.chatter_repository import ChatterRepository
-from components.database.interfaces.connector import Connector
 from .interfaces.chatter_factory import ChatterFactory
 
 
@@ -17,12 +16,18 @@ class ConfigBasedChatterFactory(ChatterFactory):
         self.chatter_repository = chatter_repository
 
     def create_chatter(self, method: str, **kwargs) -> Chatter:
-        chatter_class = ChatterConfig.chatter_classes.get(method)
-        if not chatter_class:
+        chatter_config = ChatterConfig.chatter_classes.get(method)
+        if not chatter_config:
             if self.logger:
                 self.logger.error(f"Chatter method '{method}' is not supported.")
             raise ValueError(f"Chatter method '{method}' is not supported.")
 
+        chatter_class = chatter_config["class"]
+        tokenizer_loader = chatter_config.get("tokenizer_loader")
+
         return chatter_class(
-            logger=self.logger, chatter_repository=self.chatter_repository, **kwargs
+            logger=self.logger,
+            chatter_repository=self.chatter_repository,
+            tokenizer_loader=tokenizer_loader,
+            **kwargs,
         )

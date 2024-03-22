@@ -1,19 +1,11 @@
-from functools import lru_cache
 from typing import Dict, Generator, List, Tuple, Optional, Union
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
 from components.chatter.interfaces.chatter_repository import ChatterRepository
+from components.chatter.interfaces.tokenizer_loader import TokenizerLoader
 from components.database.models import ModelSource
 from utils.env_utils import getenv
-from transformers import AutoTokenizer
 from groq import Groq
-
-
-class TokenizerLoader:
-    @lru_cache(maxsize=128)
-    def load(self, model_identifier: str) -> AutoTokenizer:
-        api_token = getenv("HUGGINGFACEHUB_API_TOKEN")
-        return AutoTokenizer.from_pretrained(model_identifier, use_auth_token=api_token)
 
 
 class GroqChatter(Chatter):
@@ -37,7 +29,7 @@ class GroqChatter(Chatter):
         self.stop = stop
         self.logger = logger
         self.chatter_repository = chatter_repository
-        self.tokenizer_loader = tokenizer_loader or TokenizerLoader()
+        self.tokenizer_loader = tokenizer_loader
         self.model_cache = self.chatter_repository.read_model_cache(
             ModelSource.Groq, self.model
         )
@@ -47,7 +39,7 @@ class GroqChatter(Chatter):
     def chat(
         self,
         messages: List[Dict[str, str]] = None,
-        context: Dict[str, List[Tuple[str, float]]] = None,
+        context_texts: List[str] = None,
     ) -> Union[str, Generator[str, None, None]]:
 
         windowed_messages, total_tokens = self._sliding_window_messages(

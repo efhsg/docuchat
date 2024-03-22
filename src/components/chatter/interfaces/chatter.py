@@ -8,7 +8,7 @@ class Chatter(ABC):
     def chat(
         self,
         query: Optional[str],
-        context: Dict[str, List[Tuple[str, float]]],
+        context_texts: List[str] = None,
         history: Optional[List[Dict[str, str]]] = None,
     ) -> Union[str, Generator[str, None, None]]: ...
 
