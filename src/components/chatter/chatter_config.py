@@ -187,11 +187,10 @@ class ChatterConfig:
             for name, class_info in self.chatter_classes.items()
         }
 
-    def _fetch_groq_model_options(self) -> List[str]:
-        api_key = getenv("GROQ_API_KEY")
-        cached_models = self.model_cache_repository.list_model_caches_by_source(
-            ModelSource.Groq
-        )
+    def _fetch_model_options_from_api(
+        self, api_url: str, api_key: str, source: ModelSource, enrichment_filename: str
+    ) -> List[str]:
+        cached_models = self.model_cache_repository.list_model_caches_by_source(source)
 
         if cached_models and all(
             datetime.now(pytz.utc) - model.updated_at.replace(tzinfo=pytz.utc)
@@ -203,15 +202,12 @@ class ChatterConfig:
         if not api_key:
             return []
 
-        enrichment_data = self._load_enrichment_data(
-            "enrichments/groq_models_enrichment.json"
-        )
+        enrichment_data = self._load_enrichment_data(enrichment_filename)
         enrichment_map = {item["id"]: item for item in enrichment_data}
 
         try:
             response = requests.get(
-                self.GROQ_MODELS_API_URL,
-                headers={"Authorization": f"Bearer {api_key}"},
+                api_url, headers={"Authorization": f"Bearer {api_key}"}
             )
             response.raise_for_status()
             data = response.json().get("data", [])
@@ -221,85 +217,39 @@ class ChatterConfig:
                 model_id = model["id"]
                 if model_id in enrichment_map:
                     model.update(enrichment_map[model_id])
-                self.model_cache_repository.save_model_cache(
-                    ModelSource.Groq, model_id, model
-                )
+                self.model_cache_repository.save_model_cache(source, model_id, model)
 
             dropped_models = {
                 model.model_id for model in cached_models
             } - fetched_model_ids
             for model_id in dropped_models:
-                self.model_cache_repository.delete_model_cache(
-                    ModelSource.Groq, model_id
-                )
+                self.model_cache_repository.delete_model_cache(source, model_id)
 
             return list(fetched_model_ids)
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Request to Groq API failed: {e}")
+            self.logger.error(f"Request to {api_url} API failed: {e}")
         except ValueError as e:
-            self.logger.error(f"Error processing Groq API response: {e}")
+            self.logger.error(f"Error processing {api_url} API response: {e}")
 
         return [model.model_id for model in cached_models]
+
+    def _fetch_groq_model_options(self) -> List[str]:
+        api_key = getenv("GROQ_API_KEY")
+        return self._fetch_model_options_from_api(
+            self.GROQ_MODELS_API_URL,
+            api_key,
+            ModelSource.Groq,
+            "enrichments/groq_models_enrichment.json",
+        )
 
     def _fetch_openai_model_options(self) -> List[str]:
         api_key = getenv("OPENAI_API_KEY")
-        cached_models = self.model_cache_repository.list_model_caches_by_source(
-            ModelSource.OpenAI
+        return self._fetch_model_options_from_api(
+            self.OPENAI_MODELS_API_URL,
+            api_key,
+            ModelSource.OpenAI,
+            "enrichments/openai_models_enrichment.json",
         )
-
-        if cached_models and all(
-            datetime.now(pytz.utc) - model.updated_at.replace(tzinfo=pytz.utc)
-            < timedelta(days=1)
-            for model in cached_models
-        ):
-            return [model.model_id for model in cached_models]
-
-        if not api_key:
-            return []
-
-        enrichment_data = self._load_enrichment_data(
-            "enrichments/openai_models_enrichment.json"
-        )
-        enrichment_map = {item["id"]: item for item in enrichment_data}
-
-        try:
-            response = requests.get(
-                self.OPENAI_MODELS_API_URL,
-                headers={"Authorization": f"Bearer {api_key}"},
-            )
-            response.raise_for_status()
-            data = response.json().get("data", [])
-
-            gpt_prefixes = ("gpt", "davinci")
-            gpt_models = [
-                model for model in data if model["id"].startswith(gpt_prefixes)
-            ]
-
-            fetched_model_ids = {model["id"] for model in gpt_models}
-
-            for model in gpt_models:
-                model_id = model["id"]
-                if model_id in enrichment_map:
-                    model.update(enrichment_map[model_id])
-                self.model_cache_repository.save_model_cache(
-                    ModelSource.OpenAI, model_id, model
-                )
-
-            dropped_models = {
-                model.model_id for model in cached_models
-            } - fetched_model_ids
-            for model_id in dropped_models:
-                self.model_cache_repository.delete_model_cache(
-                    ModelSource.OpenAI, model_id
-                )
-
-            return list(fetched_model_ids)
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Request to OpenAI API failed: {e}")
-        except ValueError as e:
-            self.logger.error(f"Error processing OpenAI API response: {e}")
-
-        return [model.model_id for model in cached_models]
 
     def _load_enrichment_data(self, filename: str):
         filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
