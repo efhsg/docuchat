@@ -1,10 +1,9 @@
-from typing import Dict, Generator, List, Tuple, Optional, Union
+from typing import Dict, Generator, List, Optional, Union
+from components.chatter.interfaces.chat_text_processor import ChatTextProcessor
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
 from components.chatter.interfaces.chatter_repository import ChatterRepository
-from components.chatter.interfaces.tokenizer_loader import TokenizerLoader
 from components.database.models import ModelSource
-from utils.env_utils import getenv
 from groq import Groq
 
 
@@ -13,7 +12,7 @@ class GroqChatter(Chatter):
         self,
         logger: Optional[StandardLogger] = None,
         chatter_repository: ChatterRepository = None,
-        tokenizer_loader: TokenizerLoader = None,
+        chat_text_processor: ChatTextProcessor = None,
         groq_model: str = "llama2-70b-4096",
         temperature: float = 0.5,
         max_tokens: int = 1024,
@@ -29,10 +28,13 @@ class GroqChatter(Chatter):
         self.stop = stop
         self.logger = logger
         self.chatter_repository = chatter_repository
-        self.tokenizer_loader = tokenizer_loader
         self.model_cache = self.chatter_repository.read_model_cache(
             ModelSource.Groq, self.model
         )
+        self.huggingface_identifier = self.model_cache.attributes.get(
+            "huggingface_identifier"
+        )
+        self.chat_text_processor = chat_text_processor
         self.history_truncated: int = 0
         self.context_window = self.get_params().get("context_window", 4096)
 
@@ -42,13 +44,15 @@ class GroqChatter(Chatter):
         context_texts: List[str] = None,
     ) -> Union[str, Generator[str, None, None]]:
 
-        windowed_messages, total_tokens = self._sliding_window_messages(
-            messages if messages else []
+        self.logger.info(self.huggingface_identifier)
+        reduced_texts, _, _ = self.chat_text_processor.reduce_texts(
+            messages=(messages if messages else []),
+            identifier=self.huggingface_identifier,
         )
         client = Groq()
         try:
             stream_response = client.chat.completions.create(
-                messages=windowed_messages,
+                messages=reduced_texts,
                 model=self.model,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -68,13 +72,17 @@ class GroqChatter(Chatter):
             raise
 
     def get_num_tokens(self, text: str) -> int:
-        tokenizer = self.tokenizer_loader.load(
-            self.model_cache.attributes.get("huggingface_identifier")
+        self.chat_text_processor.get_num_tokens(
+            text=text,
+            identifier=self.huggingface_identifier,
         )
-        return len(tokenizer.encode(text))
 
     def get_num_tokens_left(self, messages: List[Dict[str, str]]) -> int:
-        _, total_used_tokens = self._sliding_window_messages(messages)
+        _, _, total_used_tokens = self.chat_text_processor.reduce_texts(
+            messages=messages,
+            context_window=self.context_window,
+            identifier=self.huggingface_identifier,
+        )
         return self.context_window - total_used_tokens
 
     def history_truncated_by(self) -> int:
@@ -84,27 +92,6 @@ class GroqChatter(Chatter):
         for chunk in stream_response:
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
-
-    def _sliding_window_messages(
-        self, messages: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
-        response_buffer = 512
-        effective_context_window = self.context_window - response_buffer
-
-        total_tokens = 0
-        windowed_messages = []
-
-        for message in reversed(messages):
-            message_str = str(message)
-            message_tokens = self.get_num_tokens(message_str)
-            if total_tokens + message_tokens > effective_context_window:
-                break
-            windowed_messages.insert(0, message)
-            total_tokens += message_tokens
-
-        self.history_truncated = len(messages) - len(windowed_messages)
-
-        return windowed_messages, total_tokens
 
     def get_params(self) -> Dict:
 

@@ -4,6 +4,7 @@ import os
 from typing import Any, Dict, List
 import pytz
 import requests
+from components.chatter.groq_chat_text_processor import GroqChatTextProcessor
 from components.chatter.huggingface_tokenizer_loader import HuggingfaceTokenizerLoader
 from components.chatter.interfaces.chatter_repository import ChatterRepository
 from utils.env_utils import getenv
@@ -32,10 +33,12 @@ class ChatterConfig:
         "OpenAI": {
             "class": OpenAIChatter,
             "tokenizer_loader": None,
+            "chat_text_processor": None,
         },
         "Groq": {
             "class": GroqChatter,
             "tokenizer_loader": HuggingfaceTokenizerLoader(),
+            "chat_text_processor": GroqChatTextProcessor(HuggingfaceTokenizerLoader()),
         },
     }
 

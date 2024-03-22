@@ -23,11 +23,11 @@ class ConfigBasedChatterFactory(ChatterFactory):
             raise ValueError(f"Chatter method '{method}' is not supported.")
 
         chatter_class = chatter_config["class"]
-        tokenizer_loader = chatter_config.get("tokenizer_loader")
+        chat_text_processor = chatter_config.get("chat_text_processor")
 
         return chatter_class(
             logger=self.logger,
             chatter_repository=self.chatter_repository,
-            tokenizer_loader=tokenizer_loader,
+            chat_text_processor=chat_text_processor,
             **kwargs,
         )
