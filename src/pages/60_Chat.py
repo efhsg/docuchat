@@ -436,7 +436,7 @@ def manage_history(chatter: Chatter):
     with st.sidebar.container(border=True):
         if st.session_state.get("context_use_history", False):
             try:
-                display_context_info(chatter)
+                display_history_info(chatter)
             except Exception as e:
                 logger.error(e)
                 st.error("Tokens left: not available due to an error")
@@ -454,7 +454,7 @@ def manage_history(chatter: Chatter):
                 st.rerun()
 
 
-def display_context_info(chatter: Chatter):
+def display_history_info(chatter: Chatter):
     try:
         history = (
             parse_chat_history_for_LLM()
@@ -473,22 +473,19 @@ def display_context_info(chatter: Chatter):
             tokens_left = chatter.get_num_tokens_left(parse_chat_history_for_LLM())
 
             st.info(messages_info)
-            if isinstance(tokens_left, int):
+            if isinstance(tokens_left, int) and context_window > 0:
+                percentage_left = (tokens_left / context_window) * 100
                 st.metric(
                     label="Tokens Left",
-                    value=tokens_left,
+                    value=f"{tokens_left} ({percentage_left:.0f}%)",
                     delta=f"Out of {context_window}",
                 )
             else:
                 st.warning(tokens_left_info)
         else:
             st.info("No chat history to display.")
-
     except Exception as e:
-        logger.error(f"Error calculating tokens left: {e}")
-        st.error(
-            "Sorry, we encountered an issue calculating tokens left. Please try refreshing or contact support for assistance."
-        )
+        st.error(f"An error occurred: {e}")
 
 
 def log_last_two_messages():
