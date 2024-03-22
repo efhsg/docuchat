@@ -30,12 +30,12 @@ class ChatterConfig:
     GROQ_MODELS_API_URL = "https://api.groq.com/openai/v1/models"
     OPENAI_MODELS_API_URL = "https://api.openai.com/v1/models"
     chatter_classes = {
-        "OpenAI": {
+        ModelSource.OpenAI.value: {
             "class": OpenAIChatter,
             "tokenizer_loader": None,
             "chat_text_processor": None,
         },
-        "Groq": {
+        ModelSource.Groq.value: {
             "class": GroqChatter,
             "tokenizer_loader": HuggingfaceTokenizerLoader(),
             "chat_text_processor": GroqChatTextProcessor(HuggingfaceTokenizerLoader()),

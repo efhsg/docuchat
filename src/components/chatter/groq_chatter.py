@@ -19,6 +19,8 @@ class GroqChatter(Chatter):
         top_p: float = 1,
         stream: bool = True,
         stop: Optional[str] = None,
+        huggingface_identifier: str = None,
+        context_window: int = 4096,
     ):
         self.model = groq_model
         self.temperature = temperature
@@ -28,15 +30,10 @@ class GroqChatter(Chatter):
         self.stop = stop
         self.logger = logger
         self.chatter_repository = chatter_repository
-        self.model_cache = self.chatter_repository.read_model_cache(
-            ModelSource.Groq, self.model
-        )
-        self.huggingface_identifier = self.model_cache.attributes.get(
-            "huggingface_identifier"
-        )
+        self.huggingface_identifier = huggingface_identifier
         self.chat_text_processor = chat_text_processor
         self.history_truncated: int = 0
-        self.context_window = self.get_params().get("context_window", 4096)
+        self.context_window = context_window
 
     def chat(
         self,
@@ -44,15 +41,16 @@ class GroqChatter(Chatter):
         context_texts: List[str] = None,
     ) -> Union[str, Generator[str, None, None]]:
 
-        self.logger.info(self.huggingface_identifier)
-        reduced_texts, _, _ = self.chat_text_processor.reduce_texts(
+        reduced_messages, _, _ = self.chat_text_processor.reduce_texts(
             messages=(messages if messages else []),
             identifier=self.huggingface_identifier,
         )
+        self.history_truncated = len(messages) - len(reduced_messages)
+
         client = Groq()
         try:
             stream_response = client.chat.completions.create(
-                messages=reduced_texts,
+                messages=reduced_messages,
                 model=self.model,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -94,12 +92,6 @@ class GroqChatter(Chatter):
                 yield chunk.choices[0].delta.content
 
     def get_params(self) -> Dict:
-
-        context_window = (
-            self.model_cache.attributes.get("context_window")
-            if self.model_cache
-            else None
-        )
         return {
             "model": self.model,
             "temperature": self.temperature,
@@ -107,5 +99,5 @@ class GroqChatter(Chatter):
             "top_p": self.top_p,
             "stream": self.stream,
             "stop": self.stop,
-            "context_window": context_window,
+            "context_window": self.context_window,
         }
