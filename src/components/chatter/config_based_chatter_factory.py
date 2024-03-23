@@ -63,7 +63,6 @@ class ConfigBasedChatterFactory(ChatterFactory):
             additional_params["context_window"] = context_window
             additional_params["chat_text_processor"] = GroqChatTextProcessor(
                 HuggingfaceTokenizerLoader(identifier=huggingface_identifier),
-                identifier=huggingface_identifier,
                 context_window=context_window,
             )
 
