@@ -21,15 +21,12 @@ class GroqChatTextProcessor(ChatTextProcessor):
         context_texts: List[str] = None,
         response_buffer: int = 512,
     ) -> Tuple[List[Dict[str, str]], List[str], int]:
-        if messages is None:
-            messages = []
-        if context_texts is None:
-            context_texts = []
+        messages = messages or []
+        context_texts = context_texts or []
 
         effective_context_window = self.context_window - response_buffer
         total_tokens = 0
-        reduced_messages = []
-        reduced_texts = []
+        reduced_messages, reduced_texts = [], []
 
         for message in reversed(messages):
             message_str = str(message)
