@@ -533,6 +533,7 @@ def setup_session_state():
             ("texts_to_use", {}),
             ("context_use_history", True),
             ("chat_history", []),
+            ("use_domain_context", True),
             ("context_use_domain_context", True),
         ]
     )

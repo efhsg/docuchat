@@ -20,9 +20,9 @@ class MySQLConnector(Connector):
         self._db_password = os.getenv("DB_PASSWORD")
         self._db_name = os.getenv("DB_DATABASE")
         self._db_port = os.getenv("DB_PORT", "3306")
-        self.engine = create_engine(self._database_uri())
-        self.session = sessionmaker(bind=self.engine)
         self.logger = NativeLogger.get_logger()
+        self._engine = None
+        self._session_factory = None
 
     def get_connection(self):
         try:
@@ -35,16 +35,15 @@ class MySQLConnector(Connector):
                 cursorclass=pymysql.cursors.DictCursor,
             )
         except pymysql.Error as e:
-            error_message = f"Failed to connect to MySQL database: {e}"
-            self.logger.critical(error_message)
+            self.logger.critical(f"Failed to connect to MySQL database: {e}")
             raise
 
     def get_session(self):
-        try:
-            return self.session()
-        except Exception as e:
-            self.logger.critical(f"Failed to create SQLAlchemy session: {e}")
-            raise
+        if not self._engine:
+            self._engine = create_engine(self._database_uri())
+        if not self._session_factory:
+            self._session_factory = sessionmaker(bind=self._engine)
+        return self._session_factory()
 
     def _database_uri(self):
         return f"mysql+pymysql://{self._db_user}:{self._db_password}@{self._db_host}:{self._db_port}/{self._db_name}"

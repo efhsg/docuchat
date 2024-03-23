@@ -1,55 +1,55 @@
-import json
 from components.chatter.groq_chat_text_processor import GroqChatTextProcessor
 from components.chatter.huggingface_tokenizer_loader import HuggingfaceTokenizerLoader
 from components.chatter.interfaces.chatter import Chatter
 from components.chatter.chatter_config import ChatterConfig
-from logging import Logger as StandardLogger
 
 from components.chatter.interfaces.chatter_repository import ChatterRepository
 from components.database.models import ModelSource
 from .interfaces.chatter_factory import ChatterFactory
+from components.logger.native_logger import NativeLogger as Logger
 
 
 class ConfigBasedChatterFactory(ChatterFactory):
     def __init__(
-        self,
-        logger: StandardLogger = None,
-        chatter_repository: ChatterRepository = None,
+        self, logger: Logger = None, chatter_repository: ChatterRepository = None
     ):
         self.logger = logger
         self.chatter_repository = chatter_repository
 
     def create_chatter(self, method: str, **kwargs) -> Chatter:
+        self._validate_method(method)
+        chatter_config = self._get_chatter_config(method)
+        chatter_class = chatter_config["class"]
+        model = self._extract_model_from_kwargs(kwargs)
+        additional_params = self._get_additional_params(method, model)
+
+        return chatter_class(
+            logger=self.logger,
+            chatter_repository=self.chatter_repository,
+            **kwargs,
+            **additional_params,
+        )
+
+    def _validate_method(self, method: str):
         if not method:
             raise ValueError("Chatter method must be specified.")
 
+    def _get_chatter_config(self, method: str):
         chatter_config = ChatterConfig.chatter_classes.get(method)
         if not chatter_config:
-            error_msg = f"Chatter method '{method}' is not supported."
-            if self.logger:
-                self.logger.error(error_msg)
-            raise ValueError(error_msg)
+            self._log_error(f"Chatter method '{method}' is not supported.")
+            raise ValueError(f"Chatter method '{method}' is not supported.")
+        return chatter_config
 
-        try:
-            chatter_class = chatter_config["class"]
-            model = next((v for k, v in kwargs.items() if k.endswith("_model")), None)
+    def _extract_model_from_kwargs(self, kwargs):
+        return next((v for k, v in kwargs.items() if k.endswith("_model")), None)
 
-            additional_params = {}
-            if method == ModelSource.Groq.value and self.chatter_repository:
-                additional_params = self.groq_additional_parameters(model)
+    def _get_additional_params(self, method, model) -> dict:
+        if method == ModelSource.Groq.value:
+            return self._groq_additional_parameters(model)
+        return {}
 
-            return chatter_class(
-                logger=self.logger,
-                chatter_repository=self.chatter_repository,
-                **kwargs,
-                **additional_params,
-            )
-        except Exception as e:
-            if self.logger:
-                self.logger.exception("Failed to create chatter: " + str(e))
-            raise
-
-    def groq_additional_parameters(self, model) -> dict:
+    def _groq_additional_parameters(self, model) -> dict:
         additional_params = {}
         try:
             model_cache = self.chatter_repository.read_model_cache(
@@ -74,3 +74,7 @@ class ConfigBasedChatterFactory(ChatterFactory):
             raise
         finally:
             return additional_params
+
+    def _log_error(self, message: str):
+        if self.logger:
+            self.logger.error(message)
