@@ -8,11 +8,9 @@ class GroqChatTextProcessor(ChatTextProcessor):
     def __init__(
         self,
         tokenizer_loader: TokenizerLoader,
-        identifier: str = None,
         context_window: int = 4096,
     ):
         self.tokenizer_loader = tokenizer_loader
-        self.identifier = identifier
         self.context_window = context_window
 
     def reduce_texts(
