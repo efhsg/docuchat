@@ -1,15 +1,16 @@
 import unittest
 from unittest.mock import MagicMock
 from components.chatter.groq_chat_text_processor import GroqChatTextProcessor
-from components.chatter.interfaces.tokenizer_loader import TokenizerLoader
 
 
 class TestGroqChatTextProcessor(unittest.TestCase):
 
     def setUp(self):
-        self.mock_tokenizer_loader = MagicMock(spec=TokenizerLoader)
+        self.mock_tokenizer = MagicMock()
+        self.mock_tokenizer.encode = MagicMock()
+
         self.processor = GroqChatTextProcessor(
-            tokenizer_loader=self.mock_tokenizer_loader
+            tokenizer=self.mock_tokenizer, context_window=4096
         )
 
     def test_reduce_texts_empty_inputs(self):
@@ -22,7 +23,7 @@ class TestGroqChatTextProcessor(unittest.TestCase):
     def test_get_num_tokens(self):
         text = "This is a test string."
         expected_token_count = len(text.split())
-        self.mock_tokenizer_loader.load.return_value.encode.return_value = text.split()
+        self.mock_tokenizer.encode.return_value = list(range(expected_token_count))
 
         token_count = self.processor.get_num_tokens(text)
         self.assertEqual(token_count, expected_token_count)

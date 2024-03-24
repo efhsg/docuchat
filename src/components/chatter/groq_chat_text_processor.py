@@ -1,16 +1,16 @@
 from typing import List, Dict, Tuple
 
 from components.chatter.interfaces.chat_text_processor import ChatTextProcessor
-from components.chatter.interfaces.tokenizer_loader import TokenizerLoader
+from transformers import AutoTokenizer
 
 
 class GroqChatTextProcessor(ChatTextProcessor):
     def __init__(
         self,
-        tokenizer_loader: TokenizerLoader,
+        tokenizer: AutoTokenizer,
         context_window: int = 4096,
     ):
-        self.tokenizer_loader = tokenizer_loader
+        self.tokenizer = tokenizer
         self.context_window = context_window
 
     def reduce_texts(
@@ -27,8 +27,7 @@ class GroqChatTextProcessor(ChatTextProcessor):
         reduced_messages, reduced_texts = [], []
 
         for message in reversed(messages):
-            message_str = str(message)
-            message_tokens = self.get_num_tokens(message_str)
+            message_tokens = self.get_num_tokens(str(message))
             if total_tokens + message_tokens > effective_context_window:
                 break
             reduced_messages.insert(0, message)
@@ -47,5 +46,21 @@ class GroqChatTextProcessor(ChatTextProcessor):
         self,
         text: str,
     ) -> int:
-        tokenizer = self.tokenizer_loader.load()
-        return len(tokenizer.encode(text))
+        return len(self.tokenizer.encode(text))
+
+    def get_num_tokens_left(self, messages: List[Dict[str, str]]) -> int:
+        _, _, total_used_tokens = self.reduce_texts(
+            messages=messages,
+        )
+        return self.context_window - total_used_tokens
+
+    @property
+    def context_window(self) -> int:
+        return self._context_window
+
+    @context_window.setter
+    def context_window(self, value: int):
+        """Set the context window size, ensuring it meets requirements."""
+        if value < 0:
+            raise ValueError("context_window must be non-negative")
+        self._context_window = value

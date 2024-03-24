@@ -4,6 +4,13 @@ from typing import List, Dict, Tuple
 
 class ChatTextProcessor(ABC):
 
+    @property
+    @abstractmethod
+    def context_window(self) -> int:
+        """
+        Property representing the current context window size. Subclasses are expected to implement this as a property.
+        """
+
     @abstractmethod
     def reduce_texts(
         self,
@@ -15,7 +22,6 @@ class ChatTextProcessor(ABC):
         Reduce texts and messages to fit within a specified context window, considering a response buffer.
         Returns the reduced messages, reduced context texts, and the total number of tokens for these reduced texts.
         """
-        pass
 
     @abstractmethod
     def get_num_tokens(
@@ -25,4 +31,9 @@ class ChatTextProcessor(ABC):
         """
         Calculate the number of tokens in a given text.
         """
-        pass
+
+    @abstractmethod
+    def get_num_tokens_left(self, messages: List[Dict[str, str]]) -> int:
+        """
+        Calculate remaining tokens in the context window.
+        """

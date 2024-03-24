@@ -1,5 +1,5 @@
+from os import getenv
 from components.chatter.groq_chat_text_processor import GroqChatTextProcessor
-from components.chatter.huggingface_tokenizer_loader import HuggingfaceTokenizerLoader
 from components.chatter.interfaces.chatter import Chatter
 from components.chatter.chatter_config import ChatterConfig
 
@@ -7,6 +7,7 @@ from components.chatter.interfaces.chatter_repository import ChatterRepository
 from components.database.models import ModelSource
 from .interfaces.chatter_factory import ChatterFactory
 from components.logger.native_logger import NativeLogger as Logger
+from transformers import AutoTokenizer
 
 
 class ConfigBasedChatterFactory(ChatterFactory):
@@ -25,7 +26,6 @@ class ConfigBasedChatterFactory(ChatterFactory):
 
         return chatter_class(
             logger=self.logger,
-            chatter_repository=self.chatter_repository,
             **kwargs,
             **additional_params,
         )
@@ -52,18 +52,19 @@ class ConfigBasedChatterFactory(ChatterFactory):
     def _groq_additional_parameters(self, model) -> dict:
         additional_params = {}
         try:
+
             model_cache = self.chatter_repository.read_model_cache(
                 ModelSource.Groq, model
             )
-            huggingface_identifier = model_cache.attributes.get(
-                "huggingface_identifier"
-            )
-            context_window = model_cache.attributes.get("context_window")
-            additional_params["huggingface_identifier"] = huggingface_identifier
-            additional_params["context_window"] = context_window
+
             additional_params["chat_text_processor"] = GroqChatTextProcessor(
-                HuggingfaceTokenizerLoader(identifier=huggingface_identifier),
-                context_window=context_window,
+                tokenizer=AutoTokenizer.from_pretrained(
+                    pretrained_model_name_or_path=model_cache.attributes.get(
+                        "huggingface_identifier"
+                    ),
+                    token=getenv("HUGGINGFACEHUB_API_TOKEN"),
+                ),
+                context_window=model_cache.attributes.get("context_window"),
             )
 
         except Exception as e:
