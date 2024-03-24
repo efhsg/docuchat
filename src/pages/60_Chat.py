@@ -314,6 +314,7 @@ def chat(
     stream = chatter.get_params().get("stream", False)
     with st.container(border=True):
         user_query = st.chat_input("Start chatting here...")
+        error_placeholder = st.empty()
         current_chat_placeholder = display_messages()
     if user_query:
         if st.session_state.get("use_domain_context", False):
@@ -331,30 +332,36 @@ def chat(
         list_of_texts = [
             compressor.decompress(chunk.chunk) for chunk, _ in chunks_with_filenames
         ]
-
         with current_chat_placeholder.container(border=True):
-            with st.chat_message("AI"):
-                ai_placeholder = st.empty()
+            ai_placeholder_container = st.empty()
+            with ai_placeholder_container:
+                with st.chat_message("AI"):
+                    ai_placeholder = st.empty()
             with st.chat_message("User"):
                 st.write(user_query)
 
         st.session_state["chat_history"].append(HumanMessage(content=user_query))
-        if stream:
-            chat_with_streaming_on(
-                domain_id,
-                embedder,
-                retriever,
-                chatter,
-                ai_placeholder=ai_placeholder,
-            )
-        else:
-            chat_with_streaming_off(
-                domain_id,
-                embedder,
-                retriever,
-                chatter,
-                ai_placeholder=ai_placeholder,
-            )
+        try:
+            if stream:
+                chat_with_streaming_on(
+                    domain_id,
+                    embedder,
+                    retriever,
+                    chatter,
+                    ai_placeholder=ai_placeholder,
+                )
+            else:
+                chat_with_streaming_off(
+                    domain_id,
+                    embedder,
+                    retriever,
+                    chatter,
+                    ai_placeholder=ai_placeholder,
+                )
+        except Exception as e:
+            error_placeholder.error(f"Failed to chat: {e}")
+            ai_placeholder_container.empty()
+
     manage_history(chatter)
     manage_domain_context()
 
@@ -366,13 +373,10 @@ def chat_with_streaming_on(
     chatter: Chatter,
     ai_placeholder,
 ):
-    try:
-        original_generator = chatter.chat(parse_chat_history_for_LLM(), {})
-        wrapped_generator = generator_wrapper(original_generator)
-        with ai_placeholder:
-            st.write_stream(wrapped_generator)
-    except Exception as e:
-        st.error(f"Failed to chat: {e}")
+    original_generator = chatter.chat(parse_chat_history_for_LLM(), {})
+    wrapped_generator = generator_wrapper(original_generator)
+    with ai_placeholder:
+        st.write_stream(wrapped_generator)
 
 
 def generator_wrapper(chat_stream_generator):
@@ -392,13 +396,10 @@ def chat_with_streaming_off(
     chatter: Chatter,
     ai_placeholder,
 ):
-    try:
-        response = chatter.chat(parse_chat_history_for_LLM(), {})
-        with ai_placeholder:
-            st.write(response)
-        st.session_state["chat_history"].append(AIMessage(content=response))
-    except Exception as e:
-        st.error(f"Failed to chat: {e}")
+    response = chatter.chat(parse_chat_history_for_LLM(), {})
+    with ai_placeholder:
+        st.write(response)
+    st.session_state["chat_history"].append(AIMessage(content=response))
 
 
 def parse_chat_history_for_LLM():

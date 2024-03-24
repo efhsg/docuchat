@@ -34,10 +34,13 @@ class GroqChatter(Chatter):
         context_texts: List[str] = None,
     ) -> Union[str, Generator[str, None, None]]:
 
-        reduced_messages, _, _ = self.chat_text_processor.reduce_texts(
-            messages=(messages if messages else []),
+        reduced_messages, _, num_tokens_reduced_messages = (
+            self.chat_text_processor.reduce_texts(
+                messages=(messages if messages else []),
+            )
         )
         self.history_truncated = len(messages) - len(reduced_messages)
+        self.check_token_size(messages, reduced_messages, num_tokens_reduced_messages)
 
         client = Groq()
         try:
@@ -71,6 +74,21 @@ class GroqChatter(Chatter):
 
     def history_truncated_by(self) -> int:
         return self.history_truncated
+
+    def check_token_size(self, messages, reduced_messages, num_tokens_reduced_messages):
+        if (
+            len(reduced_messages) == 0
+            or self.get_num_tokens_left(messages=reduced_messages) <= 0
+        ):
+            tokens = (
+                num_tokens_reduced_messages
+                if num_tokens_reduced_messages > 0
+                else self.chat_text_processor.get_num_tokens(str(messages))
+            )
+            error_message = f"Insufficient tokens left to proceed with chat completion. Message size already {tokens} tokens."
+            if self.logger:
+                self.logger.error(error_message)
+            raise ValueError(error_message)
 
     def _generate_response(self, stream_response) -> Generator[str, None, None]:
         for chunk in stream_response:
