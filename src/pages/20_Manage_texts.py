@@ -5,6 +5,7 @@ from pages.utils.utils import (
     get_index,
     select_texts,
     set_default_state,
+    setup_session_state_vars,
     show_messages,
 )
 from pages.utils.utils import (
@@ -23,19 +24,6 @@ def main():
     setup_page()
     setup_session_state()
     manage_texts(select_domain(reader_repository.list_domains_with_extracted_texts()))
-
-
-def setup_session_state() -> None:
-    default_session_states = [
-        ("message", (None, None)),
-        ("context_domain", None),
-        ("context_text", None),
-        ("show_text", False),
-        ("edit_text", False),
-    ]
-
-    for state_name, default_value in default_session_states:
-        set_default_state(state_name, default_value)
 
 
 def manage_texts(selected_domain):
@@ -94,6 +82,7 @@ def manage_texts(selected_domain):
 
         if st.session_state.get("edit_text"):
             handle_text_content(selected_domain, selected_text, edit_mode=True)
+    handle_add_text(selected_domain)
 
 
 def select_domain(domain_options):
@@ -162,6 +151,58 @@ def handle_text_content(selected_domain, selected_text: ExtractedText, edit_mode
             f"An error occurred while displaying or editing the text content: {e}"
         )
         st.error(f"An error occurred while displaying or editing the text content: {e}")
+
+
+def handle_add_text(selected_domain):
+    with st.container(border=True):
+        if st.button("Add new text"):
+            st.session_state["add_new_text"] = not st.session_state["add_new_text"]
+
+        if st.session_state.get("add_new_text"):
+            with st.form("add_text_form", clear_on_submit=True):
+                title = st.text_input("Title")
+                new_text = st.text_area("Paste your text here", height=200)
+                submit_button = st.form_submit_button(label="Save")
+
+            if submit_button:
+                try:
+                    if not title or not new_text:
+                        raise ValueError(
+                            "Please provide a title and fill in the text area before saving."
+                        )
+                    reader_repository.save_text(
+                        domain_name=selected_domain,
+                        text_name=title,
+                        text=new_text,
+                        text_type="freeform",
+                        original_name=title,
+                    )
+                    st.success(f"Text '{title}' added successfully!")
+                    st.session_state["message"] = (
+                        f"Text '{title}' added successfully!",
+                        "success",
+                    )
+                    st.session_state["add_new_text"] = False
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to add text '{title}': {str(e)}")
+                    st.session_state["message"] = (
+                        f"Failed to add text '{title}': {str(e)}",
+                        "error",
+                    )
+
+
+def setup_session_state():
+    setup_session_state_vars(
+        [
+            ("message", (None, None)),
+            ("context_domain", None),
+            ("context_text", None),
+            ("show_text", False),
+            ("edit_text", False),
+            ("add_new_text", False),
+        ]
+    )
 
 
 if __name__ == "__main__":
