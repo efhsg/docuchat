@@ -8,6 +8,7 @@ beautifulsoup4
 pytest
 alembic
 langchain
+langchain_groq
 spacy
 sentence_transformers
 faiss-cpu

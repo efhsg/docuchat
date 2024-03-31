@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 
 
 class ChatTextProcessor(ABC):
@@ -26,7 +26,7 @@ class ChatTextProcessor(ABC):
     @abstractmethod
     def get_num_tokens(
         self,
-        text: str,
+        text: Optional[str],
     ) -> int:
         """
         Calculate the number of tokens in a given text.

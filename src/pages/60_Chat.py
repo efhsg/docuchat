@@ -1,5 +1,5 @@
 import pickle
-from typing import Any, Tuple
+from typing import Any, List, Tuple
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from components.chatter.chatter_config import ModelOptionsFetchError
@@ -316,6 +316,7 @@ def chat(
         user_query = st.chat_input("Start chatting here...")
         error_placeholder = st.empty()
         current_chat_placeholder = display_messages()
+    context_texts = []
     if user_query:
         if st.session_state.get("use_domain_context", False):
             domain_context_embeddings = retriever.retrieve(
@@ -329,9 +330,9 @@ def chat(
                     embedding_ids
                 )
             )
-        list_of_texts = [
-            compressor.decompress(chunk.chunk) for chunk, _ in chunks_with_filenames
-        ]
+            context_texts = [
+                compressor.decompress(chunk.chunk) for chunk, _ in chunks_with_filenames
+            ]
         with current_chat_placeholder.container(border=True):
             ai_placeholder_container = st.empty()
             with ai_placeholder_container:
@@ -344,18 +345,14 @@ def chat(
         try:
             if stream:
                 chat_with_streaming_on(
-                    domain_id,
-                    embedder,
-                    retriever,
-                    chatter,
+                    chatter=chatter,
+                    context_texts=context_texts,
                     ai_placeholder=ai_placeholder,
                 )
             else:
                 chat_with_streaming_off(
-                    domain_id,
-                    embedder,
-                    retriever,
-                    chatter,
+                    chatter=chatter,
+                    context_texts=context_texts,
                     ai_placeholder=ai_placeholder,
                 )
         except Exception as e:
@@ -363,17 +360,18 @@ def chat(
             ai_placeholder_container.empty()
 
     manage_history(chatter)
-    manage_domain_context()
+    manage_domain_context(chatter=chatter, context_texts=context_texts)
+    display_total_tokens_used(chatter)
 
 
 def chat_with_streaming_on(
-    domain_id,
-    embedder,
-    retriever,
     chatter: Chatter,
-    ai_placeholder,
+    context_texts: List[str] = None,
+    ai_placeholder=None,
 ):
-    original_generator = chatter.chat(parse_chat_history_for_LLM(), {})
+    original_generator = chatter.chat(
+        messages=st.session_state.get("chat_history", []), context_texts=context_texts
+    )
     wrapped_generator = generator_wrapper(original_generator)
     with ai_placeholder:
         st.write_stream(wrapped_generator)
@@ -390,34 +388,16 @@ def generator_wrapper(chat_stream_generator):
 
 
 def chat_with_streaming_off(
-    domain_id,
-    embedder,
-    retriever,
     chatter: Chatter,
-    ai_placeholder,
+    context_texts: List[str] = None,
+    ai_placeholder=None,
 ):
-    response = chatter.chat(parse_chat_history_for_LLM(), {})
+    response = chatter.chat(
+        messages=st.session_state.get("chat_history", []), context_texts=context_texts
+    )
     with ai_placeholder:
         st.write(response)
     st.session_state["chat_history"].append(AIMessage(content=response))
-
-
-def parse_chat_history_for_LLM():
-    history = [
-        {
-            "role": "user" if isinstance(message, HumanMessage) else "system",
-            "content": message.content,
-        }
-        for message in st.session_state.get("chat_history", [])
-    ]
-
-    if st.session_state.get("use_history", False):
-        return history
-    else:
-        recent_user_message = next(
-            (msg for msg in reversed(history) if msg["role"] == "user"), None
-        )
-        return [recent_user_message] if recent_user_message else []
 
 
 def display_messages():
@@ -458,7 +438,7 @@ def manage_history(chatter: Chatter):
 def display_history_info(chatter: Chatter):
     try:
         history = (
-            parse_chat_history_for_LLM()
+            chatter.convert_messages_for_api(st.session_state.get("chat_history", []))
             if st.session_state.get("context_use_history", False)
             else []
         )
@@ -471,8 +451,20 @@ def display_history_info(chatter: Chatter):
                 f" ({truncation_count} truncated)" if truncation_count > 0 else ""
             )
             context_window = chatter.get_params().get("context_window", 0)
-            tokens_left = chatter.get_num_tokens_left(parse_chat_history_for_LLM())
-
+            tokens_left = chatter.get_num_tokens_left(
+                chatter.convert_messages_for_api(
+                    st.session_state.get("chat_history", [])
+                )
+            )
+            st.write(
+                chatter.get_num_tokens(
+                    str(
+                        chatter.convert_messages_for_api(
+                            st.session_state.get("chat_history", [])
+                        )
+                    )
+                )
+            )
             st.info(messages_info)
             if isinstance(tokens_left, int) and context_window > 0:
                 percentage_left = (tokens_left / context_window) * 100
@@ -511,8 +503,12 @@ def log_last_two_messages():
         logger.info("No messages to display.")
 
 
-def manage_domain_context():
+def manage_domain_context(
+    chatter: Chatter,
+    context_texts: List[str] = None,
+):
     with st.sidebar.container(border=True):
+        display_domain_context(chatter=chatter, context_texts=context_texts)
         st.checkbox(
             "Use domain context",
             key="use_domain_context",
@@ -521,6 +517,34 @@ def manage_domain_context():
             ),
             value=st.session_state["context_use_domain_context"],
         )
+
+
+def display_domain_context(
+    chatter: Chatter,
+    context_texts: List[str] = None,
+):
+    try:
+        num_context_texts = len(context_texts)
+        if context_texts:
+            truncation_count = chatter.context_truncated_by()
+            messages_info = (
+                f"Context: {num_context_texts - truncation_count} chunks"
+                + (f" ({truncation_count} truncated)" if truncation_count > 0 else "")
+            )
+            st.info(messages_info)
+        else:
+            st.info("No context used")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+
+
+def display_total_tokens_used(chatter: Chatter):
+    try:
+        total_tokens = chatter.get_total_tokens_used()
+        if total_tokens > 0:
+            st.sidebar.write(f"Total tokens used in the last operation: {total_tokens}")
+    except Exception as e:
+        st.sidebar.error(f"An error occurred while fetching total tokens used: {e}")
 
 
 def setup_session_state():

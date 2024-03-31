@@ -1,12 +1,31 @@
-from typing import Dict, Generator, List, Optional, Union
+from typing import _TypedDict, Dict, Generator, List, Literal, Optional, Union
 from components.chatter.interfaces.chat_text_processor import ChatTextProcessor
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from components.chatter.interfaces.chatter_repository import ChatterRepository
 from groq import Groq
 
+from utils.logger_utils import log_to_json
+
+
+class Message(_TypedDict, total=False):
+    role: Union[Literal["user"], Literal["system"], Literal["assistant"]]
+    content: str
+    name: Optional[str]
+    seed: Optional[int]
+
 
 class GroqChatter(Chatter):
+
+    INSTRUCTIONS = """
+Instructions:
+- Be helpful and answer questions concisely. If you don't know the answer, say 'I don't know'.
+- Utilize the context provided for accurate and specific information.
+- Incorporate your preexisting knowledge to enhance the depth and relevance of your response.
+- Cite your sources when possible.
+"""
+
     def __init__(
         self,
         logger: Optional[StandardLogger] = None,
@@ -27,6 +46,8 @@ class GroqChatter(Chatter):
         self.logger = logger
         self.chat_text_processor = chat_text_processor
         self.history_truncated: int = 0
+        self.context_truncated: int = 0
+        self.total_tokens_used: int = 0
 
     def chat(
         self,
@@ -34,13 +55,24 @@ class GroqChatter(Chatter):
         context_texts: List[str] = None,
     ) -> Union[str, Generator[str, None, None]]:
 
-        reduced_messages, _, num_tokens_reduced_messages = (
+        api_messages = self.convert_messages_for_api(messages)
+
+        reduced_messages, reduced_context_texts, self.total_tokens_used = (
             self.chat_text_processor.reduce_texts(
-                messages=(messages if messages else []),
+                messages=(api_messages if api_messages else []),
+                context_texts=context_texts,
             )
         )
-        self.history_truncated = len(messages) - len(reduced_messages)
-        self.check_token_size(messages, reduced_messages, num_tokens_reduced_messages)
+        self.history_truncated = len(api_messages) - len(reduced_messages)
+        self.context_truncated = len(context_texts) - len(reduced_context_texts)
+        self.check_token_size(api_messages, reduced_messages, self.total_tokens_used)
+
+        if reduced_context_texts:
+            reduced_messages.append(
+                {"role": "system", "content": self.sys_prompt(reduced_context_texts)}
+            )
+
+        # self.logger.debug(log_to_json(reduced_messages))
 
         client = Groq()
         try:
@@ -55,6 +87,9 @@ class GroqChatter(Chatter):
             )
 
             if not self.stream:
+                self.total_tokens_used += self.get_num_tokens(
+                    stream_response.choices[0].message.content
+                )
                 return stream_response.choices[0].message.content
             else:
                 return self._generate_response(stream_response)
@@ -64,16 +99,26 @@ class GroqChatter(Chatter):
                 self.logger.error(f"An error occurred during chat completion: {str(e)}")
             raise
 
-    def get_num_tokens(self, text: str) -> int:
-        self.chat_text_processor.get_num_tokens(
-            text=text,
-        )
+    def get_num_tokens(self, text: Optional[str]) -> int:
+        if not text:
+            return 0
+        try:
+            return self.chat_text_processor.get_num_tokens(text)
+        except Exception as e:
+            self.logger.error(f"Error encoding text in get_num_tokens: {e}")
+            return 0
 
     def get_num_tokens_left(self, messages: List[Dict[str, str]]) -> int:
         return self.chat_text_processor.get_num_tokens_left(messages=messages)
 
     def history_truncated_by(self) -> int:
         return self.history_truncated
+
+    def context_truncated_by(self) -> int:
+        return self.context_truncated
+
+    def get_total_tokens_used(self) -> int:
+        return self.total_tokens_used
 
     def check_token_size(self, messages, reduced_messages, num_tokens_reduced_messages):
         if (
@@ -93,6 +138,9 @@ class GroqChatter(Chatter):
     def _generate_response(self, stream_response) -> Generator[str, None, None]:
         for chunk in stream_response:
             if chunk.choices[0].delta.content is not None:
+                self.total_tokens_used += self.get_num_tokens(
+                    chunk.choices[0].delta.content
+                )
                 yield chunk.choices[0].delta.content
 
     def get_params(self) -> Dict:
@@ -105,3 +153,35 @@ class GroqChatter(Chatter):
             "stop": self.stop,
             "context_window": self.chat_text_processor.context_window,
         }
+
+    def sys_prompt(self, context_texts: List[str]) -> str:
+        context_information = " ".join(context_texts)
+        sources = [f"Source {i+1}" for i in range(len(context_texts))]
+        context = f"Information: {context_information}\nSources: {', '.join(sources)}"
+        full_prompt = f"{GroqChatter.INSTRUCTIONS}\nContext: {context}"
+        return self.sanitize_text_for_json(full_prompt)
+
+    def convert_messages_for_api(
+        self, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]
+    ) -> List[Message]:
+        message_type_to_role = {
+            HumanMessage: "user",
+            AIMessage: "assistant",
+            SystemMessage: "system",
+        }
+
+        prepared_messages = []
+        for message in messages:
+            role = message_type_to_role.get(type(message))
+            if not role:
+                raise ValueError(f"Unsupported message type: {type(message).__name__}")
+
+            prepared_message: Message = {"role": role, "content": message.content}
+
+            if hasattr(message, "name") and message.name is not None:
+                prepared_message["name"] = message.name
+            if hasattr(message, "seed") and message.seed is not None:
+                prepared_message["seed"] = message.seed
+
+            prepared_messages.append(prepared_message)
+        return prepared_messages

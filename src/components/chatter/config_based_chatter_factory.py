@@ -65,6 +65,7 @@ class ConfigBasedChatterFactory(ChatterFactory):
                     token=getenv("HUGGINGFACEHUB_API_TOKEN"),
                 ),
                 context_window=model_cache.attributes.get("context_window"),
+                logger=self.logger,
             )
 
         except Exception as e:
