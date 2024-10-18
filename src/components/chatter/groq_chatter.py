@@ -1,4 +1,4 @@
-from typing import _TypedDict, Dict, Generator, List, Literal, Optional, Union
+from typing import _TypedDict, Dict, Generator, List, Literal, Optional, Tuple, Union
 from components.chatter.interfaces.chat_text_processor import ChatTextProcessor
 from components.chatter.interfaces.chatter import Chatter
 from logging import Logger as StandardLogger
@@ -23,7 +23,6 @@ Instructions:
 - Be helpful and answer questions concisely. If you don't know the answer, say 'I don't know'.
 - Utilize the context provided for accurate and specific information.
 - Incorporate your preexisting knowledge to enhance the depth and relevance of your response.
-- Cite your sources when possible.
 """
 
     def __init__(
@@ -53,51 +52,74 @@ Instructions:
         self,
         messages: List[Dict[str, str]] = None,
         context_texts: List[str] = None,
+        dry_run: bool = False,
     ) -> Union[str, Generator[str, None, None]]:
 
-        api_messages = self.convert_messages_for_api(messages)
+        reduced_messages = self._reduce_messages(messages, context_texts)
 
-        reduced_messages, reduced_context_texts, self.total_tokens_used = (
-            self.chat_text_processor.reduce_texts(
-                messages=(api_messages if api_messages else []),
-                context_texts=context_texts,
-            )
-        )
-        self.history_truncated = len(api_messages) - len(reduced_messages)
-        self.context_truncated = len(context_texts) - len(reduced_context_texts)
-        self.check_token_size(api_messages, reduced_messages, self.total_tokens_used)
-
-        if reduced_context_texts:
-            reduced_messages.append(
-                {"role": "system", "content": self.sys_prompt(reduced_context_texts)}
-            )
-
+        self.logger.info(self.get_num_tokens(str(reduced_messages)))
         # self.logger.debug(log_to_json(reduced_messages))
 
-        client = Groq()
         try:
-            stream_response = client.chat.completions.create(
-                messages=reduced_messages,
-                model=self.model,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                top_p=self.top_p,
-                stream=self.stream,
-                stop=[self.stop] if self.stop else None,
-            )
+            if dry_run:
+                if not self.stream:
+                    return "mock"
+                else:
 
-            if not self.stream:
-                self.total_tokens_used += self.get_num_tokens(
-                    stream_response.choices[0].message.content
-                )
-                return stream_response.choices[0].message.content
+                    def mock_generator():
+                        yield "mock"
+
+                    return mock_generator()
             else:
-                return self._generate_response(stream_response)
+                client = Groq()
+                stream_response = client.chat.completions.create(
+                    messages=reduced_messages,
+                    model=self.model,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    top_p=self.top_p,
+                    stream=self.stream,
+                    stop=[self.stop] if self.stop else None,
+                )
+
+                if not self.stream:
+                    self.total_tokens_used += self.get_num_tokens(
+                        stream_response.choices[0].message.content
+                    )
+                    return stream_response.choices[0].message.content
+                else:
+                    return self._generate_response(stream_response)
 
         except Exception as e:
             if self.logger:
                 self.logger.error(f"An error occurred during chat completion: {str(e)}")
             raise
+
+    def _reduce_messages(
+        self,
+        messages: List[Dict[str, str]] = None,
+        context_texts: List[str] = None,
+        preserve_state: bool = True,
+    ):
+        api_messages = self.convert_messages_for_api(messages)
+
+        reduced_messages, reduced_context_texts, total_tokens_used = (
+            self.chat_text_processor.reduce_texts(
+                messages=(api_messages if api_messages else []),
+                context_texts=context_texts,
+            )
+        )
+
+        if preserve_state:
+            self._check_token_size(api_messages, reduced_messages, total_tokens_used)
+            self.history_truncated = len(api_messages) - len(reduced_messages)
+            self.context_truncated = len(context_texts) - len(reduced_context_texts)
+            self.total_tokens_used = total_tokens_used
+
+        if reduced_context_texts:
+            reduced_messages.append(self._format_system_message(reduced_context_texts))
+
+        return reduced_messages
 
     def get_num_tokens(self, text: Optional[str]) -> int:
         if not text:
@@ -120,7 +142,45 @@ Instructions:
     def get_total_tokens_used(self) -> int:
         return self.total_tokens_used
 
-    def check_token_size(self, messages, reduced_messages, num_tokens_reduced_messages):
+    def calculate_total_tokens(
+        self, messages: List[Dict[str, str]] = None, context_texts: List[str] = None
+    ) -> int:
+        other_messages, most_recent_ai_message_content = (
+            self._separate_most_recent_ai_message(messages)
+        )
+        reduced_other_messages = str(
+            self._reduce_messages(
+                messages=other_messages,
+                context_texts=context_texts,
+                preserve_state=False,
+            )
+        )
+        total_string = f"{reduced_other_messages}{most_recent_ai_message_content}"
+        total_tokens = self.get_num_tokens(
+            reduced_other_messages + most_recent_ai_message_content
+        )
+
+        self.logger.info(f"{total_string} : {total_tokens}")
+        return total_tokens
+
+    def _separate_most_recent_ai_message(
+        self, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]
+    ) -> Tuple[List[Union[HumanMessage, AIMessage, SystemMessage]], str]:
+        if not messages:
+            return [], ""
+        messages_clone = messages[:]
+        most_recent_ai_message_content = ""
+        for i in reversed(range(len(messages_clone))):
+            message = messages_clone[i]
+            if isinstance(message, AIMessage):
+                most_recent_ai_message_content = message.content
+                messages_clone.pop(i)
+                break
+        return messages_clone, most_recent_ai_message_content
+
+    def _check_token_size(
+        self, messages, reduced_messages, num_tokens_reduced_messages
+    ):
         if (
             len(reduced_messages) == 0
             or self.get_num_tokens_left(messages=reduced_messages) <= 0
@@ -154,13 +214,6 @@ Instructions:
             "context_window": self.chat_text_processor.context_window,
         }
 
-    def sys_prompt(self, context_texts: List[str]) -> str:
-        context_information = " ".join(context_texts)
-        sources = [f"Source {i+1}" for i in range(len(context_texts))]
-        context = f"Information: {context_information}\nSources: {', '.join(sources)}"
-        full_prompt = f"{GroqChatter.INSTRUCTIONS}\nContext: {context}"
-        return self.sanitize_text_for_json(full_prompt)
-
     def convert_messages_for_api(
         self, messages: List[Union[HumanMessage, AIMessage, SystemMessage]]
     ) -> List[Message]:
@@ -185,3 +238,10 @@ Instructions:
 
             prepared_messages.append(prepared_message)
         return prepared_messages
+
+    def _sys_prompt(self, context_texts: List[str]) -> str:
+        full_prompt = f"{GroqChatter.INSTRUCTIONS}\nContext: {" ".join(context_texts)}"
+        return self.sanitize_text_for_json(full_prompt)
+
+    def _format_system_message(self, reduced_context_texts):
+        return {"role": "system", "content": self._sys_prompt(reduced_context_texts)}

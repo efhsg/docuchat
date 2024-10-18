@@ -361,7 +361,7 @@ def chat(
 
     manage_history(chatter)
     manage_domain_context(chatter=chatter, context_texts=context_texts)
-    display_total_tokens_used(chatter)
+    display_total_tokens_used(chatter, context_texts)
 
 
 def chat_with_streaming_on(
@@ -370,7 +370,9 @@ def chat_with_streaming_on(
     ai_placeholder=None,
 ):
     original_generator = chatter.chat(
-        messages=st.session_state.get("chat_history", []), context_texts=context_texts
+        messages=st.session_state.get("chat_history", []),
+        context_texts=context_texts,
+        dry_run=False,
     )
     wrapped_generator = generator_wrapper(original_generator)
     with ai_placeholder:
@@ -456,14 +458,9 @@ def display_history_info(chatter: Chatter):
                     st.session_state.get("chat_history", [])
                 )
             )
+            # logger.info(st.session_state.get("chat_history"))
             st.write(
-                chatter.get_num_tokens(
-                    str(
-                        chatter.convert_messages_for_api(
-                            st.session_state.get("chat_history", [])
-                        )
-                    )
-                )
+                f"Tokens used: {chatter.get_num_tokens(str(chatter.convert_messages_for_api(st.session_state.get('chat_history', []))))}"
             )
             st.info(messages_info)
             if isinstance(tokens_left, int) and context_window > 0:
@@ -538,11 +535,15 @@ def display_domain_context(
         st.error(f"An error occurred: {e}")
 
 
-def display_total_tokens_used(chatter: Chatter):
+def display_total_tokens_used(chatter: Chatter, context_texts: List[str] = None):
     try:
         total_tokens = chatter.get_total_tokens_used()
+        calc_total_tokens = chatter.calculate_total_tokens(
+            messages=st.session_state.get("chat_history"), context_texts=context_texts
+        )
         if total_tokens > 0:
             st.sidebar.write(f"Total tokens used in the last operation: {total_tokens}")
+            st.sidebar.write(f"Total calculated tokens: {calc_total_tokens}")
     except Exception as e:
         st.sidebar.error(f"An error occurred while fetching total tokens used: {e}")
 

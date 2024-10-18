@@ -15,6 +15,7 @@ class Chatter(ABC):
         self,
         messages: List[Union[HumanMessage, AIMessage, SystemMessage]] = None,
         context_texts: List[str] = None,
+        dry_run: bool = False,
     ) -> Union[str, Generator[str, None, None]]:
         """
         Abstract method to process messages and context, generating a response or series of responses.
@@ -84,6 +85,17 @@ class Chatter(ABC):
     def get_total_tokens_used(self) -> int:
         """
         Abstract method to get the total number of tokens used in the last operation or chat session.
+
+        :return: The total number of tokens used.
+        """
+        pass
+
+    @abstractmethod
+    def calculate_total_tokens(
+        self, messages: List[Dict[str, str]] = None, context_texts: List[str] = None
+    ) -> int:
+        """
+        Abstract method to calculate the total number of tokens used.
 
         :return: The total number of tokens used.
         """
