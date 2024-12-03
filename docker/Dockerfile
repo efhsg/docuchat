@@ -1,5 +1,9 @@
 FROM python:3.12.1-slim
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git
+
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
 
