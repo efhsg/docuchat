@@ -73,8 +73,8 @@ class ConfigBasedChatterFactory(ChatterFactory):
             if self.logger:
                 self.logger.error(log_msg)
             raise
-        finally:
-            return additional_params
+
+        return additional_params
 
     def _log_error(self, message: str):
         if self.logger:

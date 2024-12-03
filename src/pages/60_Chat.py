@@ -284,10 +284,14 @@ def create_chatter_instance(
     kwargs = {
         **st.session_state["context_chatter_values"],
     }
-    return chatter_factory.create_chatter(
-        st.session_state["context_chatter"],
-        **kwargs,
-    )
+    try:
+        return chatter_factory.create_chatter(
+            st.session_state["context_chatter"],
+            **kwargs,
+        )
+    except Exception as e:
+        st.error(f"An error occurred while creating the chatter instance: {e}")
+        return None
 
 
 def display_chatter_instance(chatter):

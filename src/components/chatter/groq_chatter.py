@@ -211,7 +211,11 @@ Instructions:
             "top_p": self.top_p,
             "stream": self.stream,
             "stop": self.stop,
-            "context_window": self.chat_text_processor.context_window,
+            "context_window": (
+                getattr(self.chat_text_processor, "context_window", 0)
+                if self.chat_text_processor is not None
+                else 0
+            ),
         }
 
     def convert_messages_for_api(
